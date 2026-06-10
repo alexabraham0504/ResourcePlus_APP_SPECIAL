@@ -1,0 +1,161 @@
+PRIVACY POLICY
+(Enterprise Employee Self-Service App – C)
+Last Updated: 21-May-2026
+
+1. Introduction
+NSP Solutions Private Limited ("Company", "we", "us", "our") provides the ResourcePlus ESS mobile application ("App") as an enterprise employee self-service tool. This App is not for public use. It is made available only to employees of organizations ("Client Companies") that have licensed and deployed our HR & Payroll system.
+By using this App, you confirm that you are an employee of a Client Company, and you consent to the data practices described in this policy.
+
+2. Who This App Is For
+This App is strictly for current employees of Client Companies using our HR & Payroll platform.
+The App cannot be used by the general public.
+Login credentials are provided to you by your employer. You do not register for the app independently. Your employer manages your username, password, and access rights.
+If your employment ends, your employer will revoke your credentials and your access will be terminated. You must uninstall the App.
+
+3. Information We Collect
+a) Information You Submit via Webview (HR Portal)
+You may submit the following HR-related requests and forms:
+Leave requests
+Letter requests
+Card requests
+General requests
+Exceptional attendance requests
+b) Information You View (Displayed from Your Employer’s HR System)
+Through the webview (HR Portal), you can view the following information pulled from your employer’s HR & Payroll system:
+Employee self-service details such as:
+Service days
+Leave balance
+Document expiry notifications
+Employee official details (e.g., designation, department, contact information)
+Attendance history and records
+Attendance Exceptional entry
+Employee dashboards and charts
+Employees attendance details, reports
+Workflow approval tasks, action required tasks details
+Manage employee details
+Note: This information is stored and controlled by your employer based on the login user’s permission. The app merely displays it and does not store it locally.
+c) Information Collected Automatically via Native Features
+When you use the native attendance punch feature, the app automatically collects:
+Attendance punch data – Date, time, and in/out status
+Selfie image – Captured at the time of attendance punch for identity verification
+Location coordinates – GPS/network-based location recorded with each attendance punch
+Device ID – Unique device identifier for session security and audit trails
+Additionally, the app retrieves and displays the following information from your employer’s HR system (this data is not stored locally by the app):
+Service days
+Leave balance
+Document expiry notifications
+Employee official details (e.g., designation, department, contact information)
+User attendance details (history and records)
+d) Session & Preference Data
+Cookies – Used for session management within the webview (HR Portal). Cookies are required for the app to function properly.
+Local preferences – Language selection (English/Arabic), dark mode, notification settings, and analytics opt-in/out status.
+e) Optional Analytics (User Controlled)
+You may toggle analytics and data collection on or off within the app’s privacy settings. When enabled, anonymized usage data helps us improve the app.
+
+4. How We Use Your Information
+All collected data is used only for legitimate HR, attendance, and payroll processing purposes authorized by your employer, including:
+Recording attendance with identity (selfie) and location verification
+Displaying leave balances, service days, document expiry, and employee details
+Processing leave, letter, card, general, and exceptional attendance requests
+Calculating timesheets and payroll inputs
+Sending work-related notifications and approvals
+Managing workflow tasks
+
+5. Data Sharing
+We do not sell or rent your personal data. Data is shared only with:
+Your employer (the Client Company) – All data is transmitted to and stored on your employer’s dedicated HR server. Your employer controls access and retention.
+Service providers – Limited to essential SDKs (Google Play Services for location & authentication). These providers have their own privacy policies.
+Legal authorities – If required by applicable law (UAE or India).
+
+6. Data Storage & Security
+Storage location: Your employer’s hosting server (typically in the UAE or as configured by your employer).
+Retention: Your data remains until your employer decides to remove it from their HR records (e.g., after employment termination or as required by local labor laws).
+Security: Data is transmitted over HTTPS. Device-level security (e.g., biometric login) depends on your device settings.
+
+7. Your Rights and Choices
+Because this App is provided through your employer:
+Data access, correction, or deletion requests must be directed to your company’s HR department – they are the data controller.
+Login credential issues (lost password, reset, or revocation) must be directed to your employer’s HR or IT department.
+You also have these technical choices:
+Deny camera permission → Selfie capture will not work
+Deny location permission → Attendance punch may be blocked
+Disable analytics → Toggle off in App Settings → Privacy
+
+8. Legal & Compliance (UAE Focus)
+This App is intended for employees of companies operating in the United Arab Emirates (UAE). Your employer is responsible for compliance with UAE Federal Decree-Law No. 45 of 2021 on Personal Data Protection. We act as a data processor on behalf of your employer.
+
+9. Children’s Privacy
+This App is for workplace use only and is not intended for individuals under 13 years of age.
+
+10. Changes to This Policy
+We may update this Privacy Policy. Changes will be posted within the App. Continued use after changes means you accept the updated policy.
+
+11. Contact Us (for app-related privacy questions)
+NSP Solutions Private Limited39/2475-B1, Suite K29, LR Towers, SJRRA 104, South Janatha Road, Palarivattom, Kochi, Kerala 682025, IndiaEmail: info@netsoftpro.net
+Note: For HR data-related requests (leave balance, service days, document expiry, etc.) or login credential issues, please contact your employer directly.
+
+TERMS & CONDITIONS
+(Enterprise Employee Self-Service App – ResourcePlus ESS)
+Last Updated: 21-May-2026
+
+1. Acceptance of Terms
+By downloading, installing, or using the ResourcePlus ESS mobile application ("App"), you acknowledge that:
+You are a current employee of a company that has licensed this HR & Payroll system.
+You agree to these Terms & Conditions.
+If you do not agree, do not use the App and notify your employer.
+
+2. Eligibility and Access
+Only active employees of Client Companies are authorized to use this App.
+Access is provided by your employer. Your login credentials are issued and managed by your employer – not by NSP Solutions. For any credential issues (lost password, reset, or revocation), you must contact your employer’s HR or IT department.
+Upon termination of employment, your employer will revoke your credentials and your access will be disabled. You must uninstall the App.
+
+3. Permitted Use
+You may use the App only for legitimate work-related purposes, including:
+Recording attendance (with selfie and location)
+Viewing leave balances, service days, document expiry, and employee details
+Submitting HR requests (leave, letters, cards, general, exceptional attendance)
+Approving workflows and tasks
+Receiving work notifications
+
+4. Prohibited Conduct
+You agree not to:
+Falsify attendance punches (e.g., fake selfies, spoofed location)
+Share your login credentials with anyone
+Use the App after employment ends
+Attempt to reverse engineer or hack the App
+Violations may result in disciplinary action by your employer, including termination.
+
+5. No Public Use
+This App is not a public application. It is an enterprise tool. Downloading it without being an authorized employee of a Client Company does not grant any right to use it.
+
+6. Internet Requirement
+The App requires an active internet connection. Offline functionality is not supported except for storing basic preferences locally.
+
+7. Third-Party SDKs
+The App uses:
+Google Play Services – For location and authentication
+InAppWebView – For displaying your employer’s HR portal (cookies enabled)
+We are not responsible for third-party privacy practices.
+
+8. Disclaimer
+The App is provided "as is" and "as available". We do not guarantee uninterrupted or error-free operation. Your employer is responsible for HR data accuracy. We are not liable for employment decisions made by your employer.
+
+9. Limitation of Liability
+To the maximum extent permitted by law, NSP Solutions Private Limited shall not be liable for any indirect, incidental, or consequential damages arising from your use of the App, including but not limited to employment disputes, payroll errors, or data loss.
+
+10. Termination
+Your access may be terminated immediately if:
+Your employment ends
+Your employer suspends its subscription
+You violate these Terms
+
+11. Governing Law
+These Terms (as a software license) are governed by the laws of Kerala, India. Your employment relationship remains governed by UAE law (or the law of your employer’s jurisdiction).
+
+12. Changes to Terms
+We may update these Terms. Continued use after changes constitutes acceptance. Material changes will be notified within the App.
+
+13. Contact Us
+NSP Solutions Private Limited39/2475-B1, Suite K29, LR Towers, SJRRA 104, South Janatha Road, Palarivattom, Kochi, Kerala 682025, IndiaEmail: info@netsoftpro.net
+
+
