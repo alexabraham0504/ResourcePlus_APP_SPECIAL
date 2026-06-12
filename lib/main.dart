@@ -247,7 +247,7 @@ class MyApp extends StatelessWidget {
             fontSize: 20,
           ),
         ),
-        cardTheme: CardTheme(
+        cardTheme: CardThemeData(
           color: const Color(0xFF141414),
           elevation: 2,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),

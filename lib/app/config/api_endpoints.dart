@@ -10,6 +10,7 @@ class ApiEndpoints {
   static const String verifyOtp = '$baseUrl/Mobile/api/Client/VerifyOtp';
   static const String validateUser = '$baseUrl/Mobile/api/Client/ValidateUser';
   static const String changePwd = '$baseUrl/Mobile/api/Client/ChangePwd';
+  static const String getPortalUrl = '$baseUrl/Mobile/api/Client/GetPortalUrl';
 
   // Client (Home/Dashboard) Endpoints
   static const String getHomeData = '$baseUrl/Mobile/api/Client/GetHomeData';

@@ -225,12 +225,14 @@ class AppDrawer extends StatelessWidget {
           onTap: () {
             Navigator.pop(context); // Close drawer First
             
-            // If already on the same tab, do nothing
-            if (controller.currentIndex.value == index) return;
+            bool isSubPage = Get.currentRoute != AppRoutes.home && Get.currentRoute != '/';
+
+            // If already on the same tab and we are on HomeView, do nothing
+            if (controller.currentIndex.value == index && !isSubPage) return;
             
             // Pop the current page if it is a sub-page (like hr_portal or attendance_history)
-            if (Get.currentRoute != AppRoutes.home) {
-              Get.until((route) => Get.currentRoute == AppRoutes.home);
+            if (isSubPage) {
+              Get.until((route) => route.settings.name == AppRoutes.home || route.settings.name == '/');
             }
             
             controller.changeTab(index);

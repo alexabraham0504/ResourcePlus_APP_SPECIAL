@@ -121,7 +121,7 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
               child: TabHeader(
                 title: '',
                 onNotificationTap: () {
-                  Get.back();
+                  Get.until((route) => route.settings.name == AppRoutes.home || route.settings.name == '/');
                   Get.find<HomeController>().changeTab(3);
                 },
               ),

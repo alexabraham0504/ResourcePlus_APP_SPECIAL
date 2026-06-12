@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:dio/dio.dart';
@@ -8,6 +9,7 @@ import '../../../controllers/language_controller.dart';
 import '../../../services/notification_service.dart';
 import '../../../services/api_service.dart';
 import '../../../config/api_endpoints.dart';
+import '../../../routes/app_routes.dart';
 
 class HomeController extends GetxController {
   final Dio _dio = ApiService().dio;
@@ -1075,6 +1077,94 @@ class HomeController extends GetxController {
   // Initialize profile picture URL
   void initializeProfilePicture() {
     profilePictureUrl.value = getProfilePictureUrl();
+  }
+
+  Future<void> launchHrPortal({String? title}) async {
+    try {
+      Get.dialog(
+        const Center(child: CircularProgressIndicator()),
+        barrierDismissible: false,
+      );
+
+      String instanceName = GetStorage().read('instanceName')?.toString() ?? '';
+      String userName = GetStorage().read('username')?.toString() ?? '';
+      String userEmail = GetStorage().read('email')?.toString() ?? '';
+      
+      String usrEmailValue = userEmail.isNotEmpty
+          ? userEmail
+          : userName;
+
+      final languageController = Get.find<LanguageController>();
+
+      final response = await _dio.get(
+        ApiEndpoints.getPortalUrl,
+        queryParameters: {
+          'usrEmail': usrEmailValue,
+          'instanceName': instanceName,
+          'lang': languageController.currentLangCode,
+        },
+      );
+
+      if (Get.isDialogOpen == true) {
+        Navigator.of(Get.overlayContext!).pop();
+      }
+
+      if (response.statusCode == 200 && response.data != null) {
+        var responseData = response.data;
+        if (responseData is String) {
+          try {
+            String cleanData = responseData.replaceAll('\uFEFF', '').trim();
+            if (cleanData.startsWith('"') && cleanData.endsWith('"')) {
+              cleanData = cleanData.substring(1, cleanData.length - 1).replaceAll('\\"', '"');
+            }
+            responseData = jsonDecode(cleanData);
+          } catch (e) {
+            print('JSON decode error for GetPortalUrl: $e');
+          }
+        }
+
+        List<dynamic>? dataList;
+        if (responseData is List) {
+          dataList = responseData;
+        }
+
+        if (dataList != null && dataList.isNotEmpty) {
+          final clientUrl = dataList[0]['ClientUrl']?.toString() ?? '';
+          if (clientUrl.isNotEmpty) {
+            final headText = title ?? staticContents['HrLinkHeadText'] ?? 'hr_portal'.tr;
+            Get.toNamed(AppRoutes.webview,
+                preventDuplicates: true,
+                parameters: {'url': clientUrl, 'title': headText});
+            return;
+          }
+        }
+      }
+      
+
+      Get.defaultDialog(
+        title: 'API Error',
+        middleText: 'Status: ${response.statusCode}\nData: ${response.data}\nParams: $usrEmailValue / $instanceName',
+        textConfirm: 'OK',
+        confirmTextColor: Colors.white,
+        onConfirm: () {
+          if (Get.isDialogOpen == true) Navigator.of(Get.overlayContext!).pop();
+        },
+      );
+    } catch (e) {
+      if (Get.isDialogOpen == true) {
+        Navigator.of(Get.overlayContext!).pop();
+      }
+      print('Error launching HR portal: $e');
+      Get.defaultDialog(
+        title: 'Error',
+        middleText: 'hr_portal_error'.tr,
+        textConfirm: 'OK',
+        confirmTextColor: Colors.white,
+        onConfirm: () {
+          if (Get.isDialogOpen == true) Navigator.of(Get.overlayContext!).pop();
+        },
+      );
+    }
   }
 
   /// Parses AttDate strings in multiple formats for proper date sorting.
