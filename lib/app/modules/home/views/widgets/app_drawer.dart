@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../controllers/home_controller.dart';
 import '../../../../routes/app_routes.dart';
 import '../../../auth/controllers/auth_controller.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class AppDrawer extends StatelessWidget {
   const AppDrawer({Key? key}) : super(key: key);
@@ -15,48 +16,70 @@ class AppDrawer extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = Get.find<HomeController>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    // Premium theme colors
+    final bgColor = isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC);
+    final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
+    final iconColor = isDark ? Colors.white70 : const Color(0xFF64748B);
 
-    return Container(
-      color: isDark ? const Color(0xFF121212) : const Color(0xFF004A77),
-      child: SafeArea(
-        child: Column(
-          children: [
-            // Drawer Header
-            _buildDrawerHeader(context, isDark, controller),
-
-            // Navigation Items
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-                children: [
-                  _buildNavItem(context, isDark, 0, Icons.grid_view, 'home'.tr, primaryGreen, controller),
-                  _buildNavItem(context, isDark, 1, Icons.fingerprint, 'attendance'.tr, corporateBlue, controller),
-                  _buildNavItem(context, isDark, 2, Icons.account_circle, 'profile'.tr, const Color(0xFFFC943B), controller),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    child: Divider(height: 1),
-                  ),
-                  _buildNavItem(context, isDark, 4, Icons.settings_suggest, 'settings'.tr, const Color(0xFF6F7A6B), controller),
-                  
-                  // Logout
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: ListTile(
-                      leading: Icon(Icons.power_settings_new, color: errorColor),
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        color: bgColor,
+        child: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Premium Drawer Header
+              _buildPremiumHeader(context, isDark, controller, textColor, iconColor),
+              
+              const SizedBox(height: 10),
+              
+              // Navigation Items
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  physics: const BouncingScrollPhysics(),
+                  children: [
+                    _buildPremiumNavItem(0, Icons.grid_view_rounded, 'home'.tr, controller, textColor, iconColor),
+                    _buildPremiumNavItem(1, Icons.fingerprint_rounded, 'attendance'.tr, controller, textColor, iconColor),
+                    _buildPremiumNavItem(2, Icons.account_circle_rounded, 'profile'.tr, controller, textColor, iconColor),
+                    
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                      child: Divider(height: 1, color: iconColor.withOpacity(0.15)),
+                    ),
+                    
+                    _buildPremiumNavItem(4, Icons.settings_suggest_rounded, 'settings'.tr, controller, textColor, iconColor),
+                    
+                    // Logout
+                    const SizedBox(height: 8),
+                    ListTile(
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: errorColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.power_settings_new_rounded, color: errorColor, size: 22),
+                      ),
                       title: Text('logout'.tr,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontWeight: FontWeight.w600,
+                          fontSize: 15,
                           color: errorColor,
                         ),
                       ),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                       onTap: () async {
-                        Navigator.pop(context); // Close Drawer
+                        controller.zoomDrawerController.toggle?.call(); 
                         final shouldSignOut = await showDialog<bool>(
                           context: context,
                           builder: (context) => AlertDialog(
                             title: Text('sign_out'.tr),
                             content: Text('are_you_sure_sign_out'.tr),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                             actions: [
                               TextButton(onPressed: () => Navigator.of(context).pop(false), child: Text('cancel'.tr)),
                               ElevatedButton(
@@ -76,99 +99,96 @@ class AppDrawer extends StatelessWidget {
                         }
                       },
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 30),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildDrawerHeader(BuildContext context, bool isDark, HomeController controller) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 60, 20, 24),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [corporateBlue, primaryGreen],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.only(topRight: Radius.circular(28)),
-      ),
+  Widget _buildPremiumHeader(BuildContext context, bool isDark, HomeController controller, Color textColor, Color subTextColor) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 40, 24, 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Avatar
+              // Avatar with premium ring
               Obx(() => Container(
-                width: 60, height: 60,
+                width: 70, height: 70,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  color: Colors.white.withOpacity(0.2),
-                  border: Border.all(color: Colors.white.withOpacity(0.3)),
+                  shape: BoxShape.circle,
+                  color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
+                  border: Border.all(color: primaryGreen, width: 2.5),
+                  boxShadow: [
+                    BoxShadow(
+                      color: primaryGreen.withOpacity(0.2),
+                      blurRadius: 15, spreadRadius: 2,
+                    ),
+                  ],
                 ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(14),
+                child: ClipOval(
                   child: controller.profilePictureUrl.value.isNotEmpty
-                      ? Image.network(controller.profilePictureUrl.value,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) =>
-                              const Icon(Icons.person, color: Colors.white, size: 30))
-                      : const Icon(Icons.person, color: Colors.white, size: 30),
+                      ? Image.network(controller.profilePictureUrl.value, fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Icon(Icons.person, color: subTextColor, size: 35))
+                      : Icon(Icons.person, color: subTextColor, size: 35),
                 ),
               )),
-              const Spacer(),
-              // Close button
+              
+              // Subtle close button
               IconButton(
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.close, color: Colors.white),
+                onPressed: () => controller.zoomDrawerController.toggle?.call(),
+                icon: Icon(Icons.close_rounded, color: subTextColor),
                 style: IconButton.styleFrom(
-                  backgroundColor: Colors.white.withOpacity(0.15),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  backgroundColor: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
+                  shape: const CircleBorder(),
+                  padding: const EdgeInsets.all(8),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           Obx(() => Text(
-            controller.employeeName.value.isNotEmpty
-                ? controller.employeeName.value : 'Employee',
-            style: const TextStyle(
-              color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800,
-              letterSpacing: -0.3,
+            controller.employeeName.value.isNotEmpty ? controller.employeeName.value : 'Employee',
+            style: GoogleFonts.outfit(
+              color: textColor, fontSize: 24, fontWeight: FontWeight.w900,
+              letterSpacing: -0.5, height: 1.1,
             ),
           )),
-          const SizedBox(height: 4),
-          Obx(() => Row(
+          const SizedBox(height: 6),
+          Obx(() => Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8, // horizontal spacing between items
+            runSpacing: 6, // vertical spacing if they wrap
             children: [
               Text(
-                controller.positionName.value.isNotEmpty
-                    ? controller.positionName.value : 'Position',
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.7),
-                  fontSize: 12, fontWeight: FontWeight.w600,
-                  letterSpacing: 0.5,
+                controller.positionName.value.isNotEmpty ? controller.positionName.value : 'Position',
+                style: GoogleFonts.outfit(
+                  color: subTextColor, fontSize: 13, fontWeight: FontWeight.w500,
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: Container(
-                  width: 4, height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.3),
-                    shape: BoxShape.circle,
+              Container(
+                width: 4, height: 4,
+                decoration: BoxDecoration(color: subTextColor.withOpacity(0.5), shape: BoxShape.circle),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: primaryGreen.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  'ID: ${controller.empNumber.value.isNotEmpty ? controller.empNumber.value : "N/A"}',
+                  style: GoogleFonts.outfit(
+                    color: primaryGreen, fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 0.5,
                   ),
-                ),
-              ),
-              Text(
-                'ID:${controller.empNumber.value.isNotEmpty ? controller.empNumber.value : "N/A"}',
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.7),
-                  fontSize: 12, fontWeight: FontWeight.w600,
-                  letterSpacing: 0.5,
                 ),
               ),
             ],
@@ -178,47 +198,44 @@ class AppDrawer extends StatelessWidget {
     );
   }
 
-  Widget _buildNavItem(BuildContext context, bool isDark, int index, IconData icon, String label, Color iconColor, HomeController controller, {int badgeCount = 0}) {
+  Widget _buildPremiumNavItem(int index, IconData icon, String label, HomeController controller, Color textColor, Color subTextColor) {
     return Obx(() {
       final isSelected = controller.currentIndex.value == index;
+      
+      final activeColor = primaryGreen;
+      final itemTextColor = isSelected ? activeColor : textColor;
+      final itemIconColor = isSelected ? activeColor : subTextColor;
+      final bgColor = isSelected ? activeColor.withOpacity(0.12) : Colors.transparent;
 
       return Padding(
-        padding: const EdgeInsets.only(bottom: 4),
+        padding: const EdgeInsets.only(bottom: 8),
         child: ListTile(
           selected: isSelected,
-          selectedTileColor: primaryGreen.withOpacity(isDark ? 0.2 : 0.05),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: isSelected
-                ? BorderSide(color: primaryGreen.withOpacity(0.1))
-                : BorderSide.none,
+          tileColor: Colors.transparent,
+          selectedTileColor: bgColor,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          leading: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: isSelected ? activeColor.withOpacity(0.1) : (Theme.of(Get.context!).brightness == Brightness.dark ? Colors.white10 : Colors.black.withOpacity(0.04)),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: itemIconColor, size: 22),
           ),
-          leading: badgeCount > 0
-              ? Badge(
-                  label: Text('$badgeCount', style: const TextStyle(fontSize: 10)),
-                  child: Icon(icon, color: isSelected ? primaryGreen : iconColor),
-                )
-              : Icon(icon, color: isSelected ? primaryGreen : iconColor),
           title: Text(label,
-            style: TextStyle(
+            style: GoogleFonts.outfit(
               fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-              color: Colors.white,
+              fontSize: 15,
+              color: itemTextColor,
+              letterSpacing: 0.2,
             ),
           ),
           onTap: () {
-            final zoomDrawer = Get.find<HomeController>().zoomDrawerController;
-            zoomDrawer.toggle?.call();
-            
+            controller.zoomDrawerController.toggle?.call();
             bool isSubPage = Get.currentRoute != AppRoutes.home && Get.currentRoute != '/';
-
-            // If already on the same tab and we are on HomeView, do nothing
             if (controller.currentIndex.value == index && !isSubPage) return;
-            
-            // Pop the current page if it is a sub-page (like hr_portal or attendance_history)
-            if (isSubPage) {
-              Get.until((route) => route.settings.name == AppRoutes.home || route.settings.name == '/');
-            }
-            
+            if (isSubPage) Get.until((route) => route.settings.name == AppRoutes.home || route.settings.name == '/');
             controller.changeTab(index);
           },
         ),

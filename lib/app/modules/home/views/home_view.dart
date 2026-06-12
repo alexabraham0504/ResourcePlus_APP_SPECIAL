@@ -30,6 +30,10 @@ class HomeView extends GetView<HomeController> {
         canPop: isHomeTab,
         onPopInvoked: (didPop) {
           if (didPop) return;
+          if (controller.zoomDrawerController.isOpen?.call() ?? false) {
+            controller.zoomDrawerController.close?.call();
+            return;
+          }
           if (!isHomeTab) {
             controller.changeTab(0);
           }
@@ -63,8 +67,12 @@ class HomeView extends GetView<HomeController> {
           borderRadius: 24.0,
           showShadow: true,
           angle: -10.0,
+          isRtl: true, // This moves the menu to the right side
           drawerShadowsBackgroundColor: isDark ? Colors.grey.shade900 : Colors.grey.shade300,
           slideWidth: MediaQuery.of(context).size.width * 0.65,
+          openCurve: Curves.easeOutCubic,
+          closeCurve: Curves.easeOutQuint,
+          duration: const Duration(milliseconds: 450),
         ),
       );
     });

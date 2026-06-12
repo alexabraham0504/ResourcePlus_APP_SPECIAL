@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:intl/intl.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../controllers/home_controller.dart';
 import '../../../../routes/app_routes.dart';
 import '../../../../controllers/language_controller.dart';
@@ -86,10 +87,10 @@ class HomeTab extends GetView<HomeController> {
           Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
           const SizedBox(height: 16),
           Text('failed_to_load_home_data'.tr,
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.red[700])),
+              style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.red[700])),
           const SizedBox(height: 8),
           Text(controller.errorMessage.value, textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey[600])),
+              style: GoogleFonts.outfit(color: Colors.grey[600])),
           const SizedBox(height: 16),
           ElevatedButton(
             onPressed: controller.refreshData,
@@ -98,7 +99,7 @@ class HomeTab extends GetView<HomeController> {
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             ),
-            child: Text('retry'.tr),
+            child: Text('retry'.tr, style: GoogleFonts.outfit()),
           ),
         ],
       ),
@@ -115,19 +116,22 @@ class HomeTab extends GetView<HomeController> {
         children: [
           Text(
             '${'hello_there'.tr}${firstName.isNotEmpty ? firstName : ""}',
-            style: TextStyle(
-              fontSize: 34,
-              fontWeight: FontWeight.w800,
+            style: GoogleFonts.outfit(
+              fontSize: 32,
+              fontWeight: FontWeight.w900,
               color: isDark ? Colors.white : onSurface,
-              letterSpacing: -0.5,
+              letterSpacing: -0.8,
+              height: 1.1,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Text(
             'dashboard_up_to_date'.tr,
-            style: TextStyle(
-              fontSize: 14,
-              color: (isDark ? Colors.white : onSurfaceVariant).withOpacity(0.7),
+            style: GoogleFonts.outfit(
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+              color: (isDark ? Colors.white : onSurfaceVariant).withOpacity(0.6),
+              letterSpacing: 0.2,
             ),
           ),
         ],
@@ -182,7 +186,7 @@ class HomeTab extends GetView<HomeController> {
                 Text(
                   controller.employeeName.value.isNotEmpty
                       ? controller.employeeName.value : 'Employee',
-                  style: TextStyle(
+                  style: GoogleFonts.outfit(
                     fontSize: 20, fontWeight: FontWeight.w800,
                     color: isDark ? Colors.white : onSurface,
                   ),
@@ -191,23 +195,23 @@ class HomeTab extends GetView<HomeController> {
                 Text(
                   controller.positionName.value.isNotEmpty
                       ? controller.positionName.value : 'Position',
-                  style: TextStyle(fontSize: 14,
+                  style: GoogleFonts.outfit(fontSize: 14,
                       color: (isDark ? Colors.white : onSurfaceVariant).withOpacity(0.7)),
                   maxLines: 1, overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 4),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: onSurface.withOpacity(0.05),
-                    borderRadius: BorderRadius.circular(6),
+                    color: primaryGreen.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     'ID: ${controller.empNumber.value.isNotEmpty ? controller.empNumber.value : "N/A"}',
-                    style: TextStyle(
-                      fontSize: 10, fontWeight: FontWeight.w600,
-                      letterSpacing: 1.2,
-                      color: (isDark ? Colors.white : onSurfaceVariant).withOpacity(0.5),
+                    style: GoogleFonts.outfit(
+                      fontSize: 11, fontWeight: FontWeight.w700,
+                      letterSpacing: 1.0,
+                      color: primaryGreen,
                     ),
                   ),
                 ),
@@ -314,11 +318,13 @@ class HomeTab extends GetView<HomeController> {
               child: Icon(icon, size: 30, color: iconColor),
             ),
             const SizedBox(height: 10),
-            Text(label,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 11, fontWeight: FontWeight.w700,
-                letterSpacing: 2, color: labelColor,
+            Text(
+              label,
+              style: GoogleFonts.outfit(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1.0,
+                color: labelColor,
               ),
             ),
           ],
