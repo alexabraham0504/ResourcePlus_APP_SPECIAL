@@ -18,28 +18,11 @@ class TabHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = Get.find<HomeController>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final surfaceBg = const Color(0xFFF9F9FC);
 
     return Row(
       children: [
-        // Hamburger menu
-        GestureDetector(
-          onTap: onMenuTap ?? () {
-            if (Scaffold.of(context).hasDrawer) {
-              Scaffold.of(context).openDrawer();
-            } else {
-              controller.scaffoldKey.currentState?.openDrawer();
-            }
-          },
-          child: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(Icons.menu, color: corporateBlue, size: 26),
-          ),
-        ),
-        const SizedBox(width: 12),
-        // Logo
+        // Logo (Left side)
         Image.asset(
           'assets/app_logo.png',
           height: 22,
@@ -53,51 +36,26 @@ class TabHeader extends StatelessWidget {
           ),
         ),
         const Spacer(),
-        // Notification bell
+        // Menu icon (Right side)
         GestureDetector(
-          onTap: onNotificationTap ?? () => controller.changeTab(3),
-          child: Obx(() => Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(top: 4.0, right: 4.0),
-                child: Icon(Icons.notifications_outlined,
-                  color: isDark ? Colors.white70 : onSurfaceVariant, size: 28),
-              ),
-              if (controller.unreadNotificationsCount > 0)
-                Positioned(
-                  top: 0, right: 0,
-                  child: Container(
-                    padding: const EdgeInsets.all(2),
-                    decoration: BoxDecoration(
-                      color: Colors.redAccent,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: isDark ? const Color(0xFF121212) : const Color(0xFFF9F9FC),
-                        width: 1.5,
-                      ),
-                    ),
-                    constraints: const BoxConstraints(
-                      minWidth: 18,
-                      minHeight: 18,
-                    ),
-                    child: Center(
-                      child: Text(
-                        controller.unreadNotificationsCount > 99 
-                            ? '99+' 
-                            : controller.unreadNotificationsCount.toString(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          )),
+          onTap: onMenuTap ?? () {
+            controller.zoomDrawerController.toggle?.call();
+          },
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              color: isDark ? Colors.white.withOpacity(0.1) : surfaceBg,
+              boxShadow: [
+                BoxShadow(
+                  color: corporateBlue.withOpacity(0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                )
+              ]
+            ),
+            child: const Icon(Icons.grid_view_rounded, color: corporateBlue, size: 26),
+          ),
         ),
       ],
     );

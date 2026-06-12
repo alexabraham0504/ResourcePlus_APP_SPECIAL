@@ -10,7 +10,7 @@ plugins {
 
 android {
     namespace = "com.resourceplus.app"
-    compileSdk = 37 // Explicitly set to 37 for full Android 17 compatibility
+    compileSdk = flutter.compileSdkVersion
     ndkVersion = "28.2.13676358"
 
     compileOptions {
@@ -34,7 +34,7 @@ android {
         
         // targetSdk is a Google Play requirement (currently they require 34/35).
         // It DOES NOT limit the app to Android 14. It just means the app is optimized for it.
-        targetSdk = 37 // Upgraded to Android 17 (SDK 37)
+        targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }

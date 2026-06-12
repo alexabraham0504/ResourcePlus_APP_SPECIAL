@@ -32,7 +32,7 @@ class HrPortalView extends GetView<HrPortalController> {
               child: TabHeader(
                 title: '',
                 onNotificationTap: () {
-                  Get.until((route) => route.settings.name == AppRoutes.home || route.settings.name == '/');
+                  Get.back();
                   Get.find<HomeController>().changeTab(3);
                 },
               ),
@@ -53,7 +53,7 @@ class HrPortalView extends GetView<HrPortalController> {
                             duration: const Duration(milliseconds: 600),
                             tween: Tween(begin: 0.0, end: 1.0),
                             builder: (context, val, child) => Opacity(
-                              opacity: val.clamp(0.0, 1.0),
+                              opacity: val,
                               child: Transform.translate(
                                 offset: Offset(0, 20 * (1 - val)),
                                 child: child,
@@ -95,7 +95,7 @@ class HrPortalView extends GetView<HrPortalController> {
                             curve: Curves.easeOutBack,
                             builder: (context, val, child) => Transform.scale(
                               scale: 0.8 + (0.2 * val),
-                              child: Opacity(opacity: val.clamp(0.0, 1.0), child: child),
+                              child: Opacity(opacity: val, child: child),
                             ),
                             child: Container(
                               padding: const EdgeInsets.all(24),
@@ -147,7 +147,7 @@ class HrPortalView extends GetView<HrPortalController> {
                             duration: const Duration(milliseconds: 700),
                             tween: Tween(begin: 0.0, end: 1.0),
                             builder: (context, val, child) => Opacity(
-                              opacity: val.clamp(0.0, 1.0),
+                              opacity: val,
                               child: Transform.translate(offset: Offset(0, 30 * (1 - val)), child: child),
                             ),
                             child: _buildAttendanceButtons(context, primaryGreen, primaryRed, isDark),
@@ -159,7 +159,7 @@ class HrPortalView extends GetView<HrPortalController> {
                             duration: const Duration(milliseconds: 800),
                             tween: Tween(begin: 0.0, end: 1.0),
                             builder: (context, val, child) => Opacity(
-                              opacity: val.clamp(0.0, 1.0),
+                              opacity: val,
                               child: Transform.translate(offset: Offset(0, 20 * (1 - val)), child: child),
                             ),
                             child: _buildShiftAndCoordinates(context, colorScheme, isDark),
@@ -171,7 +171,7 @@ class HrPortalView extends GetView<HrPortalController> {
                             duration: const Duration(milliseconds: 900),
                             tween: Tween(begin: 0.0, end: 1.0),
                             builder: (context, val, child) => Opacity(
-                              opacity: val.clamp(0.0, 1.0),
+                              opacity: val,
                               child: Transform.translate(offset: Offset(0, 20 * (1 - val)), child: child),
                             ),
                             child: _buildLastPunchesSection(context, colorScheme, isDark),

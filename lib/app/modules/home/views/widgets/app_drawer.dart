@@ -16,23 +16,9 @@ class AppDrawer extends StatelessWidget {
     final controller = Get.find<HomeController>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Drawer(
-      backgroundColor: Colors.transparent,
-      elevation: 0,
-      child: Container(
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1A1C1E).withOpacity(0.95) : Colors.white.withOpacity(0.92),
-          borderRadius: const BorderRadius.only(
-            topRight: Radius.circular(28),
-            bottomRight: Radius.circular(28),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: primaryGreen.withOpacity(isDark ? 0.05 : 0.1),
-              blurRadius: 40,
-            ),
-          ],
-        ),
+    return Container(
+      color: isDark ? const Color(0xFF121212) : const Color(0xFF004A77),
+      child: SafeArea(
         child: Column(
           children: [
             // Drawer Header
@@ -46,7 +32,6 @@ class AppDrawer extends StatelessWidget {
                   _buildNavItem(context, isDark, 0, Icons.grid_view, 'home'.tr, primaryGreen, controller),
                   _buildNavItem(context, isDark, 1, Icons.fingerprint, 'attendance'.tr, corporateBlue, controller),
                   _buildNavItem(context, isDark, 2, Icons.account_circle, 'profile'.tr, const Color(0xFFFC943B), controller),
-                  _buildNavItem(context, isDark, 3, Icons.notifications_active, 'notifications'.tr, const Color(0xFF3C6184), controller, badgeCount: controller.unreadNotificationsCount),
                   const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     child: Divider(height: 1),
@@ -217,13 +202,12 @@ class AppDrawer extends StatelessWidget {
           title: Text(label,
             style: TextStyle(
               fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-              color: isSelected
-                  ? primaryGreen
-                  : (isDark ? Colors.white : const Color(0xFF1A1C1E)),
+              color: Colors.white,
             ),
           ),
           onTap: () {
-            Navigator.pop(context); // Close drawer First
+            final zoomDrawer = Get.find<HomeController>().zoomDrawerController;
+            zoomDrawer.toggle?.call();
             
             bool isSubPage = Get.currentRoute != AppRoutes.home && Get.currentRoute != '/';
 

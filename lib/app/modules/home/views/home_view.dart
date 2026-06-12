@@ -9,6 +9,7 @@ import 'tabs/settings_tab.dart';
 import 'package:resource_plus/app/routes/app_routes.dart';
 import '../../auth/controllers/auth_controller.dart';
 import 'widgets/app_drawer.dart';
+import 'package:flutter_zoom_drawer/flutter_zoom_drawer.dart';
 
 class HomeView extends GetView<HomeController> {
   const HomeView({Key? key}) : super(key: key);
@@ -33,34 +34,37 @@ class HomeView extends GetView<HomeController> {
             controller.changeTab(0);
           }
         },
-        child: Scaffold(
-          key: controller.scaffoldKey,
-          floatingActionButton: controller.currentIndex.value == 1
-              ? PulsingPunchFab(
-                  onPressed: () => Get.toNamed(AppRoutes.hrPortal),
-                )
-              : null,
-
-          // Sidebar Drawer (replaces bottom nav)
-          drawer: const AppDrawer(),
-
-          // No bottom navigation bar - tabs are in the drawer now
-          body: () {
-            switch (controller.currentIndex.value) {
-              case 0:
-                return const HomeTab();
-              case 1:
-                return const AttendanceTab();
-              case 2:
-                return const ProfileTab();
-              case 3:
-                return const NotificationTab();
-              case 4:
-                return const SettingsTab();
-              default:
-                return const HomeTab();
-            }
-          }(),
+        child: ZoomDrawer(
+          controller: controller.zoomDrawerController,
+          menuScreen: const AppDrawer(),
+          mainScreen: Scaffold(
+            key: controller.scaffoldKey,
+            floatingActionButton: controller.currentIndex.value == 1
+                ? PulsingPunchFab(
+                    onPressed: () => Get.toNamed(AppRoutes.hrPortal),
+                  )
+                : null,
+            // No bottom navigation bar - tabs are in the drawer now
+            body: () {
+              switch (controller.currentIndex.value) {
+                case 0:
+                  return const HomeTab();
+                case 1:
+                  return const AttendanceTab();
+                case 2:
+                  return const ProfileTab();
+                case 4:
+                  return const SettingsTab();
+                default:
+                  return const HomeTab();
+              }
+            }(),
+          ),
+          borderRadius: 24.0,
+          showShadow: true,
+          angle: -10.0,
+          drawerShadowsBackgroundColor: isDark ? Colors.grey.shade900 : Colors.grey.shade300,
+          slideWidth: MediaQuery.of(context).size.width * 0.65,
         ),
       );
     });

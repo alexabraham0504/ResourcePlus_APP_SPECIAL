@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import '../controllers/home_controller.dart';
+import '../../../routes/app_routes.dart';
 import 'widgets/tab_header.dart';
 import 'widgets/app_drawer.dart';
 

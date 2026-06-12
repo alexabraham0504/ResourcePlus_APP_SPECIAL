@@ -10,6 +10,7 @@ import '../../../services/notification_service.dart';
 import '../../../services/api_service.dart';
 import '../../../config/api_endpoints.dart';
 import '../../../routes/app_routes.dart';
+import 'package:flutter_zoom_drawer/flutter_zoom_drawer.dart';
 
 class HomeController extends GetxController {
   final Dio _dio = ApiService().dio;
@@ -17,6 +18,9 @@ class HomeController extends GetxController {
 
   // Scaffold key for drawer control
   final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
+
+  // ZoomDrawer Controller
+  final ZoomDrawerController zoomDrawerController = ZoomDrawerController();
 
   // Navigation index
   final RxInt currentIndex = 0.obs;
@@ -146,12 +150,13 @@ class HomeController extends GetxController {
     
     initializeProfilePicture();
     _loadPollingSettings();
-    _startNotificationPolling();
+    // Notifications disabled for next release
+    // _startNotificationPolling();
   }
 
   @override
   void onClose() {
-    _stopNotificationPolling();
+    // _stopNotificationPolling();
     super.onClose();
   }
 

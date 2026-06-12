@@ -244,28 +244,11 @@ class HomeTab extends GetView<HomeController> {
         _buildGlassActionCard(
           isDark: isDark,
           icon: Icons.widgets,
-          label: 'SELF\nSERVICE',
+          label: 'SELF SERVICE',
           iconColor: primaryGreen,
           labelColor: isDark ? Colors.white : onSurface,
           hasIconBg: true,
-          onTap: () {
-            final storage = GetStorage();
-            final webLink = storage.read('webLink');
-            if (webLink != null && webLink.toString().isNotEmpty) {
-              final headText = controller.staticContents['HrLinkHeadText'] ?? 'hr_portal'.tr;
-              Get.toNamed(AppRoutes.webview,
-                  preventDuplicates: true,
-                  parameters: {'url': webLink.toString(), 'title': headText});
-            } else {
-              Get.defaultDialog(
-                title: 'Error',
-                middleText: 'hr_portal_link_error'.tr,
-                textConfirm: 'OK',
-                confirmTextColor: Colors.white,
-                onConfirm: () => Navigator.of(Get.overlayContext!).pop(),
-              );
-            }
-          },
+          onTap: controller.launchHrPortal,
         ),
         // Profile
         _buildGlassActionCard(
@@ -719,12 +702,7 @@ class HomeTab extends GetView<HomeController> {
           );
         } else {
           // Fallback if not found
-          final storage = GetStorage();
-          final webLink = storage.read('webLink');
-          if (webLink != null && webLink.toString().isNotEmpty) {
-            Get.toNamed(AppRoutes.webview,
-                parameters: {'url': webLink.toString(), 'title': 'Leave Balances'});
-          }
+          controller.launchHrPortal(title: 'Leave Balances');
         }
       },
       child: Container(
