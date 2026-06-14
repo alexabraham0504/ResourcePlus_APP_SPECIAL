@@ -7,6 +7,7 @@ import '../../controllers/home_controller.dart';
 import '../../../../routes/app_routes.dart';
 import '../../../../controllers/language_controller.dart';
 import '../widgets/tab_header.dart';
+import '../../../../widgets/error_page_widget.dart';
 
 class HomeTab extends GetView<HomeController> {
   const HomeTab({Key? key}) : super(key: key);
@@ -80,29 +81,27 @@ class HomeTab extends GetView<HomeController> {
   }
 
   Widget _buildErrorState(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
-          const SizedBox(height: 16),
-          Text('failed_to_load_home_data'.tr,
-              style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.red[700])),
-          const SizedBox(height: 8),
-          Text(controller.errorMessage.value, textAlign: TextAlign.center,
-              style: GoogleFonts.outfit(color: Colors.grey[600])),
-          const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: controller.refreshData,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: primaryGreen,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            ),
-            child: Text('retry'.tr, style: GoogleFonts.outfit()),
-          ),
-        ],
-      ),
+    // Detect error type from error message
+    final errorMsg = controller.errorMessage.value.toLowerCase();
+    ErrorType errorType;
+    if (errorMsg.contains('connection') ||
+        errorMsg.contains('socket') ||
+        errorMsg.contains('host lookup') ||
+        errorMsg.contains('network') ||
+        errorMsg.contains('timeout') ||
+        errorMsg.contains('no address')) {
+      errorType = ErrorType.connection;
+    } else if (errorMsg.contains('500') ||
+        errorMsg.contains('503') ||
+        errorMsg.contains('server')) {
+      errorType = ErrorType.server;
+    } else {
+      errorType = ErrorType.unknown;
+    }
+
+    return FuturisticErrorPage(
+      onRetry: controller.refreshData,
+      errorType: errorType,
     );
   }
 

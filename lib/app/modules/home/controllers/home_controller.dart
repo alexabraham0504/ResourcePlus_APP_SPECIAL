@@ -137,6 +137,9 @@ class HomeController extends GetxController {
   final RxBool isPollingActive = false.obs;
   final RxBool pushNotificationsEnabled = true.obs;
 
+  // Cached portal URL for faster HR Portal loading
+  String? _cachedPortalUrl;
+
   @override
   void onInit() {
     super.onInit();
@@ -152,6 +155,9 @@ class HomeController extends GetxController {
     _loadPollingSettings();
     // Notifications disabled for next release
     // _startNotificationPolling();
+
+    // Pre-fetch portal URL in background for faster HR Portal loading
+    _preFetchPortalUrl();
   }
 
   @override
@@ -655,10 +661,11 @@ class HomeController extends GetxController {
 
             notifications.value = parsedNotifications;
 
+            // Notifications disabled for this release
             // Check for new notifications and show local push notification
-            await _notificationService.checkForNewNotifications(
-              parsedNotifications.length,
-            );
+            // await _notificationService.checkForNewNotifications(
+            //   parsedNotifications.length,
+            // );
           } catch (e) {
             print('Error parsing notifications: $e');
             notifications.value = [];
@@ -1084,8 +1091,74 @@ class HomeController extends GetxController {
     profilePictureUrl.value = getProfilePictureUrl();
   }
 
+  // Pre-fetch portal URL for faster loading
+  Future<void> _preFetchPortalUrl() async {
+    try {
+      String instanceName = GetStorage().read('instanceName')?.toString() ?? '';
+      String userName = GetStorage().read('username')?.toString() ?? '';
+      String userEmail = GetStorage().read('email')?.toString() ?? '';
+      
+      String usrEmailValue = userEmail.isNotEmpty ? userEmail : userName;
+      if (usrEmailValue.isEmpty || instanceName.isEmpty) return;
+
+      final languageController = Get.find<LanguageController>();
+
+      final response = await _dio.get(
+        ApiEndpoints.getPortalUrl,
+        queryParameters: {
+          'usrEmail': usrEmailValue,
+          'instanceName': instanceName,
+          'lang': languageController.currentLangCode,
+        },
+        options: Options(receiveTimeout: const Duration(seconds: 10)),
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        final url = _extractPortalUrl(response.data);
+        if (url != null && url.isNotEmpty) {
+          _cachedPortalUrl = url;
+        }
+      }
+    } catch (e) {
+      // Silent fail — URL will be fetched when user taps
+      print('Pre-fetch portal URL failed (non-critical): $e');
+    }
+  }
+
+  /// Extracts ClientUrl from potentially wrapped response data.
+  String? _extractPortalUrl(dynamic responseData) {
+    var data = responseData;
+
+    // Parse if string
+    if (data is String) {
+      try {
+        String cleanData = data.replaceAll('\uFEFF', '').trim();
+        if (cleanData.startsWith('"') && cleanData.endsWith('"')) {
+          cleanData = cleanData.substring(1, cleanData.length - 1).replaceAll('\\"', '"');
+        }
+        data = jsonDecode(cleanData);
+      } catch (e) {
+        return null;
+      }
+    }
+
+    if (data is List && data.isNotEmpty) {
+      return data[0]['ClientUrl']?.toString();
+    }
+    return null;
+  }
+
   Future<void> launchHrPortal({String? title}) async {
     try {
+      // Use cached URL if available for instant loading
+      if (_cachedPortalUrl != null && _cachedPortalUrl!.isNotEmpty) {
+        final headText = title ?? staticContents['HrLinkHeadText'] ?? 'hr_portal'.tr;
+        Get.toNamed(AppRoutes.webview,
+            preventDuplicates: true,
+            parameters: {'url': _cachedPortalUrl!, 'title': headText});
+        return;
+      }
+
       Get.dialog(
         const Center(child: CircularProgressIndicator()),
         barrierDismissible: false,
@@ -1108,6 +1181,7 @@ class HomeController extends GetxController {
           'instanceName': instanceName,
           'lang': languageController.currentLangCode,
         },
+        options: Options(receiveTimeout: const Duration(seconds: 15)),
       );
 
       if (Get.isDialogOpen == true) {
@@ -1115,33 +1189,16 @@ class HomeController extends GetxController {
       }
 
       if (response.statusCode == 200 && response.data != null) {
-        var responseData = response.data;
-        if (responseData is String) {
-          try {
-            String cleanData = responseData.replaceAll('\uFEFF', '').trim();
-            if (cleanData.startsWith('"') && cleanData.endsWith('"')) {
-              cleanData = cleanData.substring(1, cleanData.length - 1).replaceAll('\\"', '"');
-            }
-            responseData = jsonDecode(cleanData);
-          } catch (e) {
-            print('JSON decode error for GetPortalUrl: $e');
-          }
-        }
+        final clientUrl = _extractPortalUrl(response.data);
 
-        List<dynamic>? dataList;
-        if (responseData is List) {
-          dataList = responseData;
-        }
-
-        if (dataList != null && dataList.isNotEmpty) {
-          final clientUrl = dataList[0]['ClientUrl']?.toString() ?? '';
-          if (clientUrl.isNotEmpty) {
-            final headText = title ?? staticContents['HrLinkHeadText'] ?? 'hr_portal'.tr;
-            Get.toNamed(AppRoutes.webview,
-                preventDuplicates: true,
-                parameters: {'url': clientUrl, 'title': headText});
-            return;
-          }
+        if (clientUrl != null && clientUrl.isNotEmpty) {
+          // Cache for next time
+          _cachedPortalUrl = clientUrl;
+          final headText = title ?? staticContents['HrLinkHeadText'] ?? 'hr_portal'.tr;
+          Get.toNamed(AppRoutes.webview,
+              preventDuplicates: true,
+              parameters: {'url': clientUrl, 'title': headText});
+          return;
         }
       }
       

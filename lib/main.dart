@@ -37,14 +37,14 @@ void main() async {
   final apiService = ApiService();
   apiService.initialize();
 
-  // Initialize notification service
-  final notificationService = NotificationService();
-  await notificationService.initialize();
+  // Notification service disabled for this release
+  // final notificationService = NotificationService();
+  // await notificationService.initialize();
 
-  // Request notification permission on Android 13+
-  if (await Permission.notification.isDenied) {
-    await Permission.notification.request();
-  }
+  // Notification permission request disabled
+  // if (await Permission.notification.isDenied) {
+  //   await Permission.notification.request();
+  // }
 
   runApp(const MyApp());
 }

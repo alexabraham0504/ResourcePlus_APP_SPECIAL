@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:get_storage/get_storage.dart';
+import '../../../widgets/error_page_widget.dart';
 
 class WebViewPage extends StatefulWidget {
   final String url;
@@ -21,6 +22,7 @@ class WebViewPage extends StatefulWidget {
 class _WebViewPageState extends State<WebViewPage> {
   InAppWebViewController? webViewController;
   bool isLoading = true;
+  double loadingProgress = 0.0;
   String? errorMessage;
   bool _hasShownPermissionDialog = false;
 
@@ -57,49 +59,7 @@ class _WebViewPageState extends State<WebViewPage> {
           child: Stack(
             children: [
             if (errorMessage != null)
-              Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Error',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.red[700],
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 32),
-                      child: Text(
-                        errorMessage!,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        setState(() {
-                          errorMessage = null;
-                          isLoading = true;
-                        });
-                        // Reloading handled by WebView creation or refresh logic
-                        webViewController?.reload();
-                      },
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('Try Again'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: blue,
-                        foregroundColor: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
-              )
+              _buildFuturisticError()
             else
               InAppWebView(
                 initialUrlRequest: URLRequest(url: WebUri(widget.url)),
@@ -132,6 +92,7 @@ class _WebViewPageState extends State<WebViewPage> {
                   userAgent:
                       "Mozilla/5.0 (Linux; Android 12; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36",
                   cacheEnabled: true, // Keep cache enabled so session cookies persist
+                  cacheMode: CacheMode.LOAD_CACHE_ELSE_NETWORK, // Prefer cached content for speed
                   supportZoom: true,
                   builtInZoomControls: true,
                   displayZoomControls: false,
@@ -151,6 +112,14 @@ class _WebViewPageState extends State<WebViewPage> {
                   if (mounted) {
                     setState(() {
                       isLoading = true;
+                      loadingProgress = 0.0;
+                    });
+                  }
+                },
+                onProgressChanged: (controller, progress) {
+                  if (mounted) {
+                    setState(() {
+                      loadingProgress = progress.toDouble();
                     });
                   }
                 },
@@ -225,13 +194,94 @@ class _WebViewPageState extends State<WebViewPage> {
                 },
               ),
             if (isLoading)
-              Container(
-                color: Colors.white,
-                child: const Center(child: CircularProgressIndicator()),
-              ),
+              _buildLoadingOverlay(),
           ],
         ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildFuturisticError() {
+    // Detect error type from message
+    final msg = (errorMessage ?? '').toLowerCase();
+    ErrorType errorType;
+    if (msg.contains('connection') ||
+        msg.contains('socket') ||
+        msg.contains('host lookup') ||
+        msg.contains('network') ||
+        msg.contains('timeout') ||
+        msg.contains('no address') ||
+        msg.contains('dns')) {
+      errorType = ErrorType.connection;
+    } else if (msg.contains('500') ||
+        msg.contains('503') ||
+        msg.contains('server')) {
+      errorType = ErrorType.server;
+    } else {
+      errorType = ErrorType.unknown;
+    }
+
+    return FuturisticErrorPage(
+      onRetry: () {
+        setState(() {
+          errorMessage = null;
+          isLoading = true;
+          loadingProgress = 0.0;
+        });
+        webViewController?.reload();
+      },
+      errorType: errorType,
+    );
+  }
+
+  Widget _buildLoadingOverlay() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      color: isDark ? const Color(0xFF0F172A) : Colors.white,
+      child: Column(
+        children: [
+          // Gradient progress bar at top
+          TweenAnimationBuilder<double>(
+            duration: const Duration(milliseconds: 300),
+            tween: Tween(begin: 0.0, end: loadingProgress),
+            builder: (context, value, child) {
+              return LinearProgressIndicator(
+                value: value > 0 ? value / 100 : null,
+                backgroundColor: isDark
+                    ? Colors.white.withOpacity(0.05)
+                    : const Color(0xFFE2E8F0),
+                valueColor: const AlwaysStoppedAnimation<Color>(
+                  Color(0xFF3B82F6),
+                ),
+                minHeight: 3,
+              );
+            },
+          ),
+          const Expanded(
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF3B82F6)),
+                    strokeWidth: 3,
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    'Loading...',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF94A3B8),
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
