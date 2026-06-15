@@ -10,6 +10,8 @@ import 'app/translations/app_translations.dart';
 import 'app/services/api_service.dart';
 import 'app/services/notification_service.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter/foundation.dart';
+import 'app/widgets/error_page_widget.dart';
 
 import 'dart:io';
 
@@ -26,6 +28,40 @@ void main() async {
   HttpOverrides.global = MyHttpOverrides();
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Set global error widget to replace the default red error screen
+  ErrorWidget.builder = (FlutterErrorDetails details) {
+    return Builder(
+      builder: (context) {
+        // Try to get media query size, fallback if not available
+        Size size;
+        try {
+          size = MediaQuery.of(context).size;
+        } catch (_) {
+          size = const Size(400, 800);
+        }
+
+        return MediaQuery(
+          data: MediaQueryData(size: size),
+          child: Directionality(
+            textDirection: TextDirection.ltr,
+            child: Scaffold(
+              body: FuturisticErrorPage(
+                onRetry: () {
+                  if (Get.context != null) {
+                    Get.offAllNamed(AppRoutes.home);
+                  }
+                },
+                errorType: ErrorType.unknown,
+                customMessage: kDebugMode 
+                    ? details.summary.toString() 
+                    : 'An unexpected error occurred.',
+              ),
+            ),
+          ),
+        );
+      }
+    );
+  };
 
   await GetStorage.init();
 
@@ -275,6 +311,18 @@ class MyApp extends StatelessWidget {
       // ? AppPages.initialLogin
       // : AppPages.emailPassLogin,
       getPages: AppPages.routes,
+      unknownRoute: GetPage(
+        name: '/notfound',
+        page: () => Scaffold(
+          body: FuturisticErrorPage(
+            onRetry: () {
+              Get.offAllNamed(AppRoutes.home);
+            },
+            errorType: ErrorType.unknown,
+            customMessage: 'Page not found.',
+          ),
+        ),
+      ),
     );
   }
 }
