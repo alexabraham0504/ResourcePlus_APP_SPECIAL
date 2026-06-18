@@ -71,7 +71,7 @@ class HrPortalView extends GetView<HrPortalController> {
                                 ),
                                 const SizedBox(width: 16),
                                 Text(
-                                  'Attendance Punch',
+                                  'attendance_punch'.tr,
                                   style: TextStyle(
                                     fontSize: 20,
                                     fontWeight: FontWeight.w600,
@@ -127,7 +127,7 @@ class HrPortalView extends GetView<HrPortalController> {
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
-                                    'Current Server Time',
+                                    'current_server_time'.tr,
                                     style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600,
@@ -329,7 +329,7 @@ class HrPortalView extends GetView<HrPortalController> {
         Expanded(
           child: Obx(
             () => _AnimatedPunchButton(
-              title: 'IN',
+              title: 'in_uppercase'.tr,
               icon: Icons.login_rounded,
               color: green,
               isLoading: controller.isProcessingIn.value,
@@ -342,7 +342,7 @@ class HrPortalView extends GetView<HrPortalController> {
         Expanded(
           child: Obx(
             () => _AnimatedPunchButton(
-              title: 'OUT',
+              title: 'out_uppercase'.tr,
               icon: Icons.logout_rounded,
               color: red,
               isLoading: controller.isProcessingOut.value,
@@ -368,7 +368,7 @@ class HrPortalView extends GetView<HrPortalController> {
             ),
             const SizedBox(width: 10),
             Text(
-              'Last 5 Punches',
+              'last_5_punches'.tr,
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: isDark ? Colors.white : const Color(0xFF0F172A)),
             ),
           ],
@@ -413,8 +413,16 @@ class HrPortalView extends GetView<HrPortalController> {
   }
 
   Widget _buildPunchItem(dynamic punch, ColorScheme colorScheme, bool isDark) {
-    final isIn = punch.type.toString().toLowerCase() == 'in';
+    final rawType = punch.type.toString().toLowerCase();
+    final isIn = rawType == 'in';
     final color = isIn ? const Color(0xFF10B981) : const Color(0xFFEF4444);
+    
+    String displayType = punch.type.toString().toUpperCase();
+    if (displayType == 'IN') displayType = 'in_uppercase'.tr;
+    if (displayType == 'OUT') displayType = 'out_uppercase'.tr;
+
+    String displayStatus = punch.status;
+    if (displayStatus.toLowerCase() == 'success') displayStatus = 'success'.tr;
     
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
@@ -430,7 +438,7 @@ class HrPortalView extends GetView<HrPortalController> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(punch.type.toString().toUpperCase(), style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: isDark ? Colors.white : const Color(0xFF1E293B))),
+                Text(displayType, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: isDark ? Colors.white : const Color(0xFF1E293B))),
                 const SizedBox(height: 4),
                 Text('${punch.date} • ${punch.time}', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? Colors.grey[400] : Colors.grey[500])),
               ],
@@ -439,7 +447,7 @@ class HrPortalView extends GetView<HrPortalController> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(color: punch.status == 'Success' ? const Color(0xFF10B981).withOpacity(0.1) : Colors.red.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
-            child: Text(punch.status, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: punch.status == 'Success' ? const Color(0xFF10B981) : Colors.red)),
+            child: Text(displayStatus, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: punch.status == 'Success' ? const Color(0xFF10B981) : Colors.red)),
           ),
         ],
       ),
@@ -464,7 +472,7 @@ class HrPortalView extends GetView<HrPortalController> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Current Shift', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: isDark ? Colors.grey[400] : Colors.grey[500])),
+                    Text('current_shift'.tr, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: isDark ? Colors.grey[400] : Colors.grey[500])),
                     const SizedBox(height: 2),
                     Obx(() => Text(controller.currentShift.value, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: isDark ? Colors.white : const Color(0xFF1E293B)))),
                   ],
@@ -484,7 +492,7 @@ class HrPortalView extends GetView<HrPortalController> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Location', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: isDark ? Colors.grey[400] : Colors.grey[500])),
+                    Text('location'.tr, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: isDark ? Colors.grey[400] : Colors.grey[500])),
                     const SizedBox(height: 2),
                     Obx(() => Text(controller.currentCoordinates.value, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, fontFamily: 'monospace', color: isDark ? Colors.white : const Color(0xFF1E293B)))),
                   ],

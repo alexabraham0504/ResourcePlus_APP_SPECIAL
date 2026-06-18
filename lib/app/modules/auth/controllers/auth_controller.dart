@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'package:dio/dio.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:local_auth/local_auth.dart';
 import '../../../controllers/language_controller.dart';
 import '../../../services/api_service.dart';
@@ -17,6 +18,7 @@ class AuthController extends GetxController {
   var isLoading = false.obs;
   var errorMessage = ''.obs;
 
+  final secureStorage = const FlutterSecureStorage();
   final Dio _dio = ApiService().dio;
 
   // API: Validate Instance
@@ -199,7 +201,7 @@ class AuthController extends GetxController {
           );
           await GetStorage().write('username', data['Username'] ?? '');
           await GetStorage().write('email', data['Email'] ?? '');
-          await GetStorage().write('password', password); // Store password for biometric login
+          await secureStorage.write(key: 'password', value: password); // Store password for biometric login
           await GetStorage().write('instanceName', effectiveInstance);
           // Enable biometric login
 
@@ -528,7 +530,7 @@ class AuthController extends GetxController {
 
       // Get stored credentials for biometric login
       final storedEmail = GetStorage().read('email');
-      final storedPassword = GetStorage().read('password');
+      final storedPassword = await secureStorage.read(key: 'password');
 
       if (storedEmail == null || storedPassword == null) {
         isLoading.value = false;
@@ -566,7 +568,7 @@ class AuthController extends GetxController {
     // Also clear biometric settings so user must setup again after logout
     await GetStorage().write('isLoggedIn', false);
     await GetStorage().write('email', '');
-    await GetStorage().write('password', '');
+    await secureStorage.delete(key: 'password');
     await GetStorage().write('username', '');
     await GetStorage().write('empDisplayName', '');
     await GetStorage().write('webLink', '');
@@ -637,9 +639,9 @@ class AuthController extends GetxController {
           );
           await GetStorage().write('username', data['Username'] ?? '');
           await GetStorage().write('email', data['Email'] ?? '');
-          await GetStorage().write(
-            'password',
-            password,
+          await secureStorage.write(
+            key: 'password',
+            value: password,
           ); // Store password for biometric login
 
           isLoading.value = false;

@@ -18,6 +18,7 @@ import '../modules/home/controllers/hr_portal_controller.dart';
 import '../modules/auth/views/privacy_consent_view.dart';
 import '../modules/auth/views/privacy_terms_detail_view.dart';
 import '../modules/home/views/attendance_history_view.dart';
+import '../modules/home/views/update_required_view.dart';
 import 'app_routes.dart';
 
 class AppPages {
@@ -85,6 +86,10 @@ class AppPages {
     GetPage(
       name: AppRoutes.attendanceHistory,
       page: () => const AttendanceHistoryView(),
+    ),
+    GetPage(
+      name: AppRoutes.updateRequired,
+      page: () => const UpdateRequiredView(),
     ),
   ];
 } 

@@ -33,13 +33,30 @@ class _BiometricCheckViewState extends State<BiometricCheckView> {
         if (mounted) setState(() => _isLoading = false);
         return;
       }
-      final authenticated = await controller.authenticateWithBiometrics();
+      
+      final loginResult = await controller.biometricLogin();
+      
       if (!mounted) return;
-      if (authenticated) {
+      if (loginResult['success'] == true) {
         setState(() => _isLoading = false);
-        Get.offAllNamed(AppRoutes.home);
+        if (loginResult['isNeedToResetPwd'] == true) {
+          Get.offAllNamed(AppRoutes.newPassword);
+        } else {
+          Get.offAllNamed(AppRoutes.home);
+        }
       } else {
         setState(() => _isLoading = false);
+        if (loginResult['message'] != 'Biometric authentication failed.') {
+          await controller.logout();
+          Get.snackbar(
+            'Session Expired',
+            loginResult['message'] ?? 'Your password has been changed. Please login again.',
+            backgroundColor: Colors.redAccent,
+            colorText: Colors.white,
+            duration: const Duration(seconds: 4),
+          );
+          Get.offAllNamed(AppRoutes.login);
+        }
       }
     } catch (_) {
       if (mounted) setState(() => _isLoading = false);
@@ -156,25 +173,40 @@ class _BiometricCheckViewState extends State<BiometricCheckView> {
                                       return;
                                     }
 
-                                    final authenticated = await controller
-                                        .authenticateWithBiometrics();
+                                    final loginResult = await controller.biometricLogin();
 
-                                    if (authenticated) {
+                                    if (loginResult['success'] == true) {
                                       setState(() {
                                         _isLoading = false;
                                       });
-                                      Get.offAllNamed(AppRoutes.home);
+                                      if (loginResult['isNeedToResetPwd'] == true) {
+                                        Get.offAllNamed(AppRoutes.newPassword);
+                                      } else {
+                                        Get.offAllNamed(AppRoutes.home);
+                                      }
                                     } else {
                                       setState(() {
                                         _isLoading = false;
                                       });
-                                      Get.snackbar(
-                                        'Authentication Failed',
-                                        'Biometric authentication failed. Use your password instead.',
-                                        backgroundColor: Colors.redAccent,
-                                        colorText: Colors.white,
-                                        duration: const Duration(seconds: 4),
-                                      );
+                                      if (loginResult['message'] != 'Biometric authentication failed.') {
+                                        await controller.logout();
+                                        Get.snackbar(
+                                          'Session Expired',
+                                          loginResult['message'] ?? 'Your password has been changed. Please login again.',
+                                          backgroundColor: Colors.redAccent,
+                                          colorText: Colors.white,
+                                          duration: const Duration(seconds: 4),
+                                        );
+                                        Get.offAllNamed(AppRoutes.login);
+                                      } else {
+                                        Get.snackbar(
+                                          'Authentication Failed',
+                                          'Biometric authentication failed. Use your password instead.',
+                                          backgroundColor: Colors.redAccent,
+                                          colorText: Colors.white,
+                                          duration: const Duration(seconds: 4),
+                                        );
+                                      }
                                     }
                                   } catch (e) {
                                     setState(() {

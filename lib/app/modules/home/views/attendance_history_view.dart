@@ -119,12 +119,19 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-              child: TabHeader(
-                title: '',
-                onNotificationTap: () {
-                  Get.until((route) => route.settings.name == AppRoutes.home || route.settings.name == '/');
-                  Get.find<HomeController>().changeTab(3);
-                },
+              child: Builder(
+                builder: (context) {
+                  return TabHeader(
+                    title: '',
+                    onMenuTap: () {
+                      Scaffold.of(context).openDrawer();
+                    },
+                    onNotificationTap: () {
+                      Get.until((route) => route.settings.name == AppRoutes.home || route.settings.name == '/');
+                      Get.find<HomeController>().changeTab(3);
+                    },
+                  );
+                }
               ),
             ),
             Padding(
@@ -132,7 +139,7 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Attendance History', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18, color: isDark ? Colors.white : _primary)),
+                  Text('attendance_history'.tr, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18, color: isDark ? Colors.white : _primary)),
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -165,7 +172,7 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
               child: ListView(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 20),
-                children: ['10', '20', '30', '50', 'Next 50'].map((val) {
+                children: ['10', '20', '30', '50', 'next_50'].map((val) {
                   return Padding(
                     padding: const EdgeInsets.only(right: 8),
                     child: GestureDetector(
@@ -201,10 +208,10 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
                                     children: [
                                       const Icon(Icons.auto_awesome, color: Colors.amber, size: 40),
                                       const SizedBox(height: 16),
-                                      Text('Coming Soon!', style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 18)),
+                                      Text('coming_soon'.tr, style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 18)),
                                       const SizedBox(height: 8),
                                       Text(
-                                        'The "$val" filter will be available\nin the next update.',
+                                        'filter_update_desc'.tr.replaceAll('@val', val.tr),
                                         textAlign: TextAlign.center,
                                         style: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[600], fontSize: 14),
                                       ),
@@ -224,7 +231,7 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
                           border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
                         ),
                         alignment: Alignment.center,
-                        child: Text(val, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? Colors.grey[400] : Colors.grey[600])),
+                        child: Text(val.tr, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? Colors.grey[400] : Colors.grey[600])),
                       ),
                     ),
                   );
@@ -384,9 +391,9 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
                       children: [
                         Row(
                           children: [
-                            if (checkIn.isNotEmpty) Expanded(child: _timeSection(ctx, 'Check In', checkIn)),
+                            if (checkIn.isNotEmpty) Expanded(child: _timeSection(ctx, 'check_in'.tr, checkIn)),
                             if (checkIn.isNotEmpty && checkOut.isNotEmpty) Container(width: 1, height: 30, color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-                            if (checkOut.isNotEmpty) Expanded(child: _timeSection(ctx, 'Check Out', checkOut, isRight: checkIn.isNotEmpty)),
+                            if (checkOut.isNotEmpty) Expanded(child: _timeSection(ctx, 'check_out'.tr, checkOut, isRight: checkIn.isNotEmpty)),
                           ],
                         ),
                         if (nth.isNotEmpty || lsh.isNotEmpty) ...[
@@ -399,9 +406,9 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
                             ),
                             child: Row(
                               children: [
-                                if (nth.isNotEmpty) Expanded(child: Center(child: _hoursChip(ctx, 'NTH', nth, const Color(0xFF059669)))),
+                                if (nth.isNotEmpty) Expanded(child: Center(child: _hoursChip(ctx, 'nth'.tr, nth, const Color(0xFF059669)))),
                                 if (nth.isNotEmpty && lsh.isNotEmpty) Container(width: 1, height: 24, color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
-                                if (lsh.isNotEmpty) Expanded(child: Center(child: _hoursChip(ctx, 'LSH', lsh, const Color(0xFFE11D48)))),
+                                if (lsh.isNotEmpty) Expanded(child: Center(child: _hoursChip(ctx, 'lsh'.tr, lsh, const Color(0xFFE11D48)))),
                               ],
                             ),
                           ),
@@ -424,6 +431,7 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
 
   Widget _timeSection(BuildContext ctx, String label, String time, {bool isRight = false}) {
     final isDark = Theme.of(ctx).brightness == Brightness.dark;
+    String displayTime = time.replaceAll('AM', 'am'.tr).replaceAll('PM', 'pm'.tr).replaceAll('am', 'am'.tr).replaceAll('pm', 'pm'.tr);
     return Container(
       alignment: Alignment.center,
       child: Column(
@@ -431,7 +439,7 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
         children: [
           Text(label, style: TextStyle(fontSize: 11, color: isDark ? Colors.grey[500] : Colors.grey[500])),
           const SizedBox(height: 4),
-          Text(time, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: isDark ? Colors.white : _primary)),
+          Text(displayTime, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: isDark ? Colors.white : _primary)),
         ],
       ),
     );
@@ -441,11 +449,12 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
     if (type.isEmpty) return type;
     switch (type.toLowerCase().trim()) {
       case 'absent':                                        return 'absent'.tr;
-      case 'absent *p': case 'absent*p':                    return 'Absent *P';
+      case 'absent *p': case 'absent*p':                    return 'absent_p'.tr;
       case 'present':                                       return 'present'.tr;
       case 'early':                                         return 'early'.tr;
       case 'late':                                          return 'late'.tr;
-      case 'less':                                          return 'Less Hrs';
+      case 'less':                                          return 'less_hrs'.tr;
+      case 'regular':                                       return 'regular'.tr;
       case 'week end': case 'weekend': case 'week_end':     return 'week_end'.tr;
       default:                                              return type;
     }
@@ -453,20 +462,23 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
 
   Widget _hoursChip(BuildContext ctx, String label, String value, Color color) {
     final isDark = Theme.of(ctx).brightness == Brightness.dark;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.15),
-            borderRadius: BorderRadius.circular(4),
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: color, letterSpacing: 0.5)),
           ),
-          child: Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: color, letterSpacing: 0.5)),
-        ),
-        const SizedBox(width: 6),
-        Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? Colors.white : _primary)),
-      ],
+          const SizedBox(width: 6),
+          Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? Colors.white : _primary)),
+        ],
+      ),
     );
   }
 

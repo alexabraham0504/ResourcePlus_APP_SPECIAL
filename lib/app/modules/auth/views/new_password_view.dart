@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../controllers/auth_controller.dart';
 import '../../../routes/app_routes.dart';
 
@@ -14,6 +15,7 @@ class NewPasswordView extends StatefulWidget {
 class _NewPasswordViewState extends State<NewPasswordView> {
   late TextEditingController newPasswordController;
   late TextEditingController confirmPasswordController;
+  final secureStorage = const FlutterSecureStorage();
 
   @override
   void initState() {
@@ -155,6 +157,7 @@ class _NewPasswordViewState extends State<NewPasswordView> {
                                   
                                   if (result['success']) {
                                     controller.newPassword.value = newPasswordController.text;
+                                    await secureStorage.write(key: 'password', value: newPasswordController.text);
                                     Get.snackbar(
                                       'Success', 
                                       result['message'] ?? 'Password changed successfully', 

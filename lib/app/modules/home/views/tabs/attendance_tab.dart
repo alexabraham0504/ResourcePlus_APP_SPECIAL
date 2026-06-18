@@ -99,9 +99,9 @@ class AttendanceTab extends GetView<HomeController> {
     if (controller.attendanceRate.isEmpty) return const SizedBox.shrink();
     final d = controller.attendanceRate.first;
     return Row(children: [
-      Expanded(child: _statCard(ctx, 'Present Rate', d['PresentPercentage'] ?? '0', _present, Icons.check_circle_outline)),
+      Expanded(child: _statCard(ctx, 'present_rate'.tr, d['PresentPercentage'] ?? '0', _present, Icons.check_circle_outline)),
       const SizedBox(width: 16),
-      Expanded(child: _statCard(ctx, 'Absent Rate', d['AbsentPercentage'] ?? '0', _absent, Icons.cancel_outlined)),
+      Expanded(child: _statCard(ctx, 'absent_rate'.tr, d['AbsentPercentage'] ?? '0', _absent, Icons.cancel_outlined)),
     ]);
   }
 
@@ -212,7 +212,7 @@ class AttendanceTab extends GetView<HomeController> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text('See More', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? Colors.white : _primary)),
+                    Text('see_more'.tr, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? Colors.white : _primary)),
                     const SizedBox(width: 2),
                     Icon(Icons.arrow_forward_ios_rounded, size: 12, color: isDark ? Colors.white : _primary),
                   ],
@@ -242,7 +242,7 @@ class AttendanceTab extends GetView<HomeController> {
                   border: Border.all(color: active ? (isDark ? Colors.white : _primary) : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
                 ),
                 alignment: Alignment.center,
-                child: Text(t == 'All' ? 'All' : _label(t), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: active ? (isDark ? _primary : Colors.white) : (isDark ? Colors.grey[400] : Colors.grey[600]))),
+                child: Text(t == 'All' ? 'All'.tr : _label(t), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: active ? (isDark ? _primary : Colors.white) : (isDark ? Colors.grey[400] : Colors.grey[600]))),
               ),
             );
           },
@@ -412,9 +412,9 @@ class AttendanceTab extends GetView<HomeController> {
                       children: [
                         Row(
                           children: [
-                            if (checkIn.isNotEmpty) Expanded(child: _timeSection(ctx, 'Check In', checkIn)),
+                            if (checkIn.isNotEmpty) Expanded(child: _timeSection(ctx, 'check_in'.tr, checkIn)),
                             if (checkIn.isNotEmpty && checkOut.isNotEmpty) Container(width: 1, height: 30, color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-                            if (checkOut.isNotEmpty) Expanded(child: _timeSection(ctx, 'Check Out', checkOut, isRight: checkIn.isNotEmpty)),
+                            if (checkOut.isNotEmpty) Expanded(child: _timeSection(ctx, 'check_out'.tr, checkOut, isRight: checkIn.isNotEmpty)),
                           ],
                         ),
                         if (nth.isNotEmpty || lsh.isNotEmpty) ...[
@@ -427,9 +427,9 @@ class AttendanceTab extends GetView<HomeController> {
                             ),
                             child: Row(
                               children: [
-                                if (nth.isNotEmpty) Expanded(child: Center(child: _hoursChip(ctx, 'NTH', nth, const Color(0xFF059669)))),
+                                if (nth.isNotEmpty) Expanded(child: Center(child: _hoursChip(ctx, 'nth'.tr, nth, const Color(0xFF059669)))),
                                 if (nth.isNotEmpty && lsh.isNotEmpty) Container(width: 1, height: 24, color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
-                                if (lsh.isNotEmpty) Expanded(child: Center(child: _hoursChip(ctx, 'LSH', lsh, const Color(0xFFE11D48)))),
+                                if (lsh.isNotEmpty) Expanded(child: Center(child: _hoursChip(ctx, 'lsh'.tr, lsh, const Color(0xFFE11D48)))),
                               ],
                             ),
                           ),
@@ -452,6 +452,7 @@ class AttendanceTab extends GetView<HomeController> {
 
   Widget _timeSection(BuildContext ctx, String label, String time, {bool isRight = false}) {
     final isDark = Theme.of(ctx).brightness == Brightness.dark;
+    String displayTime = time.replaceAll('AM', 'am'.tr).replaceAll('PM', 'pm'.tr).replaceAll('am', 'am'.tr).replaceAll('pm', 'pm'.tr);
     return Container(
       alignment: Alignment.center,
       child: Column(
@@ -459,7 +460,7 @@ class AttendanceTab extends GetView<HomeController> {
         children: [
           Text(label, style: TextStyle(fontSize: 11, color: isDark ? Colors.grey[500] : Colors.grey[500])),
           const SizedBox(height: 4),
-          Text(time, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: isDark ? Colors.white : _primary)),
+          Text(displayTime, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: isDark ? Colors.white : _primary)),
         ],
       ),
     );
@@ -517,11 +518,12 @@ class AttendanceTab extends GetView<HomeController> {
     if (type.isEmpty) return type;
     switch (type.toLowerCase().trim()) {
       case 'absent':                                        return 'absent'.tr;
-      case 'absent *p': case 'absent*p':                    return 'Absent *P';
+      case 'absent *p': case 'absent*p':                    return 'absent_p'.tr;
       case 'present':                                       return 'present'.tr;
       case 'early':                                         return 'early'.tr;
       case 'late':                                          return 'late'.tr;
-      case 'less':                                          return 'Less Hrs';
+      case 'less':                                          return 'less_hrs'.tr;
+      case 'regular':                                       return 'regular'.tr;
       case 'week end': case 'weekend': case 'week_end':     return 'week_end'.tr;
       default:                                              return type;
     }
@@ -529,20 +531,23 @@ class AttendanceTab extends GetView<HomeController> {
 
   Widget _hoursChip(BuildContext ctx, String label, String value, Color color) {
     final isDark = Theme.of(ctx).brightness == Brightness.dark;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.15),
-            borderRadius: BorderRadius.circular(4),
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: color, letterSpacing: 0.5)),
           ),
-          child: Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: color, letterSpacing: 0.5)),
-        ),
-        const SizedBox(width: 6),
-        Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? Colors.white : _primary)),
-      ],
+          const SizedBox(width: 6),
+          Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? Colors.white : _primary)),
+        ],
+      ),
     );
   }
 

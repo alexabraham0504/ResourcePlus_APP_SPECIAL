@@ -103,8 +103,9 @@ class _LoginViewState extends State<LoginView> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'Login',
-                        style: theme.textTheme.titleLarge?.copyWith(
+                        'login_title'.tr,
+                        style: TextStyle(
+                          fontSize: 24,
                           fontWeight: FontWeight.bold,
                           color: Theme.of(context).colorScheme.primary,
                         ),
@@ -114,7 +115,7 @@ class _LoginViewState extends State<LoginView> {
                         controller: usernameController,
                         style: const TextStyle(fontSize: 16),
                         decoration: InputDecoration(
-                          labelText: 'Username or Email',
+                          labelText: 'username_or_email'.tr,
                           prefixIcon: Icon(
                             Icons.person,
                             color: Theme.of(context).colorScheme.primary,
@@ -127,7 +128,7 @@ class _LoginViewState extends State<LoginView> {
                         obscureText: true,
                         style: const TextStyle(fontSize: 16),
                         decoration: InputDecoration(
-                          labelText: 'Password',
+                          labelText: 'password'.tr,
                           prefixIcon: Icon(
                             Icons.lock,
                             color: Theme.of(context).colorScheme.primary,
@@ -144,7 +145,7 @@ class _LoginViewState extends State<LoginView> {
                               Get.toNamed(AppRoutes.newPassword);
                             },
                             child: Text(
-                              'Forgot Password?',
+                              'forgot_password'.tr,
                               style: TextStyle(
                                 color: Theme.of(context).colorScheme.primary,
                               ),
@@ -249,7 +250,7 @@ class _LoginViewState extends State<LoginView> {
                                       );
                                     }
                                   },
-                                  child: const Text('Login'),
+                                  child: Text('login_title'.tr),
                                 ),
                               ),
                       ),

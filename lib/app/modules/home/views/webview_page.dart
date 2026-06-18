@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../../widgets/error_page_widget.dart';
 
 class WebViewPage extends StatefulWidget {
@@ -289,8 +290,9 @@ class _WebViewPageState extends State<WebViewPage> {
   Future<void> _injectAutoLoginScript() async {
     try {
       final storage = GetStorage();
+      const secureStorage = FlutterSecureStorage();
       final username = storage.read('username') ?? '';
-      final password = storage.read('password') ?? '';
+      final password = await secureStorage.read(key: 'password') ?? '';
 
       if (username.isNotEmpty && password.isNotEmpty) {
         await webViewController?.evaluateJavascript(source: '''

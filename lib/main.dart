@@ -12,7 +12,8 @@ import 'app/services/notification_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter/foundation.dart';
 import 'app/widgets/error_page_widget.dart';
-
+import 'app/services/cache_service.dart';
+import 'app/services/app_update_service.dart';
 import 'dart:io';
 
 class MyHttpOverrides extends HttpOverrides {
@@ -65,6 +66,9 @@ void main() async {
 
   await GetStorage.init();
 
+  // 1. Check for app update and clear selective cache if needed
+  await CacheService.checkAndClearCacheOnUpdate();
+
   // Initialize date formatting for all locales
   await initializeDateFormatting('en_US', null);
   await initializeDateFormatting('ar_SA', null);
@@ -81,6 +85,9 @@ void main() async {
   // if (await Permission.notification.isDenied) {
   //   await Permission.notification.request();
   // }
+
+  // Initialize mandatory update service lifecycle
+  Get.put(AppUpdateService(), permanent: true);
 
   runApp(const MyApp());
 }
@@ -296,16 +303,7 @@ class MyApp extends StatelessWidget {
       themeMode:
           themeController.isDarkMode.value ? ThemeMode.dark : ThemeMode.light,
       initialRoute: _getInitialRoute(),
-      // SDK 37 Target: Force portrait UX inside a constrained box for tablets/large screens
-      // This prevents UI breakage when Android 17 overrides screenOrientation
-      builder: (context, child) {
-        return Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 600), // Max phone width
-            child: child!,
-          ),
-        );
-      },
+
       // : GetStorage().read('instanceName') == null ||
       //       GetStorage().read('instanceName').toString().isEmpty
       // ? AppPages.initialLogin

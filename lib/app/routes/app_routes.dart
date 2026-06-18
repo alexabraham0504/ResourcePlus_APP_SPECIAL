@@ -16,4 +16,5 @@ abstract class AppRoutes {
   static const privacyConsent = '/privacy-consent';
   static const privacyTermsDetail = '/privacy-terms-detail';
   static const attendanceHistory = '/attendance-history';
+  static const updateRequired = '/update-required';
 }

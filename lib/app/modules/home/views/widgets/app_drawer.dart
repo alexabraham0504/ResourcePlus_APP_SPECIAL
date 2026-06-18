@@ -4,6 +4,7 @@ import '../../controllers/home_controller.dart';
 import '../../../../routes/app_routes.dart';
 import '../../../auth/controllers/auth_controller.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../../controllers/language_controller.dart';
 
 class AppDrawer extends StatelessWidget {
   const AppDrawer({Key? key}) : super(key: key);
@@ -16,6 +17,14 @@ class AppDrawer extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = Get.find<HomeController>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    void closeDrawer() {
+      if (Scaffold.maybeOf(context)?.isDrawerOpen == true) {
+        Scaffold.of(context).closeDrawer();
+      } else {
+        controller.zoomDrawerController.toggle?.call();
+      }
+    }
     
     // Premium theme colors
     final bgColor = isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC);
@@ -31,7 +40,7 @@ class AppDrawer extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Premium Drawer Header
-              _buildPremiumHeader(context, isDark, controller, textColor, iconColor),
+              _buildPremiumHeader(context, isDark, controller, textColor, iconColor, closeDrawer),
               
               const SizedBox(height: 10),
               
@@ -41,17 +50,53 @@ class AppDrawer extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   physics: const BouncingScrollPhysics(),
                   children: [
-                    _buildPremiumNavItem(0, Icons.grid_view_rounded, 'home'.tr, controller, textColor, iconColor),
-                    _buildPremiumNavItem(1, Icons.fingerprint_rounded, 'attendance'.tr, controller, textColor, iconColor),
-                    _buildPremiumNavItem(2, Icons.account_circle_rounded, 'profile'.tr, controller, textColor, iconColor),
+                    _buildPremiumNavItem(0, Icons.grid_view_rounded, 'home'.tr, controller, textColor, iconColor, closeDrawer),
+                    _buildPremiumNavItem(1, Icons.fingerprint_rounded, 'attendance'.tr, controller, textColor, iconColor, closeDrawer),
+                    _buildPremiumNavItem(2, Icons.account_circle_rounded, 'profile'.tr, controller, textColor, iconColor, closeDrawer),
                     
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
                       child: Divider(height: 1, color: iconColor.withOpacity(0.15)),
                     ),
                     
-                    _buildPremiumNavItem(4, Icons.settings_suggest_rounded, 'settings'.tr, controller, textColor, iconColor),
+                    _buildPremiumNavItem(4, Icons.settings_suggest_rounded, 'settings'.tr, controller, textColor, iconColor, closeDrawer),
                     
+                    const SizedBox(height: 8),
+                    // Language Toggle
+                    ListTile(
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: corporateBlue.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.language_rounded, color: corporateBlue, size: 22),
+                      ),
+                      title: Text('language'.tr,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                          color: corporateBlue,
+                        ),
+                      ),
+                      trailing: Obx(() {
+                        final isAr = Get.find<LanguageController>().currentLanguage.value == 'ar';
+                        return Text(
+                          isAr ? 'English' : 'العربية',
+                          style: const TextStyle(fontWeight: FontWeight.w700, color: corporateBlue),
+                        );
+                      }),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      onTap: () {
+                        final langCtrl = Get.find<LanguageController>();
+                        langCtrl.toggleLanguage();
+                        Get.find<HomeController>().refreshAllData();
+                      },
+                    ),
+
                     // Logout
                     const SizedBox(height: 8),
                     ListTile(
@@ -64,6 +109,8 @@ class AppDrawer extends StatelessWidget {
                         child: const Icon(Icons.power_settings_new_rounded, color: errorColor, size: 22),
                       ),
                       title: Text('logout'.tr,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 15,
@@ -73,7 +120,7 @@ class AppDrawer extends StatelessWidget {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                       onTap: () async {
-                        controller.zoomDrawerController.toggle?.call(); 
+                        closeDrawer(); 
                         final shouldSignOut = await showDialog<bool>(
                           context: context,
                           builder: (context) => AlertDialog(
@@ -110,7 +157,7 @@ class AppDrawer extends StatelessWidget {
     );
   }
 
-  Widget _buildPremiumHeader(BuildContext context, bool isDark, HomeController controller, Color textColor, Color subTextColor) {
+  Widget _buildPremiumHeader(BuildContext context, bool isDark, HomeController controller, Color textColor, Color subTextColor, VoidCallback closeDrawer) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 40, 24, 20),
       child: Column(
@@ -144,7 +191,7 @@ class AppDrawer extends StatelessWidget {
               
               // Subtle close button
               IconButton(
-                onPressed: () => controller.zoomDrawerController.toggle?.call(),
+                onPressed: closeDrawer,
                 icon: Icon(Icons.close_rounded, color: subTextColor),
                 style: IconButton.styleFrom(
                   backgroundColor: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
@@ -157,27 +204,33 @@ class AppDrawer extends StatelessWidget {
           const SizedBox(height: 20),
           Obx(() => Text(
             controller.employeeName.value.isNotEmpty ? controller.employeeName.value : 'Employee',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: GoogleFonts.outfit(
               color: textColor, fontSize: 24, fontWeight: FontWeight.w900,
               letterSpacing: -0.5, height: 1.1,
             ),
           )),
           const SizedBox(height: 6),
-          Obx(() => Wrap(
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 8, // horizontal spacing between items
-            runSpacing: 6, // vertical spacing if they wrap
+          Obx(() => Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Text(
-                controller.positionName.value.isNotEmpty ? controller.positionName.value : 'Position',
-                style: GoogleFonts.outfit(
-                  color: subTextColor, fontSize: 13, fontWeight: FontWeight.w500,
+              Flexible(
+                child: Text(
+                  controller.positionName.value.isNotEmpty ? controller.positionName.value : 'Position',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.outfit(
+                    color: subTextColor, fontSize: 13, fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
+              const SizedBox(width: 8),
               Container(
                 width: 4, height: 4,
                 decoration: BoxDecoration(color: subTextColor.withOpacity(0.5), shape: BoxShape.circle),
               ),
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
@@ -198,7 +251,7 @@ class AppDrawer extends StatelessWidget {
     );
   }
 
-  Widget _buildPremiumNavItem(int index, IconData icon, String label, HomeController controller, Color textColor, Color subTextColor) {
+  Widget _buildPremiumNavItem(int index, IconData icon, String label, HomeController controller, Color textColor, Color subTextColor, VoidCallback closeDrawer) {
     return Obx(() {
       final isSelected = controller.currentIndex.value == index;
       
@@ -224,6 +277,8 @@ class AppDrawer extends StatelessWidget {
             child: Icon(icon, color: itemIconColor, size: 22),
           ),
           title: Text(label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: GoogleFonts.outfit(
               fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
               fontSize: 15,
@@ -232,7 +287,7 @@ class AppDrawer extends StatelessWidget {
             ),
           ),
           onTap: () {
-            controller.zoomDrawerController.toggle?.call();
+            closeDrawer();
             bool isSubPage = Get.currentRoute != AppRoutes.home && Get.currentRoute != '/';
             if (controller.currentIndex.value == index && !isSubPage) return;
             if (isSubPage) Get.until((route) => route.settings.name == AppRoutes.home || route.settings.name == '/');

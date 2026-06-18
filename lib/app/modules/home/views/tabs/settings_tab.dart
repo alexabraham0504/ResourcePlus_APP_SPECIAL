@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../../../routes/app_routes.dart';
 import '../../controllers/home_controller.dart';
 import '../../../../controllers/theme_controller.dart';
@@ -135,7 +136,7 @@ class SettingsTab extends StatelessWidget {
                         const SizedBox(height: 24),
                         _buildSettingsSection(
                           context: context,
-                          title: 'Account',
+                          title: 'account'.tr,
                           index: 3,
                           items: [
                             _buildSettingsItem(
@@ -721,6 +722,7 @@ class _ChangePasswordDialogContentState extends State<_ChangePasswordDialogConte
   late TextEditingController newPasswordController;
   late TextEditingController confirmPasswordController;
   late AuthController authController;
+  String? errorMessage;
 
   @override
   void initState() {
@@ -752,7 +754,7 @@ class _ChangePasswordDialogContentState extends State<_ChangePasswordDialogConte
               obscureText: true,
               enabled: !authController.isLoading.value,
               decoration: InputDecoration(
-                labelText: 'Current Password',
+                labelText: 'current_password'.tr,
                 border: OutlineInputBorder(),
               ),
             ),
@@ -776,6 +778,14 @@ class _ChangePasswordDialogContentState extends State<_ChangePasswordDialogConte
                 border: OutlineInputBorder(),
               ),
             ),
+            if (errorMessage != null) ...[
+              SizedBox(height: 16),
+              Text(
+                errorMessage!,
+                style: TextStyle(color: Colors.redAccent, fontSize: 13, fontWeight: FontWeight.w600),
+                textAlign: TextAlign.center,
+              ),
+            ]
           ],
         ),
         actions: [
@@ -789,52 +799,45 @@ class _ChangePasswordDialogContentState extends State<_ChangePasswordDialogConte
               ? CircularProgressIndicator()
               : ElevatedButton(
                   onPressed: () async {
+                    setState(() { errorMessage = null; });
                     final currentPassword = currentPasswordController.text.trim();
                     final newPassword = newPasswordController.text.trim();
                     final confirmPassword = confirmPasswordController.text.trim();
                     final currentContext = context;
 
                     if (currentPassword.isEmpty) {
-                      Get.snackbar('Error', 'Please enter your current password',
-                          backgroundColor: Colors.redAccent, colorText: Colors.white);
+                      setState(() { errorMessage = 'please_enter_current_password'.tr; });
                       return;
                     }
                     if (newPassword.isEmpty) {
-                      Get.snackbar('Error', 'Please enter a new password',
-                          backgroundColor: Colors.redAccent, colorText: Colors.white);
+                      setState(() { errorMessage = 'please_enter_new_password'.tr; });
                       return;
                     }
                     if (confirmPassword.isEmpty) {
-                      Get.snackbar('Error', 'Please confirm your new password',
-                          backgroundColor: Colors.redAccent, colorText: Colors.white);
+                      setState(() { errorMessage = 'please_confirm_new_password'.tr; });
                       return;
                     }
                     if (newPassword != confirmPassword) {
-                      Get.snackbar('Error', 'New password and confirm password do not match',
-                          backgroundColor: Colors.redAccent, colorText: Colors.white);
+                      setState(() { errorMessage = 'passwords_do_not_match'.tr; });
                       return;
                     }
                     if (newPassword.length < 6) {
-                      Get.snackbar('Error', 'Password must be at least 6 characters long',
-                          backgroundColor: Colors.redAccent, colorText: Colors.white);
+                      setState(() { errorMessage = 'password_min_length'.tr; });
                       return;
                     }
 
-                    final storedPassword = GetStorage().read('password') ?? '';
+                    final secureStorage = const FlutterSecureStorage();
+                    final storedPassword = await secureStorage.read(key: 'password') ?? '';
                     if (storedPassword.isEmpty) {
-                      Get.snackbar('Error',
-                          'Unable to verify current password. Please try logging out and logging in again.',
-                          backgroundColor: Colors.redAccent, colorText: Colors.white);
+                      setState(() { errorMessage = 'unable_verify_password'.tr; });
                       return;
                     }
                     if (currentPassword != storedPassword) {
-                      Get.snackbar('Error', 'Current password is incorrect',
-                          backgroundColor: Colors.redAccent, colorText: Colors.white);
+                      setState(() { errorMessage = 'current_password_incorrect'.tr; });
                       return;
                     }
                     if (newPassword == currentPassword) {
-                      Get.snackbar('Error', 'New password must be different from current password',
-                          backgroundColor: Colors.redAccent, colorText: Colors.white);
+                      setState(() { errorMessage = 'password_must_be_different'.tr; });
                       return;
                     }
 
@@ -847,7 +850,7 @@ class _ChangePasswordDialogContentState extends State<_ChangePasswordDialogConte
 
                       if (result['success']) {
                         Get.snackbar('Success',
-                            result['message'] ?? 'Password changed successfully. Please login again.',
+                            'password_changed_success'.tr,
                             backgroundColor: Colors.green, colorText: Colors.white,
                             duration: const Duration(seconds: 2));
 
@@ -855,7 +858,7 @@ class _ChangePasswordDialogContentState extends State<_ChangePasswordDialogConte
 
                         await GetStorage().remove('isLoggedIn');
                         await GetStorage().remove('email');
-                        await GetStorage().remove('password');
+                        await secureStorage.delete(key: 'password');
                         await GetStorage().remove('username');
                         await GetStorage().remove('empDisplayName');
                         await GetStorage().remove('webLink');

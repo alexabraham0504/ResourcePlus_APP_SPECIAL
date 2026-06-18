@@ -1148,6 +1148,20 @@ class HomeController extends GetxController {
     return null;
   }
 
+  // Helper to append language to the portal URL
+  String _appendLangToUrl(String url) {
+    try {
+      final langCode = Get.find<LanguageController>().currentLangCode;
+      final uri = Uri.parse(url);
+      final newParams = Map<String, dynamic>.from(uri.queryParameters);
+      newParams['lang'] = langCode;
+      return uri.replace(queryParameters: newParams).toString();
+    } catch (e) {
+      final separator = url.contains('?') ? '&' : '?';
+      return '$url${separator}lang=${Get.find<LanguageController>().currentLangCode}';
+    }
+  }
+
   Future<void> launchHrPortal({String? title}) async {
     try {
       // Use cached URL if available for instant loading
@@ -1155,7 +1169,7 @@ class HomeController extends GetxController {
         final headText = title ?? staticContents['HrLinkHeadText'] ?? 'hr_portal'.tr;
         Get.toNamed(AppRoutes.webview,
             preventDuplicates: true,
-            parameters: {'url': _cachedPortalUrl!, 'title': headText});
+            parameters: {'url': _appendLangToUrl(_cachedPortalUrl!), 'title': headText});
         return;
       }
 
@@ -1197,8 +1211,8 @@ class HomeController extends GetxController {
           final headText = title ?? staticContents['HrLinkHeadText'] ?? 'hr_portal'.tr;
           Get.toNamed(AppRoutes.webview,
               preventDuplicates: true,
-              parameters: {'url': clientUrl, 'title': headText});
-          return;
+              parameters: {'url': _appendLangToUrl(clientUrl), 'title': headText});
+        } else {return;
         }
       }
       

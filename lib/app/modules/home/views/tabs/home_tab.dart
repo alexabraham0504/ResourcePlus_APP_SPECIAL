@@ -237,7 +237,7 @@ class HomeTab extends GetView<HomeController> {
         _buildGlassActionCard(
           isDark: isDark,
           icon: Icons.face,
-          label: 'FACE PUNCH',
+          label: 'face_punch'.tr,
           iconColor: corporateBlue,
           labelColor: isDark ? Colors.white : onSurface,
           hasIconBg: true,
@@ -247,7 +247,7 @@ class HomeTab extends GetView<HomeController> {
         _buildGlassActionCard(
           isDark: isDark,
           icon: Icons.widgets,
-          label: 'SELF SERVICE',
+          label: 'self_service'.tr,
           iconColor: primaryGreen,
           labelColor: isDark ? Colors.white : onSurface,
           hasIconBg: true,
@@ -257,7 +257,7 @@ class HomeTab extends GetView<HomeController> {
         _buildGlassActionCard(
           isDark: isDark,
           icon: Icons.account_circle,
-          label: 'PROFILE',
+          label: 'profile_uppercase'.tr,
           iconColor: const Color(0xFFFC943B),
           labelColor: isDark ? Colors.white : onSurface,
           hasIconBg: true,
@@ -267,7 +267,7 @@ class HomeTab extends GetView<HomeController> {
         _buildGlassActionCard(
           isDark: isDark,
           icon: Icons.settings_suggest,
-          label: 'SETTINGS',
+          label: 'settings_uppercase'.tr,
           iconColor: const Color(0xFF6F7A6B),
           labelColor: isDark ? Colors.white : onSurface,
           hasIconBg: true,
@@ -319,6 +319,8 @@ class HomeTab extends GetView<HomeController> {
             const SizedBox(height: 10),
             Text(
               label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: GoogleFonts.outfit(
                 fontSize: 11,
                 fontWeight: FontWeight.w800,
@@ -396,14 +398,23 @@ class HomeTab extends GetView<HomeController> {
   }
 
   String _label(String type) {
-    if (type.isEmpty) return 'Present';
-    if (type.toLowerCase().contains('absent*p')) return 'Absent*P';
-    if (type.toLowerCase().contains('week end')) return 'Week End';
-    return type;
+    if (type.isEmpty) return type;
+    switch (type.toLowerCase().trim()) {
+      case 'absent':                                        return 'absent'.tr;
+      case 'absent *p': case 'absent*p':                    return 'absent_p'.tr;
+      case 'present':                                       return 'present'.tr;
+      case 'early':                                         return 'early'.tr;
+      case 'late':                                          return 'late'.tr;
+      case 'less':                                          return 'less_hrs'.tr;
+      case 'regular':                                       return 'regular'.tr;
+      case 'week end': case 'weekend': case 'week_end':     return 'week_end'.tr;
+      default:                                              return type;
+    }
   }
 
   Widget _timeSection(BuildContext ctx, String label, String time, {bool isRight = false}) {
     final isDark = Theme.of(ctx).brightness == Brightness.dark;
+    String displayTime = time.replaceAll('AM', 'am'.tr).replaceAll('PM', 'pm'.tr).replaceAll('am', 'am'.tr).replaceAll('pm', 'pm'.tr);
     return Container(
       alignment: Alignment.center,
       child: Column(
@@ -411,7 +422,7 @@ class HomeTab extends GetView<HomeController> {
         children: [
           Text(label, style: TextStyle(fontSize: 11, color: isDark ? Colors.grey[500] : Colors.grey[500])),
           const SizedBox(height: 4),
-          Text(time, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: isDark ? Colors.white : const Color(0xFF004A77))),
+          Text(displayTime, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: isDark ? Colors.white : const Color(0xFF004A77))),
         ],
       ),
     );
@@ -419,20 +430,23 @@ class HomeTab extends GetView<HomeController> {
 
   Widget _hoursChip(BuildContext ctx, String label, String value, Color color) {
     final isDark = Theme.of(ctx).brightness == Brightness.dark;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.15),
-            borderRadius: BorderRadius.circular(4),
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: color, letterSpacing: 0.5)),
           ),
-          child: Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: color, letterSpacing: 0.5)),
-        ),
-        const SizedBox(width: 6),
-        Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? Colors.white : const Color(0xFF004A77))),
-      ],
+          const SizedBox(width: 6),
+          Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? Colors.white : const Color(0xFF004A77))),
+        ],
+      ),
     );
   }
 
@@ -577,9 +591,9 @@ class HomeTab extends GetView<HomeController> {
                         children: [
                           Row(
                             children: [
-                              Expanded(child: _timeSection(context, 'Check In', checkIn == '--:--' ? '--:--' : checkIn.split(' ').first)),
+                              Expanded(child: _timeSection(context, 'check_in'.tr, checkIn == '--:--' ? '--:--' : checkIn.split(' ').first)),
                               Container(width: 1, height: 30, color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-                              Expanded(child: _timeSection(context, 'Check Out', checkOut == '--:--' ? '--:--' : checkOut.split(' ').first, isRight: true)),
+                              Expanded(child: _timeSection(context, 'check_out'.tr, checkOut == '--:--' ? '--:--' : checkOut.split(' ').first, isRight: true)),
                             ],
                           ),
                           const SizedBox(height: 12),
@@ -589,9 +603,9 @@ class HomeTab extends GetView<HomeController> {
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                               children: [
-                                if (nth.isNotEmpty) Expanded(child: Center(child: _hoursChip(context, 'NTH', nth, const Color(0xFF059669)))),
+                                if (nth.isNotEmpty) Expanded(child: Center(child: _hoursChip(context, 'nth'.tr, nth, const Color(0xFF059669)))),
                                 if (nth.isNotEmpty && lsh.isNotEmpty) Container(width: 1, height: 24, color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
-                                if (lsh.isNotEmpty) Expanded(child: Center(child: _hoursChip(context, 'LSH', lsh, const Color(0xFFE11D48)))),
+                                if (lsh.isNotEmpty) Expanded(child: Center(child: _hoursChip(context, 'lsh'.tr, lsh, const Color(0xFFE11D48)))),
                               ],
                             ),
                           ),
