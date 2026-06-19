@@ -115,7 +115,7 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
 
     return ZoomDrawer(
       controller: _zoomDrawerController,
-      menuScreen: const AppDrawer(),
+      menuScreen: AppDrawer(onClose: () => _zoomDrawerController.toggle?.call()),
       mainScreen: Scaffold(
         backgroundColor: isDark ? const Color(0xFF0F172A) : _bg,
       body: SafeArea(

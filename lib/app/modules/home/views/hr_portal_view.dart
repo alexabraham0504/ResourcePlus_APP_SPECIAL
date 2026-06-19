@@ -23,7 +23,7 @@ class HrPortalView extends GetView<HrPortalController> {
 
     return ZoomDrawer(
       controller: controller.zoomDrawerController,
-      menuScreen: const AppDrawer(),
+      menuScreen: AppDrawer(onClose: () => controller.zoomDrawerController.toggle?.call()),
       mainScreen: Scaffold(
         backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
       body: SafeArea(

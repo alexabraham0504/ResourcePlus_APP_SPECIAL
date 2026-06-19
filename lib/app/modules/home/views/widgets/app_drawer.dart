@@ -8,7 +8,8 @@ import '../../../../controllers/language_controller.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 class AppDrawer extends StatelessWidget {
-  const AppDrawer({Key? key}) : super(key: key);
+  final VoidCallback? onClose;
+  const AppDrawer({Key? key, this.onClose}) : super(key: key);
 
   static const Color corporateBlue = Color(0xFF004A77);
   static const Color primaryGreen = Color(0xFF006E1C);
@@ -20,7 +21,9 @@ class AppDrawer extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     void closeDrawer() {
-      if (Scaffold.maybeOf(context)?.isDrawerOpen == true) {
+      if (onClose != null) {
+        onClose!();
+      } else if (Scaffold.maybeOf(context)?.isDrawerOpen == true) {
         Scaffold.of(context).closeDrawer();
       } else {
         controller.zoomDrawerController.toggle?.call();
@@ -242,30 +245,11 @@ class AppDrawer extends StatelessWidget {
             ),
           )),
           const SizedBox(height: 6),
-          Obx(() => Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
+          Obx(() => Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Flexible(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: AlignmentDirectional.centerStart,
-                  child: Text(
-                    controller.positionName.value.isNotEmpty ? controller.positionName.value : 'Position',
-                    maxLines: 1,
-                    style: GoogleFonts.outfit(
-                      color: subTextColor, fontSize: 13, fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
               Container(
-                width: 4, height: 4,
-                decoration: BoxDecoration(color: subTextColor.withOpacity(0.5), shape: BoxShape.circle),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: primaryGreen.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(6),
@@ -273,7 +257,19 @@ class AppDrawer extends StatelessWidget {
                 child: Text(
                   'ID: ${controller.empNumber.value.isNotEmpty ? controller.empNumber.value : "N/A"}',
                   style: GoogleFonts.outfit(
-                    color: primaryGreen, fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 0.5,
+                    color: primaryGreen, fontSize: 13, fontWeight: FontWeight.w800, letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 6),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: AlignmentDirectional.centerStart,
+                child: Text(
+                  controller.positionName.value.isNotEmpty ? controller.positionName.value : 'Position',
+                  maxLines: 1,
+                  style: GoogleFonts.outfit(
+                    color: subTextColor, fontSize: 15, fontWeight: FontWeight.w600,
                   ),
                 ),
               ),

@@ -40,7 +40,7 @@ class HomeView extends GetView<HomeController> {
         },
         child: ZoomDrawer(
           controller: controller.zoomDrawerController,
-          menuScreen: const AppDrawer(),
+          menuScreen: AppDrawer(onClose: () => controller.zoomDrawerController.toggle?.call()),
           mainScreen: Scaffold(
             key: controller.scaffoldKey,
             floatingActionButton: controller.currentIndex.value == 1
