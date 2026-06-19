@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../../../../routes/app_routes.dart';
 import '../../controllers/home_controller.dart';
 import '../../../../controllers/theme_controller.dart';
@@ -169,6 +170,27 @@ class SettingsTab extends StatelessWidget {
                               },
                             ),
                           ],
+                        ),
+                        const SizedBox(height: 40),
+                        Center(
+                          child: FutureBuilder<PackageInfo>(
+                            future: PackageInfo.fromPlatform(),
+                            builder: (context, snapshot) {
+                              if (snapshot.hasData) {
+                                final version = snapshot.data!.version;
+                                return Text(
+                                  '${'version'.tr} $version',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[400],
+                                    fontWeight: FontWeight.w500,
+                                    letterSpacing: 1.1,
+                                  ),
+                                );
+                              }
+                              return const SizedBox.shrink();
+                            },
+                          ),
                         ),
                         const SizedBox(height: 40),
                       ],

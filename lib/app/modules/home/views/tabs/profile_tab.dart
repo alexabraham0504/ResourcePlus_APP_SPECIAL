@@ -43,7 +43,7 @@ class ProfileTab extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const TabHeader(title: 'Profile Overview'),
+                  TabHeader(title: 'profile'.tr),
                   const SizedBox(height: 24),
                   
                   // Keep the requested Profile Card but style it cleanly
@@ -76,7 +76,7 @@ class ProfileTab extends StatelessWidget {
         children: [
           Icon(Icons.cloud_off_rounded, size: 48, color: Colors.grey[400]),
           const SizedBox(height: 16),
-          Text('Error Loading Profile',
+          Text('error'.tr,
               style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -85,7 +85,7 @@ class ProfileTab extends StatelessWidget {
           TextButton.icon(
             onPressed: controller.refreshProfileData,
             icon: const Icon(Icons.refresh),
-            label: const Text('Retry'),
+            label: Text('retry'.tr),
             style: TextButton.styleFrom(foregroundColor: _primary),
           ),
         ],
@@ -169,7 +169,7 @@ class ProfileTab extends StatelessWidget {
                 Text(
                   controller.profileEmployeeName.value.isNotEmpty
                       ? controller.profileEmployeeName.value
-                      : 'Employee Name',
+                      : 'employee_name'.tr,
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w800,
@@ -183,7 +183,7 @@ class ProfileTab extends StatelessWidget {
                 Text(
                   controller.positionName.value.isNotEmpty
                       ? controller.positionName.value
-                      : 'Position',
+                      : 'position'.tr,
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
@@ -232,7 +232,7 @@ class ProfileTab extends StatelessWidget {
   //  CONTACT INFO
   // ═══════════════════════════════════════════════════════════
   Widget _buildContactSection(BuildContext context, HomeController controller) {
-    final title = controller.profileStaticContents['ContactText'] ?? 'Contact Information';
+    final title = 'contact_information'.tr;
     
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -274,7 +274,7 @@ class ProfileTab extends StatelessWidget {
   //  WORK INFO
   // ═══════════════════════════════════════════════════════════
   Widget _buildWorkSection(BuildContext context, HomeController controller) {
-    final title = controller.profileStaticContents['WorkText'] ?? 'Work Information';
+    final title = 'work_information'.tr;
     
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -336,7 +336,7 @@ class ProfileTab extends StatelessWidget {
   //  SKILLS
   // ═══════════════════════════════════════════════════════════
   Widget _buildSkillsSection(BuildContext context, HomeController controller) {
-    final title = controller.profileStaticContents['SkillText'] ?? 'Skills';
+    final title = 'skills'.tr;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
     return Column(
@@ -377,7 +377,7 @@ class ProfileTab extends StatelessWidget {
   //  CERTIFICATIONS
   // ═══════════════════════════════════════════════════════════
   Widget _buildCertificationsSection(BuildContext context, HomeController controller) {
-    final title = controller.profileStaticContents['CertificationsText'] ?? 'Certifications';
+    final title = 'certifications'.tr;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
     return Column(

@@ -5,6 +5,7 @@ import '../controllers/home_controller.dart';
 import '../../../routes/app_routes.dart';
 import 'widgets/tab_header.dart';
 import 'widgets/app_drawer.dart';
+import 'package:flutter_zoom_drawer/flutter_zoom_drawer.dart';
 
 class AttendanceHistoryView extends StatefulWidget {
   const AttendanceHistoryView({Key? key}) : super(key: key);
@@ -27,6 +28,7 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
 
   DateTimeRange? _dateRange;
   final HomeController _controller = Get.find<HomeController>();
+  final ZoomDrawerController _zoomDrawerController = ZoomDrawerController();
 
   Color _statusColor(String dayType) {
     switch (dayType.toLowerCase().trim()) {
@@ -111,9 +113,11 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final records = _getFilteredRecords();
 
-    return Scaffold(
-      drawer: const AppDrawer(),
-      backgroundColor: isDark ? const Color(0xFF0F172A) : _bg,
+    return ZoomDrawer(
+      controller: _zoomDrawerController,
+      menuScreen: const AppDrawer(),
+      mainScreen: Scaffold(
+        backgroundColor: isDark ? const Color(0xFF0F172A) : _bg,
       body: SafeArea(
         child: Column(
           children: [
@@ -124,7 +128,7 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
                   return TabHeader(
                     title: '',
                     onMenuTap: () {
-                      Scaffold.of(context).openDrawer();
+                      _zoomDrawerController.toggle?.call();
                     },
                     onNotificationTap: () {
                       Get.until((route) => route.settings.name == AppRoutes.home || route.settings.name == '/');
@@ -253,6 +257,16 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
           ],
         ),
       ),
+      ),
+      borderRadius: 24.0,
+      showShadow: true,
+      angle: -10.0,
+      isRtl: true,
+      drawerShadowsBackgroundColor: isDark ? Colors.grey.shade900 : Colors.grey.shade300,
+      slideWidth: MediaQuery.of(context).size.width * 0.65,
+      openCurve: Curves.easeOutCubic,
+      closeCurve: Curves.easeOutQuint,
+      duration: const Duration(milliseconds: 450),
     );
   }
 

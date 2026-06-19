@@ -19,6 +19,7 @@ import '../modules/auth/views/privacy_consent_view.dart';
 import '../modules/auth/views/privacy_terms_detail_view.dart';
 import '../modules/home/views/attendance_history_view.dart';
 import '../modules/home/views/update_required_view.dart';
+import 'update_guard_middleware.dart';
 import 'app_routes.dart';
 
 class AppPages {
@@ -64,16 +65,19 @@ class AppPages {
         url: Get.parameters['url'] ?? '',
         title: Get.parameters['title'] ?? 'Web Page',
       ),
+      middlewares: [UpdateGuardMiddleware()],
     ),
     GetPage(
       name: AppRoutes.home, 
       page: () => const HomeView(),
       binding: HomeBinding(),
+      middlewares: [UpdateGuardMiddleware()],
     ),
     GetPage(
       name: AppRoutes.hrPortal,
       page: () => const HrPortalView(),
       binding: BindingsBuilder(() => Get.lazyPut(() => HrPortalController())),
+      middlewares: [UpdateGuardMiddleware()],
     ),
     GetPage(
       name: AppRoutes.privacyConsent,
@@ -86,6 +90,7 @@ class AppPages {
     GetPage(
       name: AppRoutes.attendanceHistory,
       page: () => const AttendanceHistoryView(),
+      middlewares: [UpdateGuardMiddleware()],
     ),
     GetPage(
       name: AppRoutes.updateRequired,

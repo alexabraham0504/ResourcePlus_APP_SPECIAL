@@ -4,6 +4,7 @@ import 'package:get_storage/get_storage.dart';
 import '../controllers/auth_controller.dart';
 import '../../../routes/app_routes.dart';
 import '../../../widgets/custom_popup.dart';
+import '../../../services/app_update_service.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -234,11 +235,23 @@ class _LoginViewState extends State<LoginView> {
                                         // This ensures the session persists even if biometric
                                         // setup is interrupted (critical fix for Android 11-14).
                                         await GetStorage().write('isLoggedIn', true);
+
+                                        // MANDATORY UPDATE CHECK after login success.
+                                        // If an update is available, user is blocked on
+                                        // UpdateRequiredView and never reaches biometric/dashboard.
+                                        try {
+                                          final updateService = Get.find<AppUpdateService>();
+                                          await updateService.checkAndHandleUpdate();
+                                        } catch (_) {}
+
                                         // After login, route to biometric link page
                                         // User can set up biometric or skip it.
-                                        Get.offAllNamed(
-                                          AppRoutes.biometricLink,
-                                        );
+                                        // (Only reached if no update is required)
+                                        if (Get.currentRoute != AppRoutes.updateRequired) {
+                                          Get.offAllNamed(
+                                            AppRoutes.biometricLink,
+                                          );
+                                        }
                                       }
                                     } else {
                                       print('DEBUG: [LoginView] Login failed. Error: ${result['message']}');

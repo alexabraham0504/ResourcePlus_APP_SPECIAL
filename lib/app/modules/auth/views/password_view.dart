@@ -4,6 +4,7 @@ import 'package:get_storage/get_storage.dart';
 import '../controllers/auth_controller.dart';
 import '../../../routes/app_routes.dart';
 import '../../../widgets/custom_popup.dart';
+import '../../../services/app_update_service.dart';
 
 class PasswordView extends StatefulWidget {
   const PasswordView({super.key});
@@ -147,7 +148,17 @@ class _PasswordViewState extends State<PasswordView> {
                                         // This ensures the session persists even if biometric
                                         // setup is interrupted (critical fix for Android 11-14).
                                         await GetStorage().write('isLoggedIn', true);
-                                        Get.toNamed(AppRoutes.biometricLink);
+
+                                        // MANDATORY UPDATE CHECK after login success.
+                                        try {
+                                          final updateService = Get.find<AppUpdateService>();
+                                          await updateService.checkAndHandleUpdate();
+                                        } catch (_) {}
+
+                                        // Only navigate if no update was required
+                                        if (Get.currentRoute != AppRoutes.updateRequired) {
+                                          Get.toNamed(AppRoutes.biometricLink);
+                                        }
                                       }
                                     } else {
                                       print('DEBUG: [PasswordView] Login failed. Error: ${result['message']}');

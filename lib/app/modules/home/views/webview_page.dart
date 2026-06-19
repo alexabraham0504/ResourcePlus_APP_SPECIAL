@@ -93,7 +93,7 @@ class _WebViewPageState extends State<WebViewPage> {
                   userAgent:
                       "Mozilla/5.0 (Linux; Android 12; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36",
                   cacheEnabled: true, // Keep cache enabled so session cookies persist
-                  cacheMode: CacheMode.LOAD_CACHE_ELSE_NETWORK, // Prefer cached content for speed
+                  cacheMode: CacheMode.LOAD_DEFAULT, // Use standard caching to avoid stale localized HTML
                   supportZoom: true,
                   builtInZoomControls: true,
                   displayZoomControls: false,
