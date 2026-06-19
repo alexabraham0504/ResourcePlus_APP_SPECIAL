@@ -147,6 +147,20 @@ class AppTranslations extends Translations {
       'contact_support': 'Contact Support',
       'call_support': 'Call Support',
       'live_chat': 'Live Chat',
+      'version': 'Version',
+
+      // Validation Popups
+      'camera_permission_title': 'Camera Permission',
+      'camera_permission_msg': 'Camera permission is required to mark attendance. Please grant camera access in your device settings.',
+      'camera_not_ready_title': 'Camera Not Ready',
+      'camera_not_ready_msg': 'Camera is still initializing. Please wait a moment and try again.',
+      'location_disabled_title': 'Location Disabled',
+      'location_disabled_msg': 'Please turn ON your device Location / GPS to mark attendance.',
+      'location_permission_title': 'Location Permission',
+      'location_permission_msg': 'Location permission is required to mark attendance. Please grant location access in your device settings.',
+      'gps_signal_lost_title': 'GPS Signal Lost',
+      'gps_signal_lost_msg': 'Failed to get your current location. Please check your GPS signal and try again.',
+      'ok': 'OK',
 
       // Calendar
       'connect_calendar': 'Connect Calendar',
@@ -306,6 +320,10 @@ class AppTranslations extends Translations {
       'coming_soon': 'Coming Soon!',
       'filter_update_desc': 'The "@val" filter will be available\nin the next update.',
       'All': 'All',
+      'update_required': 'Update Required',
+      'update_required_message': 'A new version of ResourcePlus ESS is available.\n\nPlease update to the latest version to continue using the application securely.',
+      'update_now': 'Update Now',
+      'open_play_store': 'Open Play Store',
     },
     'ar_SA': {
       // Common
@@ -449,6 +467,20 @@ class AppTranslations extends Translations {
       'contact_support': 'اتصل بالدعم',
       'call_support': 'اتصال الدعم',
       'live_chat': 'الدردشة المباشرة',
+      'version': 'الإصدار',
+
+      // Validation Popups
+      'camera_permission_title': 'إذن الكاميرا',
+      'camera_permission_msg': 'إذن الكاميرا مطلوب لتسجيل الحضور. يرجى منح الوصول للكاميرا في إعدادات جهازك.',
+      'camera_not_ready_title': 'الكاميرا غير جاهزة',
+      'camera_not_ready_msg': 'لا تزال الكاميرا قيد التشغيل. يرجى الانتظار لحظة والمحاولة مرة أخرى.',
+      'location_disabled_title': 'الموقع معطل',
+      'location_disabled_msg': 'يرجى تشغيل خدمة الموقع / GPS في جهازك لتسجيل الحضور.',
+      'location_permission_title': 'إذن الموقع',
+      'location_permission_msg': 'إذن الموقع مطلوب لتسجيل الحضور. يرجى منح الوصول للموقع في إعدادات جهازك.',
+      'gps_signal_lost_title': 'فقدان إشارة GPS',
+      'gps_signal_lost_msg': 'فشل في الحصول على موقعك الحالي. يرجى التحقق من إشارة GPS والمحاولة مرة أخرى.',
+      'ok': 'حسناً',
 
       // Calendar
       'connect_calendar': 'ربط التقويم',
@@ -608,6 +640,10 @@ class AppTranslations extends Translations {
       'coming_soon': 'قريباً!',
       'filter_update_desc': 'سيكون فلتر "@val" متاحاً\nفي التحديث القادم.',
       'All': 'الكل',
+      'update_required': 'تحديث مطلوب',
+      'update_required_message': 'يتوفر إصدار جديد من تطبيق ResourcePlus ESS.\n\nيرجى التحديث إلى أحدث إصدار لمتابعة استخدام التطبيق بأمان.',
+      'update_now': 'تحديث الآن',
+      'open_play_store': 'فتح متجر Play',
     },
   };
 }

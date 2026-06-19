@@ -1066,10 +1066,15 @@ class HomeController extends GetxController {
 
   // Refresh all data after language change
   void refreshAllData() {
+    // Clear the cached HR portal URL so it gets re-fetched with the new language code
+    _cachedPortalUrl = null;
+    _preFetchPortalUrl();
+
     fetchHomeData();
     fetchSettingsData();
     fetchNotificationData();
     fetchAttendanceData();
+    fetchProfileData(); // Ensure profile tab static contents update with language
     // Refresh profile picture URL with new language
     initializeProfilePicture();
   }
@@ -1151,7 +1156,7 @@ class HomeController extends GetxController {
   // Helper to append language to the portal URL
   String _appendLangToUrl(String url) {
     try {
-      final langCode = Get.find<LanguageController>().currentLangCode;
+      final langCode = Get.find<LanguageController>().currentLangCode.toString();
       final uri = Uri.parse(url);
       final newParams = Map<String, dynamic>.from(uri.queryParameters);
       newParams['lang'] = langCode;

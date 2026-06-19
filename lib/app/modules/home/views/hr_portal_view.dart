@@ -7,6 +7,7 @@ import '../controllers/hr_portal_controller.dart';
 import '../controllers/home_controller.dart';
 import 'widgets/app_drawer.dart';
 import 'widgets/tab_header.dart';
+import 'package:flutter_zoom_drawer/flutter_zoom_drawer.dart';
 
 class HrPortalView extends GetView<HrPortalController> {
   const HrPortalView({super.key});
@@ -20,21 +21,30 @@ class HrPortalView extends GetView<HrPortalController> {
     final primaryGreen = const Color(0xFF10B981);
     final primaryRed = const Color(0xFFEF4444);
 
-    return Scaffold(
-      drawer: const AppDrawer(),
-      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+    return ZoomDrawer(
+      controller: controller.zoomDrawerController,
+      menuScreen: const AppDrawer(),
+      mainScreen: Scaffold(
+        backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
       body: SafeArea(
         child: Column(
           children: [
             // Header
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              child: TabHeader(
-                title: '',
-                onNotificationTap: () {
-                  Get.back();
-                  Get.find<HomeController>().changeTab(3);
-                },
+              child: Builder(
+                builder: (BuildContext context) {
+                  return TabHeader(
+                    title: '',
+                    onMenuTap: () {
+                      controller.zoomDrawerController.toggle?.call();
+                    },
+                    onNotificationTap: () {
+                      Get.back();
+                      Get.find<HomeController>().changeTab(3);
+                    },
+                  );
+                }
               ),
             ),
             
@@ -82,11 +92,11 @@ class HrPortalView extends GetView<HrPortalController> {
                               ],
                             ),
                           ),
-                          const SizedBox(height: 32),
+                          const SizedBox(height: 12), // Reduced from 16
 
                           // Camera Preview Frame
                           _buildCameraPreview(context, colorScheme),
-                          const SizedBox(height: 24),
+                          const SizedBox(height: 12), // Reduced from 16
 
                           // Animated Clock Section
                           TweenAnimationBuilder<double>(
@@ -98,7 +108,7 @@ class HrPortalView extends GetView<HrPortalController> {
                               child: Opacity(opacity: val, child: child),
                             ),
                             child: Container(
-                              padding: const EdgeInsets.all(24),
+                              padding: const EdgeInsets.all(12), // Reduced from 16
                               decoration: BoxDecoration(
                                 color: isDark ? const Color(0xFF1E293B) : Colors.white,
                                 borderRadius: BorderRadius.circular(32),
@@ -117,7 +127,7 @@ class HrPortalView extends GetView<HrPortalController> {
                                     () => Text(
                                       controller.currentTime.value,
                                       style: TextStyle(
-                                        fontSize: 42,
+                                        fontSize: 32, // Reduced from 36
                                         fontWeight: FontWeight.w900,
                                         fontFeatures: const [FontFeature.tabularFigures()],
                                         color: isDark ? Colors.white : const Color(0xFF0F172A),
@@ -140,7 +150,7 @@ class HrPortalView extends GetView<HrPortalController> {
                               ),
                             ),
                           ),
-                          const SizedBox(height: 32),
+                          const SizedBox(height: 12), // Reduced from 16
 
                           // In/Out Buttons
                           TweenAnimationBuilder<double>(
@@ -152,7 +162,7 @@ class HrPortalView extends GetView<HrPortalController> {
                             ),
                             child: _buildAttendanceButtons(context, primaryGreen, primaryRed, isDark),
                           ),
-                          const SizedBox(height: 24),
+                          const SizedBox(height: 12), // Reduced from 16
 
                           // Current Shift & Coordinates
                           TweenAnimationBuilder<double>(
@@ -187,6 +197,16 @@ class HrPortalView extends GetView<HrPortalController> {
           ],
         ),
       ),
+      ),
+      borderRadius: 24.0,
+      showShadow: true,
+      angle: -10.0,
+      isRtl: true,
+      drawerShadowsBackgroundColor: isDark ? Colors.grey.shade900 : Colors.grey.shade300,
+      slideWidth: MediaQuery.of(context).size.width * 0.65,
+      openCurve: Curves.easeOutCubic,
+      closeCurve: Curves.easeOutQuint,
+      duration: const Duration(milliseconds: 450),
     );
   }
 

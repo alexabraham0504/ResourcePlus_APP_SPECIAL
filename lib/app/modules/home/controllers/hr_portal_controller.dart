@@ -19,7 +19,10 @@ import '../../../controllers/language_controller.dart';
 import '../../../config/api_endpoints.dart';
 import 'home_controller.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:image/image.dart' as img;class HrPortalController extends GetxController {
+import 'package:image/image.dart' as img;
+import 'package:flutter_zoom_drawer/flutter_zoom_drawer.dart';
+
+class HrPortalController extends GetxController {
   // Camera
   CameraController? cameraController;
   final isCameraInitialized = false.obs;
@@ -47,6 +50,8 @@ import 'package:image/image.dart' as img;class HrPortalController extends GetxCo
 
   final Dio _dio = ApiService().dio;
   final GetStorage _storage = GetStorage();
+  
+  final zoomDrawerController = ZoomDrawerController();
 
   // Prevent multiple simultaneous image captures
   bool _isCapturingImage = false;
@@ -108,6 +113,26 @@ import 'package:image/image.dart' as img;class HrPortalController extends GetxCo
     } catch (e) {
       debugPrint('Snackbar error (suppressed): $e — title: $title, msg: $message');
     }
+  }
+
+  /// Premium animated center popup for validation errors.
+  /// Shows a beautiful dialog with icon, gradient header, and smooth animations.
+  void _showValidationPopup({
+    required IconData icon,
+    required String title,
+    required String message,
+    Color accentColor = const Color(0xFFEF4444),
+  }) {
+    Get.dialog(
+      _AnimatedValidationDialog(
+        icon: icon,
+        title: title,
+        message: message,
+        accentColor: accentColor,
+      ),
+      barrierDismissible: true,
+      barrierColor: Colors.black54,
+    );
   }
 
   // Capture image from camera and return as raw bytes directly
@@ -695,10 +720,64 @@ import 'package:image/image.dart' as img;class HrPortalController extends GetxCo
           ? userName.toString()
           : userEmail.toString();
 
+      // --- STRICT VALIDATION ---
+      // 1. Camera Validation
+      if (!isCameraPermissionGranted.value) {
+        _showValidationPopup(
+          icon: Icons.camera_alt_outlined,
+          title: 'camera_permission_title'.tr,
+          message: 'camera_permission_msg'.tr,
+          accentColor: const Color(0xFFF59E0B),
+        );
+        return;
+      }
+      if (!isCameraInitialized.value) {
+        _showValidationPopup(
+          icon: Icons.videocam_off_outlined,
+          title: 'camera_not_ready_title'.tr,
+          message: 'camera_not_ready_msg'.tr,
+          accentColor: const Color(0xFFF59E0B),
+        );
+        return;
+      }
+
+      // 2. Location Validation
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        _showValidationPopup(
+          icon: Icons.location_off_outlined,
+          title: 'location_disabled_title'.tr,
+          message: 'location_disabled_msg'.tr,
+          accentColor: const Color(0xFFEF4444),
+        );
+        return;
+      }
+      if (!isLocationPermissionGranted.value) {
+        _showValidationPopup(
+          icon: Icons.location_disabled_outlined,
+          title: 'location_permission_title'.tr,
+          message: 'location_permission_msg'.tr,
+          accentColor: const Color(0xFFEF4444),
+        );
+        return;
+      }
+
       // Ensure location is updated
       if (_currentPosition == null) {
         await _updateLocation();
       }
+      
+      // Final Location Check
+      if (_currentPosition == null) {
+        _showValidationPopup(
+          icon: Icons.gps_off_outlined,
+          title: 'gps_signal_lost_title'.tr,
+          message: 'gps_signal_lost_msg'.tr,
+          accentColor: const Color(0xFFEF4444),
+        );
+        return;
+      }
+      // -------------------------
 
       // Capture image from camera natively to memory bytes
       final originalBytes = await _captureImageBytes();
@@ -916,5 +995,239 @@ Uint8List? _processImageIsolate(Map<String, dynamic> args) {
   } catch (e) {
     debugPrint('Error processing image in isolate: $e');
     return null;
+  }
+}
+
+/// Futuristic animated validation dialog with glowing effects, glassmorphism, and smooth animations.
+class _AnimatedValidationDialog extends StatefulWidget {
+  final IconData icon;
+  final String title;
+  final String message;
+  final Color accentColor;
+
+  const _AnimatedValidationDialog({
+    required this.icon,
+    required this.title,
+    required this.message,
+    required this.accentColor,
+  });
+
+  @override
+  State<_AnimatedValidationDialog> createState() => _AnimatedValidationDialogState();
+}
+
+class _AnimatedValidationDialogState extends State<_AnimatedValidationDialog>
+    with TickerProviderStateMixin {
+  late AnimationController _entryController;
+  late AnimationController _pulseController;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _fadeAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _entryController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat(reverse: true);
+
+    _scaleAnimation = Tween<double>(begin: 0.5, end: 1.0).animate(
+      CurvedAnimation(parent: _entryController, curve: Curves.elasticOut),
+    );
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _entryController, curve: Curves.easeOut),
+    );
+
+    _entryController.forward();
+  }
+
+  @override
+  void dispose() {
+    _entryController.dispose();
+    _pulseController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? const Color(0xFF1A1A2E) : Colors.white;
+    final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
+    final subtitleColor = isDark ? Colors.grey[400]! : Colors.grey[600]!;
+
+    return FadeTransition(
+      opacity: _fadeAnimation,
+      child: ScaleTransition(
+        scale: _scaleAnimation,
+        child: Dialog(
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 36),
+          child: AnimatedBuilder(
+            animation: _pulseController,
+            builder: (context, child) {
+              final pulseVal = _pulseController.value;
+              return Container(
+                decoration: BoxDecoration(
+                  color: cardBg,
+                  borderRadius: BorderRadius.circular(28),
+                  border: Border.all(
+                    color: widget.accentColor.withOpacity(0.2 + pulseVal * 0.15),
+                    width: 1.5,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: widget.accentColor.withOpacity(0.08 + pulseVal * 0.12),
+                      blurRadius: 40 + pulseVal * 20,
+                      spreadRadius: pulseVal * 6,
+                    ),
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.15),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: child,
+              );
+            },
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Gradient Header
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 30),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        widget.accentColor.withOpacity(0.9),
+                        widget.accentColor.withOpacity(0.6),
+                        widget.accentColor.withOpacity(0.4),
+                      ],
+                    ),
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+                  ),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // Outer glow ring
+                      AnimatedBuilder(
+                        animation: _pulseController,
+                        builder: (context, _) {
+                          return Container(
+                            width: 88 + _pulseController.value * 12,
+                            height: 88 + _pulseController.value * 12,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: Colors.white.withOpacity(0.15 + _pulseController.value * 0.1),
+                                width: 2,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      // Icon circle
+                      TweenAnimationBuilder<double>(
+                        tween: Tween(begin: 0, end: 1),
+                        duration: const Duration(milliseconds: 700),
+                        curve: Curves.elasticOut,
+                        builder: (context, value, child) {
+                          return Transform.scale(scale: value, child: child);
+                        },
+                        child: Container(
+                          width: 72,
+                          height: 72,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white.withOpacity(0.4), width: 2),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.2),
+                                blurRadius: 16,
+                                offset: const Offset(0, 6),
+                              ),
+                            ],
+                          ),
+                          child: Icon(widget.icon, color: Colors.white, size: 34),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Content
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+                  child: Column(
+                    children: [
+                      Text(
+                        widget.title,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          color: textColor,
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        widget.message,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: subtitleColor,
+                          height: 1.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // OK Button
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 4, 24, 24),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: widget.accentColor,
+                        foregroundColor: Colors.white,
+                        elevation: 8,
+                        shadowColor: widget.accentColor.withOpacity(0.5),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: Text(
+                        'ok'.tr,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1.0,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

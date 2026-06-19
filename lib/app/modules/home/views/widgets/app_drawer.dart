@@ -5,6 +5,7 @@ import '../../../../routes/app_routes.dart';
 import '../../../auth/controllers/auth_controller.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../controllers/language_controller.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 class AppDrawer extends StatelessWidget {
   const AppDrawer({Key? key}) : super(key: key);
@@ -72,13 +73,16 @@ class AppDrawer extends StatelessWidget {
                         ),
                         child: const Icon(Icons.language_rounded, color: corporateBlue, size: 22),
                       ),
-                      title: Text('language'.tr,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 15,
-                          color: corporateBlue,
+                      title: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: AlignmentDirectional.centerStart,
+                        child: Text('language'.tr,
+                          maxLines: 1,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 15,
+                            color: corporateBlue,
+                          ),
                         ),
                       ),
                       trailing: Obx(() {
@@ -108,13 +112,16 @@ class AppDrawer extends StatelessWidget {
                         ),
                         child: const Icon(Icons.power_settings_new_rounded, color: errorColor, size: 22),
                       ),
-                      title: Text('logout'.tr,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 15,
-                          color: errorColor,
+                      title: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: AlignmentDirectional.centerStart,
+                        child: Text('logout'.tr,
+                          maxLines: 1,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 15,
+                            color: errorColor,
+                          ),
                         ),
                       ),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -146,7 +153,27 @@ class AppDrawer extends StatelessWidget {
                         }
                       },
                     ),
-                    const SizedBox(height: 30),
+                    const SizedBox(height: 10),
+                    Center(
+                      child: FutureBuilder<PackageInfo>(
+                        future: PackageInfo.fromPlatform(),
+                        builder: (context, snapshot) {
+                          if (snapshot.hasData) {
+                            final version = snapshot.data!.version;
+                            return Text(
+                              '${'version'.tr} $version',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: iconColor.withOpacity(0.5),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            );
+                          }
+                          return const SizedBox.shrink();
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 20),
                   ],
                 ),
               ),
@@ -202,13 +229,16 @@ class AppDrawer extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 20),
-          Obx(() => Text(
-            controller.employeeName.value.isNotEmpty ? controller.employeeName.value : 'Employee',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.outfit(
-              color: textColor, fontSize: 24, fontWeight: FontWeight.w900,
-              letterSpacing: -0.5, height: 1.1,
+          Obx(() => FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: AlignmentDirectional.centerStart,
+            child: Text(
+              controller.employeeName.value.isNotEmpty ? controller.employeeName.value : 'Employee',
+              maxLines: 1,
+              style: GoogleFonts.outfit(
+                color: textColor, fontSize: 24, fontWeight: FontWeight.w900,
+                letterSpacing: -0.5, height: 1.1,
+              ),
             ),
           )),
           const SizedBox(height: 6),
@@ -216,12 +246,15 @@ class AppDrawer extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Flexible(
-                child: Text(
-                  controller.positionName.value.isNotEmpty ? controller.positionName.value : 'Position',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.outfit(
-                    color: subTextColor, fontSize: 13, fontWeight: FontWeight.w500,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: AlignmentDirectional.centerStart,
+                  child: Text(
+                    controller.positionName.value.isNotEmpty ? controller.positionName.value : 'Position',
+                    maxLines: 1,
+                    style: GoogleFonts.outfit(
+                      color: subTextColor, fontSize: 13, fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
               ),
@@ -276,14 +309,17 @@ class AppDrawer extends StatelessWidget {
             ),
             child: Icon(icon, color: itemIconColor, size: 22),
           ),
-          title: Text(label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.outfit(
-              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-              fontSize: 15,
-              color: itemTextColor,
-              letterSpacing: 0.2,
+          title: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: AlignmentDirectional.centerStart,
+            child: Text(label,
+              maxLines: 1,
+              style: GoogleFonts.outfit(
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                fontSize: 15,
+                color: itemTextColor,
+                letterSpacing: 0.2,
+              ),
             ),
           ),
           onTap: () {
