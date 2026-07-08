@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -124,7 +125,9 @@ class UpdateRequiredView extends StatelessWidget {
                     Get.find<AppUpdateService>().openPlayStore();
                   },
                   child: Text(
-                    'open_play_store'.tr.isEmpty ? 'Open Play Store' : 'open_play_store'.tr,
+                    Platform.isIOS 
+                        ? ('open_app_store'.tr.isEmpty ? 'Open App Store' : 'open_app_store'.tr)
+                        : ('open_play_store'.tr.isEmpty ? 'Open Play Store' : 'open_play_store'.tr),
                     style: TextStyle(
                       fontSize: 14,
                       color: isDark ? Colors.white54 : const Color(0xFF6B7280),

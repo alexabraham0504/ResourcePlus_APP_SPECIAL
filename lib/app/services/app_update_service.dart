@@ -1,9 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:in_app_update/in_app_update.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../app/routes/app_routes.dart';
-
 /// Mandatory Update Service — Production Hardened
 ///
 /// Business Rule: ResourcePlus ESS must NOT be usable when a mandatory
@@ -25,10 +25,6 @@ import '../../app/routes/app_routes.dart';
 /// When NO update is available:
 ///   - Service does nothing; user proceeds normally.
 class AppUpdateService extends GetxService with WidgetsBindingObserver {
-  /// Play Store URL for fallback when Play Core API is unavailable.
-  static const _playStoreUrl =
-      'https://play.google.com/store/apps/details?id=com.resourceplus.app';
-
   /// Tracks whether a check is already in progress to prevent overlapping calls.
   bool _checking = false;
 
@@ -70,6 +66,11 @@ class AppUpdateService extends GetxService with WidgetsBindingObserver {
   Future<void> checkAndHandleUpdate() async {
     if (_checking) return; // Prevent overlapping checks
     _checking = true;
+
+    if (Platform.isIOS) {
+      _checking = false;
+      return; // Updates are managed by the App Store natively on iOS.
+    }
 
     try {
       final info = await InAppUpdate.checkForUpdate();
@@ -170,26 +171,32 @@ class AppUpdateService extends GetxService with WidgetsBindingObserver {
     }
   }
 
-  /// Opens the Play Store listing for ResourcePlus ESS.
+  /// Opens the App Store or Play Store listing for ResourcePlus ESS.
   /// Used as a fallback when Play Core in-app update API is unavailable.
   Future<void> openPlayStore() async {
-    final uri = Uri.parse(_playStoreUrl);
+    final url = Platform.isIOS 
+        ? 'https://apps.apple.com/app/id6440000000' // Ensure to replace with actual App ID
+        : 'https://play.google.com/store/apps/details?id=com.resourceplus.app';
+    final uri = Uri.parse(url);
+    
     try {
-      // Try Play Store app first
-      final marketUri = Uri.parse('market://details?id=com.resourceplus.app');
-      if (await canLaunchUrl(marketUri)) {
-        await launchUrl(marketUri, mode: LaunchMode.externalApplication);
-        return;
+      if (!Platform.isIOS) {
+        // Try Play Store app first
+        final marketUri = Uri.parse('market://details?id=com.resourceplus.app');
+        if (await canLaunchUrl(marketUri)) {
+          await launchUrl(marketUri, mode: LaunchMode.externalApplication);
+          return;
+        }
       }
     } catch (_) {}
 
-    // Fallback to browser
+    // Fallback to browser (or App Store on iOS which handles https://apps.apple.com links automatically)
     try {
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
       }
     } catch (e) {
-      debugPrint('AppUpdateService: Could not open Play Store: $e');
+      debugPrint('AppUpdateService: Could not open Store: $e');
     }
   }
 }

@@ -456,6 +456,7 @@ class HomeTab extends GetView<HomeController> {
       String checkIn = '--:--';
       String checkOut = '--:--';
       String status = 'No Data';
+      Map<String, dynamic>? todayRecord;
 
       if (controller.recentActivities.isNotEmpty) {
         // Find today's record by matching AttDate to today's date
@@ -464,7 +465,6 @@ class HomeTab extends GetView<HomeController> {
         final todayStr2 = DateFormat('d/MM/yyyy').format(today);  // e.g. 4/06/2026
         final todayStr3 = DateFormat('MM/dd/yyyy').format(today);  // e.g. 06/04/2026
 
-        Map<String, dynamic>? todayRecord;
         for (final activity in controller.recentActivities) {
           final attDate = (activity['AttDate'] ?? '').toString().trim();
           if (attDate == todayStr1 || attDate == todayStr2 || attDate == todayStr3) {
@@ -492,21 +492,15 @@ class HomeTab extends GetView<HomeController> {
         }
       }
 
-      // Calculate NTH and LSH for the home tab
+      // Read NTH and LSH directly from the API response
       String nth = '';
       String lsh = '';
-      if (checkIn != '--:--' && checkOut != '--:--') {
-        final nthMinutes = _calculateWorkedMinutes(checkIn, checkOut);
-        if (nthMinutes != null && nthMinutes >= 0) {
-          final nthH = (nthMinutes ~/ 60).toString().padLeft(2, '0');
-          final nthM = (nthMinutes % 60).toString().padLeft(2, '0');
-          nth = '$nthH:$nthM';
-          // LSH = expected 9 hours (540 minutes) minus actual worked
-          final lshMinutes = (540 - nthMinutes).clamp(0, 540);
-          final lshH = (lshMinutes ~/ 60).toString().padLeft(2, '0');
-          final lshM = (lshMinutes % 60).toString().padLeft(2, '0');
-          lsh = '$lshH:$lshM';
-        }
+      if (controller.recentActivities.isNotEmpty && todayRecord != null) {
+        nth = (todayRecord['NetHrs'] ?? '').toString();
+        lsh = (todayRecord['LessHrs'] ?? '').toString();
+        // Treat empty or null-like values as empty
+        if (nth == 'null' || nth.isEmpty) nth = '';
+        if (lsh == 'null' || lsh.isEmpty) lsh = '';
       }
 
       final now = DateTime.now();
@@ -649,43 +643,6 @@ class HomeTab extends GetView<HomeController> {
       default:
         return primaryGreen;
     }
-  }
-
-
-
-  int? _calculateWorkedMinutes(String checkInStr, String checkOutStr) {
-    try {
-      final inTime = _parseTimeString(checkInStr);
-      final outTime = _parseTimeString(checkOutStr);
-      if (inTime == null || outTime == null) return null;
-
-      int diffMinutes = outTime.difference(inTime).inMinutes;
-      if (diffMinutes < 0) diffMinutes += 24 * 60; // Handle overnight
-      return diffMinutes;
-    } catch (e) {
-      return null;
-    }
-  }
-
-  DateTime? _parseTimeString(String time) {
-    final trimmed = time.trim();
-    if (trimmed.isEmpty) return null;
-
-    final formats = [
-      'HH:mm:ss',
-      'HH:mm',
-      'hh:mm:ss a',
-      'hh:mm a',
-      'h:mm:ss a',
-      'h:mm a',
-    ];
-
-    for (final fmt in formats) {
-      try {
-        return DateFormat(fmt).parse(trimmed);
-      } catch (_) {}
-    }
-    return null;
   }
 
 

@@ -293,22 +293,12 @@ class AttendanceTab extends GetView<HomeController> {
     final checkOut = a['CheckOut'] ?? '';
     final color = _statusColor(type);
 
-    // Calculate NTH (Net Hours) and LSH (Less Hours)
-    String nth = '';
-    String lsh = '';
-    if (checkIn.toString().isNotEmpty && checkOut.toString().isNotEmpty) {
-      final nthMinutes = _calculateWorkedMinutes(checkIn.toString(), checkOut.toString());
-      if (nthMinutes != null && nthMinutes >= 0) {
-        final nthH = (nthMinutes ~/ 60).toString().padLeft(2, '0');
-        final nthM = (nthMinutes % 60).toString().padLeft(2, '0');
-        nth = '$nthH:$nthM';
-        // LSH = expected 9 hours (540 minutes) minus actual worked
-        final lshMinutes = (540 - nthMinutes).clamp(0, 540);
-        final lshH = (lshMinutes ~/ 60).toString().padLeft(2, '0');
-        final lshM = (lshMinutes % 60).toString().padLeft(2, '0');
-        lsh = '$lshH:$lshM';
-      }
-    }
+    // Read NTH (Net Hours) and LSH (Less Hours) directly from the API response
+    String nth = (a['NetHrs'] ?? '').toString();
+    String lsh = (a['LessHrs'] ?? '').toString();
+    // Treat empty or null-like values as empty
+    if (nth == 'null' || nth.isEmpty) nth = '';
+    if (lsh == 'null' || lsh.isEmpty) lsh = '';
 
     // Parse date for the big left block
     String dayStr = '--';

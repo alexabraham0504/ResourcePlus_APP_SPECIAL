@@ -18,10 +18,8 @@ migrate_working_dir/
 *.iws
 .idea/
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
+# VS Code
+.vscode/
 
 # Flutter/Dart/Pub related
 **/doc/api/
@@ -32,6 +30,10 @@ migrate_working_dir/
 .pub-cache/
 .pub/
 /build/
+.flutter
+.flutter_tool_state
+.metadata
+pubspec.lock
 
 # Symbolication related
 app.*.symbols
@@ -43,20 +45,46 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
-# Added by code-review-graph
-.code-review-graph/
+/android/build/
+/android/.kotlin/
 
-# Custom Additions
+# iOS related
+**/ios/**/*.mode1v3
+**/ios/**/*.pbxuser
+**/ios/**/*.xcworkspace/
+**/ios/**/*.xcworkspace/xcuserdata/
+**/ios/*.xcworkspace/xcuserdata/
+**/ios/*.xcodeproj/xcuserdata/
+**/ios/*.xcodeproj/project.xcworkspace/xcuserdata/
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/Podfile.lock
+
+# Build outputs / binaries
 *.apk
 *.aab
+*.ipa
+
+# Documents & spreadsheets (not source code)
 *.xlsx
 *.csv
 *.docx
+*.pdf
+
+# Temporary / extracted APK analysis folders
+temp_apk/
+resource_plus-dev1_extracted/
+
+# Old / backup project folders
 _original_zip/
 scratch/
 resource_plus-dev1/
 home_redesign/
+
+# Build scripts
 build_and_rename.ps1
+
+# AI / IDE agent config files
 .claude
 .cursor
 .cursorrules
@@ -70,6 +98,18 @@ AGENTS.md
 CLAUDE.md
 GEMINI.md
 QODER.md
+
+# Code review graph
+.code-review-graph/
+
+# Documentation files (local dev notes, not needed in repo)
 APi List_Complete*
 App Issues*
 ResourcePlus*
+Google Play*
+Handover_Documentation.md
+CALENDAR_SETUP.md
+update_flow_investigation.md
+
+# GitHub (code-review-graph instruction)
+.github/
