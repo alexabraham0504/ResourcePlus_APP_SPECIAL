@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -17,6 +18,9 @@ class _CodeVerificationViewState extends State<CodeVerificationView> with Ticker
   late FocusNode _focusNode;
   bool isVerified = false;
   bool isLocalLoading = false; // Guarantees a minimum loading duration for visual feedback
+  bool isResending = false;
+  int resendCooldown = 0;
+  Timer? _resendTimer;
   late AnimationController _loadingController;
 
   @override
@@ -42,12 +46,26 @@ class _CodeVerificationViewState extends State<CodeVerificationView> with Ticker
     setState(() {});
   }
 
+  void _startResendCooldown() {
+    resendCooldown = 30;
+    _resendTimer?.cancel();
+    _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() {
+        resendCooldown--;
+      });
+      if (resendCooldown <= 0) {
+        timer.cancel();
+      }
+    });
+  }
+
   @override
   void dispose() {
     codeController.dispose();
     _focusNode.removeListener(_onFocusChange);
     _focusNode.dispose();
     _loadingController.dispose();
+    _resendTimer?.cancel();
     super.dispose();
   }
 
@@ -385,39 +403,72 @@ class _CodeVerificationViewState extends State<CodeVerificationView> with Ticker
                                                     fontSize: 14,
                                                   ),
                                                 ),
-                                                GestureDetector(
-                                                  onTap: () async {
-                                                    controller.errorMessage.value = '';
-                                                    final success = await controller.sendVerificationCode(
-                                                        controller.emailOrPhone.value);
-                                                    if (success) {
-                                                      Get.snackbar(
-                                                        'Success',
-                                                        'Verification code resent successfully',
-                                                        backgroundColor: const Color(0xFF00FF64),
-                                                        colorText: Colors.black,
-                                                      );
-                                                    } else {
-                                                      Get.snackbar(
-                                                        'Error',
-                                                        controller.errorMessage.value.isNotEmpty
-                                                            ? controller.errorMessage.value
-                                                            : 'Failed to resend code',
-                                                        backgroundColor: const Color(0xFFBA1A1A),
-                                                        colorText: Colors.white,
-                                                      );
-                                                    }
-                                                  },
-                                                  child: Text(
-                                                    'resend'.tr,
-                                                    style: TextStyle(
-                                                      color: theme.colorScheme.onSurface,
-                                                      fontWeight: FontWeight.bold,
-                                                      decoration: TextDecoration.underline,
-                                                      fontSize: 14,
+                                                if (isResending)
+                                                  const Padding(
+                                                    padding: EdgeInsets.only(left: 4),
+                                                    child: SizedBox(
+                                                      width: 14,
+                                                      height: 14,
+                                                      child: CircularProgressIndicator(
+                                                        strokeWidth: 2,
+                                                        color: Color(0xFFFF5E3A),
+                                                      ),
+                                                    ),
+                                                  )
+                                                else if (resendCooldown > 0)
+                                                  Padding(
+                                                    padding: const EdgeInsets.only(left: 4),
+                                                    child: Text(
+                                                      'resend'.tr + ' (${resendCooldown}s)',
+                                                      style: TextStyle(
+                                                        color: theme.colorScheme.onSurface.withOpacity(0.35),
+                                                        fontWeight: FontWeight.bold,
+                                                        fontSize: 14,
+                                                      ),
+                                                    ),
+                                                  )
+                                                else
+                                                  GestureDetector(
+                                                    onTap: () async {
+                                                      if (isResending || resendCooldown > 0) return;
+                                                      setState(() {
+                                                        isResending = true;
+                                                      });
+                                                      controller.errorMessage.value = '';
+                                                      final success = await controller.sendVerificationCode(
+                                                          controller.emailOrPhone.value);
+                                                      setState(() {
+                                                        isResending = false;
+                                                      });
+                                                      if (success) {
+                                                        _startResendCooldown();
+                                                        Get.snackbar(
+                                                          'Success',
+                                                          'Verification code resent successfully. Check your inbox.',
+                                                          backgroundColor: const Color(0xFF00FF64),
+                                                          colorText: Colors.black,
+                                                        );
+                                                      } else {
+                                                        Get.snackbar(
+                                                          'Error',
+                                                          controller.errorMessage.value.isNotEmpty
+                                                              ? controller.errorMessage.value
+                                                              : 'Failed to resend code',
+                                                          backgroundColor: const Color(0xFFBA1A1A),
+                                                          colorText: Colors.white,
+                                                        );
+                                                      }
+                                                    },
+                                                    child: Text(
+                                                      'resend'.tr,
+                                                      style: TextStyle(
+                                                        color: theme.colorScheme.onSurface,
+                                                        fontWeight: FontWeight.bold,
+                                                        decoration: TextDecoration.underline,
+                                                        fontSize: 14,
+                                                      ),
                                                     ),
                                                   ),
-                                                ),
                                               ],
                                             ),
                                           ],

@@ -402,9 +402,9 @@ class AttendanceTab extends GetView<HomeController> {
                       children: [
                         Row(
                           children: [
-                            if (checkIn.isNotEmpty) Expanded(child: _timeSection(ctx, 'check_in'.tr, checkIn)),
-                            if (checkIn.isNotEmpty && checkOut.isNotEmpty) Container(width: 1, height: 30, color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-                            if (checkOut.isNotEmpty) Expanded(child: _timeSection(ctx, 'check_out'.tr, checkOut, isRight: checkIn.isNotEmpty)),
+                            Expanded(child: _timeSection(ctx, 'check_in'.tr, checkIn.isNotEmpty ? checkIn : '--:--')),
+                            Container(width: 1, height: 30, color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                            Expanded(child: _timeSection(ctx, 'check_out'.tr, checkOut.isNotEmpty ? checkOut : '--:--', isRight: true)),
                           ],
                         ),
                         if (nth.isNotEmpty || lsh.isNotEmpty) ...[

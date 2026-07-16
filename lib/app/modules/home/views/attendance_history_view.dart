@@ -287,25 +287,12 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
     final checkIn = (item['CheckIN'] ?? '').toString();
     final checkOut = (item['CheckOut'] ?? '').toString();
 
-    String nth = '';
-    String lsh = '';
-
-    if (checkIn.isNotEmpty && checkOut.isNotEmpty) {
-      final worked = _calculateWorkedMinutes(checkIn, checkOut);
-      if (worked != null) {
-        final nthH = (worked ~/ 60).toString().padLeft(2, '0');
-        final nthM = (worked % 60).toString().padLeft(2, '0');
-        nth = '$nthH:$nthM';
-        
-        final expected = 9 * 60; 
-        final lshMinutes = expected - worked;
-        if (lshMinutes > 0) {
-          final lshH = (lshMinutes ~/ 60).toString().padLeft(2, '0');
-          final lshM = (lshMinutes % 60).toString().padLeft(2, '0');
-          lsh = '$lshH:$lshM';
-        }
-      }
-    }
+    // Read NTH (Net Hours) and LSH (Less Hours) directly from the API response
+    String nth = (item['NetHrs'] ?? '').toString();
+    String lsh = (item['LessHrs'] ?? '').toString();
+    // Treat empty or null-like values as empty
+    if (nth == 'null' || nth.isEmpty) nth = '';
+    if (lsh == 'null' || lsh.isEmpty) lsh = '';
 
     final color = _statusColor(type);
 
@@ -405,9 +392,9 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
                       children: [
                         Row(
                           children: [
-                            if (checkIn.isNotEmpty) Expanded(child: _timeSection(ctx, 'check_in'.tr, checkIn)),
-                            if (checkIn.isNotEmpty && checkOut.isNotEmpty) Container(width: 1, height: 30, color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-                            if (checkOut.isNotEmpty) Expanded(child: _timeSection(ctx, 'check_out'.tr, checkOut, isRight: checkIn.isNotEmpty)),
+                            Expanded(child: _timeSection(ctx, 'check_in'.tr, checkIn.isNotEmpty ? checkIn : '--:--')),
+                            Container(width: 1, height: 30, color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                            Expanded(child: _timeSection(ctx, 'check_out'.tr, checkOut.isNotEmpty ? checkOut : '--:--', isRight: true)),
                           ],
                         ),
                         if (nth.isNotEmpty || lsh.isNotEmpty) ...[

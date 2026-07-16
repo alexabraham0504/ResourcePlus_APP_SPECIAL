@@ -69,6 +69,14 @@ class AuthController extends GetxController {
 
   // API: Check Email
   Future<bool> sendVerificationCode(String email) async {
+    // Fallback: if empty (e.g. Android 11-14 session loss), read from storage
+    if (email.trim().isEmpty) {
+      email = (GetStorage().read('email') ?? '').toString();
+    }
+    if (email.trim().isEmpty) {
+      errorMessage.value = 'Email address not found. Please go back and enter your email.';
+      return false;
+    }
     await GetStorage().write('email', email);
     isLoading.value = true;
     errorMessage.value = '';
