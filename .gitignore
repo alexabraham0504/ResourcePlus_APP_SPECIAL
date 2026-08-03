@@ -48,6 +48,8 @@ app.*.map.json
 /android/build/
 /android/.kotlin/
 
+# Added by code-review-graph
+.code-review-graph/
 # iOS related
 **/ios/**/*.mode1v3
 **/ios/**/*.pbxuser
@@ -61,6 +63,7 @@ app.*.map.json
 **/ios/Podfile.lock
 
 # Build outputs / binaries
+# Custom Additions
 *.apk
 *.aab
 *.ipa

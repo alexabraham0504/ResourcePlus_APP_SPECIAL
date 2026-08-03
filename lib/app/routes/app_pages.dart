@@ -17,7 +17,7 @@ import '../modules/home/bindings/home_binding.dart';
 import '../modules/home/controllers/hr_portal_controller.dart';
 import '../modules/auth/views/privacy_consent_view.dart';
 import '../modules/auth/views/privacy_terms_detail_view.dart';
-import '../modules/home/views/attendance_history_view.dart';
+import '../modules/home/views/widgets/attendance_history_view.dart';
 import '../modules/home/views/update_required_view.dart';
 import 'update_guard_middleware.dart';
 import 'app_routes.dart';

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import '../controllers/home_controller.dart';
-import '../../../routes/app_routes.dart';
-import 'widgets/tab_header.dart';
-import 'widgets/app_drawer.dart';
+import '../../controllers/home_controller.dart';
+import '../../../../routes/app_routes.dart';
+import 'tab_header.dart';
+import 'app_drawer.dart';
 import 'package:flutter_zoom_drawer/flutter_zoom_drawer.dart';
 
 class AttendanceHistoryView extends StatefulWidget {

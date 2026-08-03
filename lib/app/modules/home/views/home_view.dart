@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/home_controller.dart';
 import 'tabs/home_tab.dart';
-import 'tabs/attendance_tab.dart';
+import 'widgets/attendance_history_view.dart';
 import 'tabs/profile_tab.dart';
 import 'tabs/notification_tab.dart';
 import 'tabs/settings_tab.dart';
@@ -54,7 +54,7 @@ class HomeView extends GetView<HomeController> {
                 case 0:
                   return const HomeTab();
                 case 1:
-                  return const AttendanceTab();
+                  return const AttendanceHistoryView();
                 case 2:
                   return const ProfileTab();
                 case 4:
