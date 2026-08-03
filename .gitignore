@@ -113,6 +113,10 @@ Google Play*
 Handover_Documentation.md
 CALENDAR_SETUP.md
 update_flow_investigation.md
+ios_publishing_guide.md
+
+# macOS metadata
+__MACOSX/
 
 # GitHub (code-review-graph instruction)
 .github/
