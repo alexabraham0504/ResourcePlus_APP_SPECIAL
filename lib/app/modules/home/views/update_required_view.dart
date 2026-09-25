@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import '../../../services/app_update_service.dart';
 
@@ -17,7 +16,7 @@ import '../../../services/app_update_service.dart';
 ///   - If update was installed, user proceeds normally
 ///   - If update was NOT installed, user stays blocked here
 class UpdateRequiredView extends StatelessWidget {
-  const UpdateRequiredView({Key? key}) : super(key: key);
+  const UpdateRequiredView({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +40,7 @@ class UpdateRequiredView extends StatelessWidget {
                   width: 120,
                   height: 120,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1E3A8A).withOpacity(0.1),
+                    color: const Color(0xFF1E3A8A).withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(

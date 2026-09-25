@@ -26,11 +26,11 @@ class FuturisticErrorPage extends StatefulWidget {
   final String? customMessage;
 
   const FuturisticErrorPage({
-    Key? key,
+    super.key,
     required this.onRetry,
     this.errorType = ErrorType.connection,
     this.customMessage,
-  }) : super(key: key);
+  });
 
   @override
   State<FuturisticErrorPage> createState() => _FuturisticErrorPageState();
@@ -249,9 +249,9 @@ class _FuturisticErrorPageState extends State<FuturisticErrorPage>
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    orb.color.withOpacity(0.25),
-                    orb.color.withOpacity(0.05),
-                    orb.color.withOpacity(0.0),
+                    orb.color.withValues(alpha: 0.25),
+                    orb.color.withValues(alpha: 0.05),
+                    orb.color.withValues(alpha: 0.0),
                   ],
                 ),
               ),
@@ -289,22 +289,22 @@ class _FuturisticErrorPageState extends State<FuturisticErrorPage>
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Colors.white.withOpacity(0.9),
-              const Color(0xFFE5EDF4).withOpacity(0.8),
+              Colors.white.withValues(alpha: 0.9),
+              const Color(0xFFE5EDF4).withValues(alpha: 0.8),
             ],
           ),
           border: Border.all(
-            color: const Color(0xFF004A77).withOpacity(0.3),
+            color: const Color(0xFF004A77).withValues(alpha: 0.3),
             width: 2,
           ),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF004A77).withOpacity(0.15),
+              color: const Color(0xFF004A77).withValues(alpha: 0.15),
               blurRadius: 30,
               spreadRadius: 5,
             ),
             BoxShadow(
-              color: const Color(0xFF006E1C).withOpacity(0.08),
+              color: const Color(0xFF006E1C).withValues(alpha: 0.08),
               blurRadius: 50,
               spreadRadius: 10,
             ),
@@ -328,15 +328,15 @@ class _FuturisticErrorPageState extends State<FuturisticErrorPage>
           width: double.infinity,
           padding: const EdgeInsets.all(28),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.7),
+            color: Colors.white.withValues(alpha: 0.7),
             borderRadius: BorderRadius.circular(28),
             border: Border.all(
-              color: Colors.white.withOpacity(0.8),
+              color: Colors.white.withValues(alpha: 0.8),
               width: 1.5,
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 30,
                 offset: const Offset(0, 10),
               ),
@@ -367,10 +367,10 @@ class _FuturisticErrorPageState extends State<FuturisticErrorPage>
                       borderRadius: BorderRadius.circular(2),
                       gradient: LinearGradient(
                         colors: [
-                          const Color(0xFF004A77).withOpacity(0.2),
+                          const Color(0xFF004A77).withValues(alpha: 0.2),
                           const Color(0xFF004A77),
                           const Color(0xFF006E1C),
-                          const Color(0xFF006E1C).withOpacity(0.2),
+                          const Color(0xFF006E1C).withValues(alpha: 0.2),
                         ],
                         stops: [
                           0.0,
@@ -416,7 +416,7 @@ class _FuturisticErrorPageState extends State<FuturisticErrorPage>
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF004A77).withOpacity(glowIntensity),
+                  color: const Color(0xFF004A77).withValues(alpha: glowIntensity),
                   blurRadius: 20,
                   spreadRadius: 2,
                 ),
@@ -433,7 +433,7 @@ class _FuturisticErrorPageState extends State<FuturisticErrorPage>
               colors: [Color(0xFF004A77), Color(0xFF006E1C)],
             ),
             border: Border.all(
-              color: Colors.white.withOpacity(0.3),
+              color: Colors.white.withValues(alpha: 0.3),
               width: 1,
             ),
           ),
@@ -475,10 +475,10 @@ class _FuturisticErrorPageState extends State<FuturisticErrorPage>
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
-              color: const Color(0xFF004A77).withOpacity(0.08),
+              color: const Color(0xFF004A77).withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: const Color(0xFF004A77).withOpacity(0.15),
+                color: const Color(0xFF004A77).withValues(alpha: 0.15),
               ),
             ),
             child: Row(

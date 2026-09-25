@@ -1,4 +1,5 @@
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 
 class SipServiceManager {
   static const MethodChannel _channel = MethodChannel(
@@ -9,10 +10,10 @@ class SipServiceManager {
   static Future<bool> startService() async {
     try {
       final bool result = await _channel.invokeMethod('startService');
-      print('🔧 SIP Service started: $result');
+      debugPrint('🔧 SIP Service started: \$result');
       return result;
     } catch (e) {
-      print('❌ Error starting SIP Service: $e');
+      debugPrint('❌ Error starting SIP Service: \$e');
       return false;
     }
   }
@@ -21,10 +22,10 @@ class SipServiceManager {
   static Future<bool> stopService() async {
     try {
       final bool result = await _channel.invokeMethod('stopService');
-      print('🔧 SIP Service stopped: $result');
+      debugPrint('🔧 SIP Service stopped: \$result');
       return result;
     } catch (e) {
-      print('❌ Error stopping SIP Service: $e');
+      debugPrint('❌ Error stopping SIP Service: \$e');
       return false;
     }
   }
@@ -33,10 +34,10 @@ class SipServiceManager {
   static Future<bool> isServiceRunning() async {
     try {
       final bool result = await _channel.invokeMethod('isServiceRunning');
-      print('🔧 SIP Service running: $result');
+      debugPrint('🔧 SIP Service running: \$result');
       return result;
     } catch (e) {
-      print('❌ Error checking SIP Service status: $e');
+      debugPrint('❌ Error checking SIP Service status: \$e');
       return false;
     }
   }

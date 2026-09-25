@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'app/routes/app_pages.dart';
 import 'app/routes/app_routes.dart';
@@ -8,13 +10,14 @@ import 'app/controllers/theme_controller.dart';
 import 'app/controllers/language_controller.dart';
 import 'app/translations/app_translations.dart';
 import 'app/services/api_service.dart';
-import 'app/services/notification_service.dart';
-import 'package:permission_handler/permission_handler.dart';
+import 'app/services/push_notification_service.dart';
 import 'package:flutter/foundation.dart';
 import 'app/widgets/error_page_widget.dart';
 import 'app/services/cache_service.dart';
 import 'app/services/app_update_service.dart';
 import 'dart:io';
+import 'app/modules/bluetooth_attendance/services/background_tracking_service.dart';
+import 'app/controllers/global_beacon_controller.dart';
 
 class MyHttpOverrides extends HttpOverrides {
   @override
@@ -28,6 +31,16 @@ class MyHttpOverrides extends HttpOverrides {
 void main() async {
   HttpOverrides.global = MyHttpOverrides();
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Firebase before the app starts
+  try {
+    await Firebase.initializeApp();
+    
+    // Register Background Push Notification Handler
+    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+  } catch (e) {
+    debugPrint('Firebase initialization error in main: $e');
+  }
 
   // Set global error widget to replace the default red error screen
   ErrorWidget.builder = (FlutterErrorDetails details) {
@@ -66,34 +79,60 @@ void main() async {
 
   await GetStorage.init();
 
-  // 1. Check for app update and clear selective cache if needed
-  await CacheService.checkAndClearCacheOnUpdate();
-
-  // Initialize date formatting for all locales
-  await initializeDateFormatting('en_US', null);
-  await initializeDateFormatting('ar_SA', null);
-
-  // Initialize API service with SSL certificate handling
-  final apiService = ApiService();
-  apiService.initialize();
-
-  // Notification service disabled for this release
-  // final notificationService = NotificationService();
-  // await notificationService.initialize();
-
-  // Notification permission request disabled
-  // if (await Permission.notification.isDenied) {
-  //   await Permission.notification.request();
-  // }
-
-  // Initialize mandatory update service lifecycle
-  Get.put(AppUpdateService(), permanent: true);
-
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  bool _isInitialized = false;
+  late String _initialRoute;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeApp();
+  }
+
+  Future<void> _initializeApp() async {
+    // Initialize Push Notifications (Prompts user for permission on Android 13+)
+    await PushNotificationService().init();
+
+    // 1. Check for app update and clear selective cache if needed
+    await CacheService.checkAndClearCacheOnUpdate();
+
+    // Initialize date formatting for all locales
+    await initializeDateFormatting('en_US', null);
+    await initializeDateFormatting('ar_SA', null);
+
+    // Initialize API service with SSL certificate handling
+    final apiService = ApiService();
+    apiService.initialize();
+
+    // Initialize Zero-Click Bluetooth Tracking Service (Sir's approach: auto punch on beacon detection)
+    try {
+      await BackgroundTrackingService().initializeService();
+      await BackgroundTrackingService().startService();
+    } catch (e) {
+      debugPrint('Error starting background tracking service: $e');
+    }
+
+    // Initialize mandatory update service lifecycle
+    Get.put(AppUpdateService(), permanent: true);
+
+    _initialRoute = _getInitialRoute();
+    
+    if (mounted) {
+      setState(() {
+        _isInitialized = true;
+      });
+    }
+  }
 
   String _getInitialRoute() {
     final storage = GetStorage();
@@ -152,9 +191,29 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!_isInitialized) {
+      return MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          backgroundColor: Colors.white,
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Image.asset('assets/app_logo.png', width: 250),
+                const SizedBox(height: 40),
+                const CircularProgressIndicator(color: Color(0xFF6BC04B)),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     // Initialize controllers
     final themeController = Get.put(ThemeController());
     final languageController = Get.put(LanguageController());
+    Get.put(GlobalBeaconController(), permanent: true); // Injected globally for beacon popups
 
     // Logo theme colors for auth screens
     const blue = Color(0xFF3B6EA5);
@@ -179,7 +238,6 @@ class MyApp extends StatelessWidget {
           primary: blue,
           secondary: green,
           surface: Colors.white,
-          background: Colors.white,
           error: orange,
         ),
         inputDecorationTheme: InputDecorationTheme(
@@ -188,7 +246,7 @@ class MyApp extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             borderSide: const BorderSide(color: orange, width: 2),
           ),
-          fillColor: blue.withOpacity(0.05),
+          fillColor: blue.withValues(alpha: 0.05),
           filled: true,
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
@@ -225,10 +283,8 @@ class MyApp extends StatelessWidget {
         colorScheme: const ColorScheme.dark(
           primary: blue,
           secondary: green,
-          surface: Color(0xFF141414), // Softer contrast surface
-          background: Color(0xFF0A0A0A),
+          surface: Color(0xFF141414),
           error: orange,
-          onBackground: Colors.white,
           onSurface: Colors.white,
           onPrimary: Colors.white,
           onSecondary: Colors.white,
@@ -273,7 +329,7 @@ class MyApp extends StatelessWidget {
               fontSize: 18,
             ),
             elevation: 8, // Subtle shadow for depth
-            shadowColor: green.withOpacity(0.5), // Ambient green glow
+            shadowColor: green.withValues(alpha: 0.5), // Ambient green glow
           ),
         ),
         textButtonTheme: TextButtonThemeData(
@@ -282,7 +338,7 @@ class MyApp extends StatelessWidget {
         appBarTheme: AppBarTheme(
           backgroundColor: const Color(0xFF141414),
           elevation: 4, // Elevation triggers shadow
-          shadowColor: green.withOpacity(0.15), // Android 17 subtle ambient green glow
+          shadowColor: green.withValues(alpha: 0.15), // Android 17 subtle ambient green glow
           iconTheme: const IconThemeData(color: Colors.white),
           titleTextStyle: const TextStyle(
             color: Colors.white,
@@ -302,13 +358,19 @@ class MyApp extends StatelessWidget {
       ),
       themeMode:
           themeController.isDarkMode.value ? ThemeMode.dark : ThemeMode.light,
-      initialRoute: _getInitialRoute(),
+      initialRoute: _initialRoute,
 
       // : GetStorage().read('instanceName') == null ||
       //       GetStorage().read('instanceName').toString().isEmpty
       // ? AppPages.initialLogin
       // : AppPages.emailPassLogin,
       getPages: AppPages.routes,
+      builder: (context, child) {
+        return Material(
+          type: MaterialType.transparency,
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
       unknownRoute: GetPage(
         name: '/notfound',
         page: () => Scaffold(

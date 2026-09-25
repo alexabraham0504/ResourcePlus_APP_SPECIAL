@@ -19,6 +19,16 @@ import '../modules/auth/views/privacy_consent_view.dart';
 import '../modules/auth/views/privacy_terms_detail_view.dart';
 import '../modules/home/views/widgets/attendance_history_view.dart';
 import '../modules/home/views/update_required_view.dart';
+import '../modules/face_attendance/views/face_attendance_view.dart';
+import '../modules/face_attendance/bindings/face_attendance_binding.dart';
+import '../modules/face_attendance/views/face_enrollment_view.dart';
+import '../modules/face_attendance/bindings/face_enrollment_binding.dart';
+
+import '../modules/home/views/fingerprint_punch_view.dart';
+import '../modules/qr_attendance/bindings/qr_attendance_binding.dart';
+import '../modules/qr_attendance/views/qr_attendance_view.dart';
+import '../modules/bluetooth_attendance/views/bluetooth_punch_view.dart';
+import '../modules/bluetooth_attendance/bindings/bluetooth_attendance_binding.dart';
 import 'update_guard_middleware.dart';
 import 'app_routes.dart';
 
@@ -96,5 +106,40 @@ class AppPages {
       name: AppRoutes.updateRequired,
       page: () => const UpdateRequiredView(),
     ),
+    // ── Attendance Punch Screens ──
+    GetPage(
+      name: AppRoutes.faceDetectionPunch,
+      page: () => const FaceAttendanceView(),
+      binding: FaceAttendanceBinding(),
+      middlewares: [UpdateGuardMiddleware()],
+    ),
+    GetPage(
+      name: AppRoutes.faceEnrollment,
+      page: () => const FaceEnrollmentView(),
+      binding: FaceEnrollmentBinding(),
+      middlewares: [UpdateGuardMiddleware()],
+    ),
+
+    GetPage(
+      name: AppRoutes.fingerprintPunch,
+      page: () => const FingerprintPunchView(),
+      binding: BindingsBuilder(() => Get.lazyPut(() =>
+          FingerprintPunchController())),
+      middlewares: [UpdateGuardMiddleware()],
+    ),
+    GetPage(
+      name: AppRoutes.bluetoothPunch,
+      page: () => const BluetoothPunchView(),
+      binding: BluetoothAttendanceBinding(),
+      transition: Transition.rightToLeft,
+      middlewares: [UpdateGuardMiddleware()],
+    ),
+    GetPage(
+      name: AppRoutes.QR_ATTENDANCE,
+      page: () => const QRAttendanceView(),
+      binding: QRAttendanceBinding(),
+      transition: Transition.downToUp,
+      middlewares: [UpdateGuardMiddleware()],
+    ),
   ];
-} 
+}

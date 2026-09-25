@@ -8,4 +8,4 @@ class HomeBinding extends Bindings {
       () => HomeController(),
     );
   }
-} 
+}

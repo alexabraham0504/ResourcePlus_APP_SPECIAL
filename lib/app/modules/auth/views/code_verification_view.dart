@@ -173,7 +173,7 @@ class _CodeVerificationViewState extends State<CodeVerificationView> with Ticker
                           color: theme.colorScheme.surface,
                           borderRadius: BorderRadius.circular(24),
                           border: Border.all(
-                            color: theme.colorScheme.onSurface.withOpacity(0.1),
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
                             width: 1.2,
                           ),
                         ),
@@ -238,7 +238,7 @@ class _CodeVerificationViewState extends State<CodeVerificationView> with Ticker
                                       'phone_verified_subtitle'.tr,
                                       key: ValueKey('success_subtitle'),
                                       style: TextStyle(
-                                        color: theme.colorScheme.onSurface.withOpacity(0.7),
+                                        color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                                         fontSize: 14,
                                       ),
                                       textAlign: TextAlign.center,
@@ -247,7 +247,7 @@ class _CodeVerificationViewState extends State<CodeVerificationView> with Ticker
                                       '${'code_sent_to'.tr}${controller.emailOrPhone.value}',
                                       key: const ValueKey('input_subtitle'),
                                       style: TextStyle(
-                                        color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                                         fontSize: 14,
                                       ),
                                       textAlign: TextAlign.center,
@@ -353,7 +353,7 @@ class _CodeVerificationViewState extends State<CodeVerificationView> with Ticker
                                                   borderRadius: BorderRadius.circular(16),
                                                   boxShadow: [
                                                     BoxShadow(
-                                                      color: const Color(0xFFFF5E3A).withOpacity(0.35),
+                                                      color: const Color(0xFFFF5E3A).withValues(alpha: 0.35),
                                                       blurRadius: 12,
                                                       offset: const Offset(0, 4),
                                                     ),
@@ -393,13 +393,14 @@ class _CodeVerificationViewState extends State<CodeVerificationView> with Ticker
                                             ),
                                             const SizedBox(height: 24),
                                             // Resend option
-                                            Row(
-                                              mainAxisAlignment: MainAxisAlignment.center,
+                                            Wrap(
+                                              alignment: WrapAlignment.center,
+                                              crossAxisAlignment: WrapCrossAlignment.center,
                                               children: [
                                                 Text(
                                                   'did_not_receive_code'.tr,
                                                   style: TextStyle(
-                                                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                                                     fontSize: 14,
                                                   ),
                                                 ),
@@ -419,9 +420,9 @@ class _CodeVerificationViewState extends State<CodeVerificationView> with Ticker
                                                   Padding(
                                                     padding: const EdgeInsets.only(left: 4),
                                                     child: Text(
-                                                      'resend'.tr + ' (${resendCooldown}s)',
+                                                      '${'resend'.tr} (${resendCooldown}s)',
                                                       style: TextStyle(
-                                                        color: theme.colorScheme.onSurface.withOpacity(0.35),
+                                                        color: theme.colorScheme.onSurface.withValues(alpha: 0.35),
                                                         fontWeight: FontWeight.bold,
                                                         fontSize: 14,
                                                       ),
@@ -567,26 +568,26 @@ class _OtpInputRow extends StatelessWidget {
 
           final onSurface = Theme.of(context).colorScheme.onSurface;
           if (isLoading) {
-            boxBg = onSurface.withOpacity(0.04);
-            border = Border.all(color: const Color(0xFFFF5E3A).withOpacity(0.15), width: 1.5);
+            boxBg = onSurface.withValues(alpha: 0.04);
+            border = Border.all(color: const Color(0xFFFF5E3A).withValues(alpha: 0.15), width: 1.5);
             shadow = null;
           } else if (hasFocus && isCurrent) {
-            boxBg = onSurface.withOpacity(0.06);
+            boxBg = onSurface.withValues(alpha: 0.06);
             border = Border.all(color: const Color(0xFFFF5E3A), width: 2.2);
             shadow = [
               BoxShadow(
-                color: const Color(0xFFFF5E3A).withOpacity(0.2),
+                color: const Color(0xFFFF5E3A).withValues(alpha: 0.2),
                 blurRadius: 12,
                 spreadRadius: 1,
               ),
             ];
           } else if (isFilled) {
-            boxBg = onSurface.withOpacity(0.04);
-            border = Border.all(color: const Color(0xFFFF5E3A).withOpacity(0.6), width: 1.5);
+            boxBg = onSurface.withValues(alpha: 0.04);
+            border = Border.all(color: const Color(0xFFFF5E3A).withValues(alpha: 0.6), width: 1.5);
             shadow = null;
           } else {
-            boxBg = onSurface.withOpacity(0.04);
-            border = Border.all(color: onSurface.withOpacity(0.12), width: 1.5);
+            boxBg = onSurface.withValues(alpha: 0.04);
+            border = Border.all(color: onSurface.withValues(alpha: 0.12), width: 1.5);
             shadow = null;
           }
 
@@ -750,7 +751,7 @@ class _SuccessCheckmarkWidgetState extends State<_SuccessCheckmarkWidget> with S
             width: 72,
             height: 72,
             decoration: BoxDecoration(
-              color: const Color(0xFF00FF64).withOpacity(0.1),
+              color: const Color(0xFF00FF64).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(16), // Rounded square matching the OTP cells
               border: Border.all(
                 color: const Color(0xFF00FF64),
@@ -758,7 +759,7 @@ class _SuccessCheckmarkWidgetState extends State<_SuccessCheckmarkWidget> with S
               ),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF00FF64).withOpacity(0.35),
+                  color: const Color(0xFF00FF64).withValues(alpha: 0.35),
                   blurRadius: 18,
                   spreadRadius: 2,
                 ),

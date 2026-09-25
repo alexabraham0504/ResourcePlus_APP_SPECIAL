@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import '../../controllers/home_controller.dart';
-import '../../../../routes/app_routes.dart';
 import 'tab_header.dart';
-import 'app_drawer.dart';
-import 'package:flutter_zoom_drawer/flutter_zoom_drawer.dart';
 
 class AttendanceHistoryView extends StatefulWidget {
-  const AttendanceHistoryView({Key? key}) : super(key: key);
+  const AttendanceHistoryView({super.key});
 
   @override
   State<AttendanceHistoryView> createState() => _AttendanceHistoryViewState();
@@ -28,7 +27,6 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
 
   DateTimeRange? _dateRange;
   final HomeController _controller = Get.find<HomeController>();
-  final ZoomDrawerController _zoomDrawerController = ZoomDrawerController();
 
   Color _statusColor(String dayType) {
     switch (dayType.toLowerCase().trim()) {
@@ -113,31 +111,52 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final records = _getFilteredRecords();
 
-    return ZoomDrawer(
-      controller: _zoomDrawerController,
-      menuScreen: AppDrawer(onClose: () => _zoomDrawerController.toggle?.call()),
-      mainScreen: Scaffold(
-        backgroundColor: isDark ? const Color(0xFF0F172A) : _bg,
+    return Scaffold(
+      backgroundColor: isDark ? const Color(0xFF0F172A) : _bg,
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, -5),
+            ),
+          ],
+        ),
+        child: BottomNavigationBar(
+          currentIndex: 1, // Attendance tab is visually selected
+          onTap: (index) {
+            Get.back(); // Pop the history view to return to main tabs
+            if (index != 1) {
+              _controller.changeTab(index); // Navigate to new tab if not attendance
+            }
+          },
+          backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+          selectedItemColor: const Color(0xFF006E1C), // primaryGreen from HomeView
+          unselectedItemColor: isDark ? Colors.grey[500] : Colors.grey[400],
+          showUnselectedLabels: true,
+          type: BottomNavigationBarType.fixed,
+          selectedFontSize: 10.0,
+          unselectedFontSize: 10.0,
+          elevation: 0,
+          items: [
+            BottomNavigationBarItem(icon: const Icon(Icons.home_rounded), label: 'home'.tr),
+            BottomNavigationBarItem(icon: const Icon(Icons.calendar_month_rounded), label: 'attendance'.tr),
+            BottomNavigationBarItem(icon: const Icon(Icons.widgets_rounded), label: 'self_service'.tr),
+            BottomNavigationBarItem(icon: const Icon(Icons.person_rounded), label: 'profile'.tr),
+            BottomNavigationBarItem(icon: const Icon(Icons.settings_rounded), label: 'settings'.tr),
+          ],
+        ),
+      ),
       body: SafeArea(
         child: Column(
           children: [
+            // Standard header - same as all other pages
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-              child: Builder(
-                builder: (context) {
-                  return TabHeader(
-                    title: '',
-                    onMenuTap: () {
-                      _zoomDrawerController.toggle?.call();
-                    },
-                    onNotificationTap: () {
-                      Get.until((route) => route.settings.name == AppRoutes.home || route.settings.name == '/');
-                      Get.find<HomeController>().changeTab(3);
-                    },
-                  );
-                }
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              child: TabHeader(title: ''),
             ),
+
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               child: Row(
@@ -201,7 +220,7 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
                                     borderRadius: BorderRadius.circular(20),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black.withOpacity(0.2),
+                                        color: Colors.black.withValues(alpha: 0.2),
                                         blurRadius: 20,
                                         spreadRadius: 2,
                                       ),
@@ -257,16 +276,6 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
           ],
         ),
       ),
-      ),
-      borderRadius: 24.0,
-      showShadow: true,
-      angle: -10.0,
-      isRtl: true,
-      drawerShadowsBackgroundColor: isDark ? Colors.grey.shade900 : Colors.grey.shade300,
-      slideWidth: MediaQuery.of(context).size.width * 0.65,
-      openCurve: Curves.easeOutCubic,
-      closeCurve: Curves.easeOutQuint,
-      duration: const Duration(milliseconds: 450),
     );
   }
 
@@ -287,12 +296,22 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
     final checkIn = (item['CheckIN'] ?? '').toString();
     final checkOut = (item['CheckOut'] ?? '').toString();
 
+    // Helper to find value across multiple possible keys
+    String _find(List<String> keys) {
+      for (final k in item.keys) {
+        if (keys.any((pk) => pk.toLowerCase().trim() == k.toString().toLowerCase().trim())) {
+          final val = item[k];
+          if (val != null && val.toString().trim().isNotEmpty && val.toString() != 'null') {
+            return val.toString().trim();
+          }
+        }
+      }
+      return '00:00';
+    }
+
     // Read NTH (Net Hours) and LSH (Less Hours) directly from the API response
-    String nth = (item['NetHrs'] ?? '').toString();
-    String lsh = (item['LessHrs'] ?? '').toString();
-    // Treat empty or null-like values as empty
-    if (nth == 'null' || nth.isEmpty) nth = '';
-    if (lsh == 'null' || lsh.isEmpty) lsh = '';
+    String nth = _find(['NetHrs', 'NetHr', 'NetHours']);
+    String lsh = _find(['LessHrs', 'LessHr', 'LessHours']);
 
     final color = _statusColor(type);
 
@@ -334,96 +353,295 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
       }
     } catch (_) {}
 
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : _surface,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _showPunchDetailsDialog(ctx, item),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-      ),
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        child: Container(
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1E293B) : _surface,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+          ),
+          padding: const EdgeInsets.all(16),
+          child: Column(
             children: [
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Icon(Icons.calendar_month_outlined, size: 16, color: (isDark ? Colors.white : Colors.grey[600])?.withOpacity(0.6)),
-                  const SizedBox(width: 6),
-                  Text('$monthStr $yearStr', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: (isDark ? Colors.white : Colors.grey[600])?.withOpacity(0.7))),
+                  Row(
+                    children: [
+                      Icon(Icons.calendar_month_outlined, size: 16, color: (isDark ? Colors.white : Colors.grey[600])?.withValues(alpha: 0.6)),
+                      const SizedBox(width: 6),
+                      Text('$monthStr $yearStr', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: (isDark ? Colors.white : Colors.grey[600])?.withValues(alpha: 0.7))),
+                    ],
+                  ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(width: 6, height: 6, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+                      const SizedBox(width: 6),
+                      Text(_label(type), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: (isDark ? Colors.white : Colors.grey[600])?.withValues(alpha: 0.8))),
+                    ],
+                  ),
                 ],
               ),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Divider(height: 1, thickness: 0.5, color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+              ),
               Row(
-                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(width: 6, height: 6, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-                  const SizedBox(width: 6),
-                  Text(_label(type), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: (isDark ? Colors.white : Colors.grey[600])?.withOpacity(0.8))),
+                  Container(
+                    padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF3F3F6).withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFF1A1C1E).withValues(alpha: 0.05)),
+                    ),
+                    child: Column(
+                      children: [
+                        Text(dayStr, style: TextStyle(fontSize: 34, fontWeight: FontWeight.w800, color: isDark ? Colors.white : const Color(0xFF1A1C1E), height: 1.0)),
+                        const SizedBox(height: 4),
+                        Text(weekdayStr, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: (isDark ? Colors.white : const Color(0xFF3F4A3C)).withValues(alpha: 0.9))),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: (checkIn.isNotEmpty || checkOut.isNotEmpty)
+                      ? Column(
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(child: _timeSection(ctx, 'check_in'.tr, checkIn.isNotEmpty ? checkIn : '--:--')),
+                                Container(width: 1, height: 30, color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                                Expanded(child: _timeSection(ctx, 'check_out'.tr, checkOut.isNotEmpty ? checkOut : '--:--', isRight: true)),
+                              ],
+                            ),
+                            if (nth.isNotEmpty || lsh.isNotEmpty) ...[
+                              const SizedBox(height: 10),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
+                                  children: [
+                                    if (nth.isNotEmpty) Expanded(child: Center(child: _hoursChip(ctx, 'nth'.tr, nth, const Color(0xFF059669)))),
+                                    if (nth.isNotEmpty && lsh.isNotEmpty) Container(width: 1, height: 24, color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                                    if (lsh.isNotEmpty) Expanded(child: Center(child: _hoursChip(ctx, 'lsh'.tr, lsh, const Color(0xFFE11D48)))),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ],
+                        )
+                      : Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 24),
+                          child: Center(
+                            child: Text('no_punch_data'.tr, style: TextStyle(fontSize: 13, color: Colors.grey[400], fontStyle: FontStyle.italic)),
+                          ),
+                        ),
+                  ),
                 ],
               ),
             ],
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            child: Divider(height: 1, thickness: 0.5, color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-          ),
-          Row(
+        ),
+      ),
+    );
+  }
+
+  void _showPunchDetailsDialog(BuildContext context, dynamic item) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final date = (item['AttDate'] ?? item['LogDate'] ?? '').toString();
+    final checkIn = (item['CheckIN'] ?? '--:--').toString();
+    final checkOut = (item['CheckOut'] ?? '--:--').toString();
+    final type = (item['DayType'] ?? '').toString();
+    
+    // Extract location intelligently from multiple possible fields
+    String location = 'Location data unavailable';
+    final checkInAddr = (item['CheckINAddr'] ?? '').toString().trim();
+    final checkOutAddr = (item['CheckoutAddr'] ?? '').toString().trim();
+    
+    if (checkInAddr.isNotEmpty && checkInAddr != '0.000000,0.000000') {
+      location = checkInAddr.replaceAll('Address :', '').trim();
+    } else if (checkOutAddr.isNotEmpty && checkOutAddr != '0.000000,0.000000') {
+      location = checkOutAddr.replaceAll('Address :', '').trim();
+    } else {
+      location = (item['Location'] ?? item['locationinfo'] ?? 'Location data unavailable').toString();
+    }
+
+    final deviceId = (item['DeviceID'] ?? item['deviceinfo'] ?? 'Device info unavailable').toString();
+    final selfieUrl = (item['SelfieUrl'] ?? item['PunchImage'] ?? '').toString();
+
+    // Extract raw GPS coordinates from CheckINAddr or CheckoutAddr
+    String? mapLat, mapLng;
+    final coordRegex = RegExp(r'(-?\d+\.\d+)[,/](-?\d+\.\d+)');
+    for (final addr in [checkInAddr, checkOutAddr]) {
+      final match = coordRegex.firstMatch(addr);
+      if (match != null) {
+        final lat = double.tryParse(match.group(1)!);
+        final lng = double.tryParse(match.group(2)!);
+        if (lat != null && lng != null && (lat != 0 || lng != 0)) {
+          mapLat = match.group(1);
+          mapLng = match.group(2);
+          break;
+        }
+      }
+    }
+    final hasCoords = mapLat != null && mapLng != null;
+    final googleMapsUrl = hasCoords ? 'https://maps.google.com/?q=$mapLat,$mapLng' : null;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Text('Punch Details', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF0F172A))),
+              const SizedBox(height: 20),
+              
+              if (selfieUrl.isNotEmpty) 
+                Center(
+                  child: Container(
+                    height: 120, width: 90, 
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      image: DecorationImage(image: NetworkImage(selfieUrl), fit: BoxFit.cover),
+                    ),
+                  ),
+                )
+              else 
+                Center(
+                  child: Container(
+                    height: 100, width: 100,
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF0F172A) : Colors.grey[100], 
+                      shape: BoxShape.circle,
+                      border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                    ),
+                    child: Icon(Icons.person_outline, size: 48, color: isDark ? Colors.grey[500] : Colors.grey[400]),
+                  ),
+                ),
+              const SizedBox(height: 24),
+              
+              _detailRow('Date', date, isDark),
+              _detailRow('Status', _label(type), isDark),
+              const SizedBox(height: 16),
+              
+              // Grouped Check In/Out Times
               Container(
-                padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
-                  color: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFF3F3F6).withOpacity(0.5),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: const Color(0xFF1A1C1E).withOpacity(0.05)),
+                  color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
                 ),
                 child: Column(
                   children: [
-                    Text(dayStr, style: TextStyle(fontSize: 34, fontWeight: FontWeight.w800, color: isDark ? Colors.white : const Color(0xFF1A1C1E), height: 1.0)),
-                    const SizedBox(height: 4),
-                    Text(weekdayStr, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: (isDark ? Colors.white : const Color(0xFF3F4A3C)).withOpacity(0.9))),
+                    _detailRow('Check In', checkIn.isEmpty ? '--:--' : checkIn, isDark),
+                    _detailRow('Check Out', checkOut.isEmpty ? '--:--' : checkOut, isDark),
                   ],
                 ),
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: (checkIn.isNotEmpty || checkOut.isNotEmpty)
-                  ? Column(
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(child: _timeSection(ctx, 'check_in'.tr, checkIn.isNotEmpty ? checkIn : '--:--')),
-                            Container(width: 1, height: 30, color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-                            Expanded(child: _timeSection(ctx, 'check_out'.tr, checkOut.isNotEmpty ? checkOut : '--:--', isRight: true)),
-                          ],
-                        ),
-                        if (nth.isNotEmpty || lsh.isNotEmpty) ...[
-                          const SizedBox(height: 10),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Row(
-                              children: [
-                                if (nth.isNotEmpty) Expanded(child: Center(child: _hoursChip(ctx, 'nth'.tr, nth, const Color(0xFF059669)))),
-                                if (nth.isNotEmpty && lsh.isNotEmpty) Container(width: 1, height: 24, color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
-                                if (lsh.isNotEmpty) Expanded(child: Center(child: _hoursChip(ctx, 'lsh'.tr, lsh, const Color(0xFFE11D48)))),
-                              ],
-                            ),
+              const SizedBox(height: 16),
+              
+              _detailRow('Device', deviceId, isDark),
+
+              // Google Maps preview (using InAppWebView to render iframe like web without APIs)
+              if (hasCoords) ...[  
+                const SizedBox(height: 12),
+                const Text('Location Map', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF64748B))),
+                const SizedBox(height: 8),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    height: 150, 
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF0F172A) : Colors.grey[200],
+                      border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: GestureDetector(
+                      onTap: () async {
+                        final uri = Uri.parse(googleMapsUrl!);
+                        if (await canLaunchUrl(uri)) await launchUrl(uri, mode: LaunchMode.externalApplication);
+                      },
+                      child: AbsorbPointer(
+                        child: InAppWebView(
+                          initialSettings: InAppWebViewSettings(
+                            transparentBackground: true,
+                            disableHorizontalScroll: true,
+                            disableVerticalScroll: true,
+                            supportZoom: false,
+                            builtInZoomControls: false,
+                            displayZoomControls: false,
                           ),
-                        ],
-                      ],
-                    )
-                  : Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 24),
-                      child: Center(
-                        child: Text('no_punch_data'.tr, style: TextStyle(fontSize: 13, color: Colors.grey[400], fontStyle: FontStyle.italic)),
+                          onWebViewCreated: (controller) {
+                            final String htmlContent = '''
+                              <!DOCTYPE html>
+                              <html>
+                                <head>
+                                  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+                                  <style>body { margin: 0; padding: 0; overflow: hidden; background-color: transparent; }</style>
+                                </head>
+                                <body>
+                                  <iframe src="https://maps.google.com/maps?width=100%25&amp;hl=en&amp;q=$mapLat,$mapLng&amp;t=&amp;z=14&amp;ie=UTF8&amp;iwloc=B&amp;output=embed" width="100%" height="150" frameborder="0" scrolling="no" marginheight="0" marginwidth="0"></iframe>
+                                </body>
+                              </html>
+                            ''';
+                            controller.loadData(data: htmlContent);
+                          },
+                        ),
                       ),
                     ),
+                  ),
+                ),
+              ],
+              
+              const SizedBox(height: 28),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF10B981),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text('Close', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+                ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _detailRow(String label, String value, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 90, 
+            child: Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? Colors.grey[400] : Colors.grey[500]))
+          ),
+          Expanded(
+            child: Text(value, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: isDark ? Colors.white : const Color(0xFF0F172A)))
           ),
         ],
       ),
@@ -440,7 +658,7 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
         children: [
           Text(label, style: TextStyle(fontSize: 11, color: isDark ? Colors.grey[500] : Colors.grey[500])),
           const SizedBox(height: 4),
-          Text(displayTime, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: isDark ? Colors.white : _primary)),
+          Text(displayTime, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: isDark ? Colors.white : const Color(0xFF0F172A))),
         ],
       ),
     );
@@ -471,13 +689,13 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.15),
+              color: color.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(4),
             ),
             child: Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: color, letterSpacing: 0.5)),
           ),
           const SizedBox(width: 6),
-          Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? Colors.white : _primary)),
+          Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? Colors.white : const Color(0xFF0F172A))),
         ],
       ),
     );

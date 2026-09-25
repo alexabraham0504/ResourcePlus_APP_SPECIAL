@@ -29,11 +29,9 @@ class ThemeController extends GetxController {
         secondary: Color(0xFF4CAF50),
         tertiary: Color(0xFFFF9800),
         surface: Colors.white,
-        background: Color(0xFFF5F5F5),
         onPrimary: Colors.white,
         onSecondary: Colors.white,
         onSurface: Color(0xFF333333),
-        onBackground: Color(0xFF333333),
       ),
       scaffoldBackgroundColor: const Color(0xFFF5F5F5),
       appBarTheme: const AppBarTheme(
@@ -72,17 +70,17 @@ class ThemeController extends GetxController {
         ),
       ),
       switchTheme: SwitchThemeData(
-        thumbColor: MaterialStateProperty.resolveWith((states) {
-          if (states.contains(MaterialState.selected)) {
+        thumbColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
             return Colors.white;
           }
           return Colors.grey;
         }),
-        trackColor: MaterialStateProperty.resolveWith((states) {
-          if (states.contains(MaterialState.selected)) {
+        trackColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
             return const Color(0xFF2196F3);
           }
-          return Colors.grey.withOpacity(0.3);
+          return Colors.grey.withValues(alpha: 0.3);
         }),  
       ),
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
@@ -93,7 +91,7 @@ class ThemeController extends GetxController {
         elevation: 8,
       ),
       dividerTheme: DividerThemeData(
-        color: Colors.grey.withOpacity(0.2),
+        color: Colors.grey.withValues(alpha: 0.2),
         thickness: 1,
       ),
       iconTheme: const IconThemeData(
@@ -112,11 +110,9 @@ class ThemeController extends GetxController {
         secondary: Color(0xFF81C784),
         tertiary: Color(0xFFFFB74D),
         surface: Color(0xFF1E1E1E),
-        background: Color(0xFF121212),
         onPrimary: Colors.white,
         onSecondary: Colors.white,
         onSurface: Colors.white,
-        onBackground: Colors.white,
       ),
       scaffoldBackgroundColor: const Color(0xFF121212),
       appBarTheme: const AppBarTheme(
@@ -133,7 +129,7 @@ class ThemeController extends GetxController {
       cardTheme: CardThemeData(
         color: const Color(0xFF1E1E1E),
         elevation: 4,
-        shadowColor: Colors.black.withOpacity(0.3),
+        shadowColor: Colors.black.withValues(alpha: 0.3),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
         ),
@@ -155,17 +151,17 @@ class ThemeController extends GetxController {
         ),
       ),
       switchTheme: SwitchThemeData(
-        thumbColor: MaterialStateProperty.resolveWith((states) {
-          if (states.contains(MaterialState.selected)) {
+        thumbColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
             return Colors.white;
           }
           return Colors.grey;
         }),
-        trackColor: MaterialStateProperty.resolveWith((states) {
-          if (states.contains(MaterialState.selected)) {
+        trackColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
             return const Color(0xFF64B5F6);
           }
-          return Colors.grey.withOpacity(0.3);
+          return Colors.grey.withValues(alpha: 0.3);
         }),
       ),
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
@@ -176,7 +172,7 @@ class ThemeController extends GetxController {
         elevation: 8,
       ),
       dividerTheme: DividerThemeData(
-        color: Colors.grey.withOpacity(0.2),
+        color: Colors.grey.withValues(alpha: 0.2),
         thickness: 1,
       ),
       iconTheme: const IconThemeData(

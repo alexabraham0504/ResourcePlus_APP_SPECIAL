@@ -9,21 +9,19 @@ import 'package:get/get.dart' hide FormData, MultipartFile, Response;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:intl/intl.dart';
 import 'package:dio/dio.dart';
-import 'package:dio/io.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/io_client.dart' as io_client;
+import '../../../services/device_info_helper.dart';
 import 'package:http_parser/http_parser.dart';
 import 'package:get_storage/get_storage.dart';
 import '../../../services/api_service.dart';
 import '../../../controllers/language_controller.dart';
 import '../../../config/api_endpoints.dart';
 import 'home_controller.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:image/image.dart' as img;
 import 'package:flutter_zoom_drawer/flutter_zoom_drawer.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 
 class HrPortalController extends GetxController {
-  // Camera
   CameraController? cameraController;
   final isCameraInitialized = false.obs;
   final isCameraPermissionGranted = false.obs;
@@ -86,7 +84,6 @@ class HrPortalController extends GetxController {
   void _showSnackbar(
     String title,
     String message, {
-    SnackPosition position = SnackPosition.BOTTOM,
     Color? backgroundColor,
     Color? textColor,
     Duration duration = const Duration(seconds: 3),
@@ -155,23 +152,43 @@ class HrPortalController extends GetxController {
       // Take picture using the native plugin
       final XFile image = await cameraController!.takePicture();
 
-      // On Android 14, the hardware camera HAL often writes asynchronously.
+      // On Android 14+, the hardware camera HAL often writes asynchronously.
       // takePicture() resolves before the JPEG is actually written to the cache!
-      // If we read it immediately, we might read 0 bytes or a corrupted 2KB stub.
-      // We MUST wait for the file size to stabilize and be a valid JPEG size (> 10KB).
-      int previousSize = -1;
+      // Samsung A-series devices are especially slow at flushing the buffer.
+      // Strategy:
+      //  1. Wait for size to stabilize (two consecutive reads must match).
+      //  2. Use an adaptive minimum size: start at 10KB and give up waiting
+      //     if size hasn't grown for several cycles (handles devices that genuinely
+      //     produce small images at medium resolution).
+      int previousSize = -2; // sentinel so first equality check always fails
       int currentSize = await image.length();
       int retries = 0;
-      
-      // while ((currentSize != previousSize || currentSize < 10000) && retries < 15) {
-      //   await Future.delayed(const Duration(milliseconds: 250));
-      // After — longer wait, more retries, higher minimum for Samsung
-      while ((currentSize != previousSize || currentSize < 50000) && retries < 40) {
-        await Future.delayed(const Duration(milliseconds: 300));
+      int stableCount = 0; // How many consecutive reads have the same size
+
+      // Wait up to 10 seconds total (50 retries × 200ms) for the buffer to flush
+      while (retries < 50) {
+        await Future.delayed(const Duration(milliseconds: 200));
         previousSize = currentSize;
         currentSize = await image.length();
         retries++;
-        debugPrint('Waiting for Android 14 camera buffer flush... size: $currentSize bytes (retry $retries)');
+
+        if (currentSize == previousSize && currentSize > 0) {
+          stableCount++;
+          // Size is stable for 3 consecutive reads and above 10KB → good enough
+          if (stableCount >= 3 && currentSize > 10000) {
+            debugPrint('Buffer stable at $currentSize bytes after $retries retries');
+            break;
+          }
+        } else {
+          stableCount = 0; // reset if size is still changing
+        }
+
+        debugPrint('Waiting for camera buffer flush... size: $currentSize bytes, stable: $stableCount (retry $retries)');
+      }
+
+      if (currentSize < 1000) {
+        debugPrint('Image too small after $retries retries: $currentSize bytes — capture failed');
+        return null;
       }
 
       // Read bytes safely now that the native hardware is done flushing
@@ -199,7 +216,7 @@ class HrPortalController extends GetxController {
 
 
   // Build device info string: "deviceId|deviceName|UTC-PunchTime|LocalPunchTime|TimeZone"
-  String _buildDeviceInfo() {
+  Future<String> _buildDeviceInfo() async {
     final now = DateTime.now();
     final utcTime = now.toUtc();
     final localTime = now;
@@ -215,7 +232,8 @@ class HrPortalController extends GetxController {
     final timeZoneStr =
         '${hours >= 0 ? '+' : ''}${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}';
 
-    return '${_getDeviceId()}|${_getDeviceName()}|$utcTimeStr|$localTimeStr|$timeZoneStr';
+    final deviceId = await DeviceInfoHelper.getPermanentDeviceId();
+    return '$deviceId|${_getDeviceName()}|$utcTimeStr|$localTimeStr|$timeZoneStr';
   }
 
   // Build location info string: "Latitude|Longitude| Address : Lat/Lng,"
@@ -233,11 +251,30 @@ class HrPortalController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _initializeCamera();
+    // Do not initialize hardware (camera, location) in onInit.
+    // Wait until the widget is fully mounted (onReady) to prevent lifecycle crashes.
     _startTimeUpdates();
-    _initializeLocation();
     fetchLastFivePunches();
     fetchShiftDetails();
+  }
+
+  Future<void> refreshData() async {
+    // Refresh punches and shift details
+    await fetchLastFivePunches();
+    await fetchShiftDetails();
+    
+    // Also re-trigger location fetch just to be safe
+    _currentPosition = null;
+    currentCoordinates.value = 'Refreshing...'.obs.value;
+    _initializeLocation();
+  }
+
+  @override
+  void onReady() {
+    super.onReady();
+    // Initialize hardware only after widget is fully built and mounted
+    _initializeCamera();
+    _initializeLocation();
   }
 
   @override
@@ -279,11 +316,12 @@ class HrPortalController extends GetxController {
         orElse: () => cameras.first,
       );
 
-      // Initialize camera controller with high resolution for better clarity
-      // Using high provides 720p/1080p which looks significantly better when scaled in the UI
+      // Initialize camera controller
+      // Use medium resolution for wider device compatibility (Samsung, older devices)
+      // High resolution causes async buffer flushing issues on Samsung Galaxy A-series
       cameraController = CameraController(
         camera,
-        ResolutionPreset.high,
+        ResolutionPreset.medium, // Better Samsung compatibility vs ResolutionPreset.high
         enableAudio: false,
         imageFormatGroup:
             ImageFormatGroup.jpeg, // Use JPEG to reduce buffer size
@@ -341,6 +379,12 @@ class HrPortalController extends GetxController {
 
       if (!isLocationPermissionGranted.value) {
         currentCoordinates.value = 'Permission denied';
+        _showValidationPopup(
+          icon: Icons.location_disabled_outlined,
+          title: 'location_permission_title'.tr,
+          message: 'location_permission_msg'.tr,
+          accentColor: const Color(0xFFEF4444),
+        );
         return;
       }
 
@@ -348,6 +392,12 @@ class HrPortalController extends GetxController {
       final serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
         currentCoordinates.value = 'Location services disabled';
+        _showValidationPopup(
+          icon: Icons.location_off_outlined,
+          title: 'location_disabled_title'.tr,
+          message: 'location_disabled_msg'.tr,
+          accentColor: const Color(0xFFEF4444),
+        );
         return;
       }
 
@@ -582,10 +632,6 @@ class HrPortalController extends GetxController {
     } catch (e) {
       debugPrint('Error fetching last 5 punches: $e');
       hasPunchesError.value = true;
-      _showSnackbar(
-        'Error',
-        'Failed to load punches: ${e.toString()}',
-      );
     } finally {
       isLoadingPunches.value = false;
     }
@@ -806,7 +852,7 @@ class HrPortalController extends GetxController {
         request.fields['instanceName'] = rawInstanceName;
         request.fields['checktype'] = checkType.toString();
         request.fields['Devicename'] = _getDeviceName();
-        request.fields['deviceinfo'] = _buildDeviceInfo();
+        request.fields['deviceinfo'] = await _buildDeviceInfo();
         request.fields['locationinfo'] = _buildLocationInfo();
         request.fields['Lang'] = languageController.currentLangCode.toString();
 
@@ -816,19 +862,20 @@ class HrPortalController extends GetxController {
           isFrontCamera = true;
         }
 
-        // Process image in isolate to crop exactly to 16:9 and mirror if needed
+        // Compress image using native flutter_image_compress to avoid Dart OOM crashes
+        // This is safe, uses very little memory, and prevents the app from crashing on Samsung/low-end devices.
         var imageBytes = originalBytes;
         try {
-          final processedBytes = await compute(_processImageIsolate, {
-            'bytes': originalBytes,
-            'isFrontCamera': isFrontCamera,
-          });
-          
-          if (processedBytes != null && processedBytes.isNotEmpty) {
-            imageBytes = processedBytes;
-          }
+          final compressedBytes = await FlutterImageCompress.compressWithList(
+            originalBytes,
+            minHeight: 1280,
+            minWidth: 720,
+            quality: 85,
+            format: CompressFormat.jpeg,
+          );
+          imageBytes = compressedBytes;
         } catch (e) {
-          debugPrint('Image processing isolate failed: $e');
+          debugPrint('Image compression failed: $e');
         }
 
         final fileSize = imageBytes.length;
@@ -900,13 +947,15 @@ class HrPortalController extends GetxController {
         ));
         if (lastPunches.length > 5) lastPunches.removeLast();
 
-        Future.delayed(const Duration(seconds: 5), () async {
-          await fetchLastFivePunches();
-          try {
+        // Immediately refresh the history and dashboards
+        fetchLastFivePunches();
+        try {
+          if (Get.isRegistered<HomeController>()) {
             final homeController = Get.find<HomeController>();
-            await homeController.fetchAttendanceData();
-          } catch (_) {}
-        });
+            homeController.fetchHomeData(silent: true);
+            homeController.fetchAttendanceData(silent: true);
+          }
+        } catch (_) {}
       } else {
         _showSnackbar('Error', message ?? 'Failed to mark attendance');
       }
@@ -933,69 +982,6 @@ class PunchRecord {
     required this.date,
     required this.status,
   });
-}
-
-// Process image in isolate to prevent UI freezing
-Uint8List? _processImageIsolate(Map<String, dynamic> args) {
-  try {
-    Uint8List bytes = args['bytes'];
-    bool isFrontCamera = args['isFrontCamera'];
-
-    // Decode the image natively
-    img.Image? capturedImage = img.decodeImage(bytes);
-    if (capturedImage == null) return null;
-
-    // Apply EXIF rotation to ensure it's upright as expected by Dart
-    capturedImage = img.bakeOrientation(capturedImage);
-
-    // Front camera inherently mirrors the preview (acts like a mirror) but captures standard.
-    // Since the requirement is to match EXACTLY what the user saw in the preview, we flip it horizontally.
-    if (isFrontCamera) {
-      capturedImage = img.flipHorizontal(capturedImage);
-    }
-
-    // Crop to match the new 3:4 (portrait) or 4:3 (landscape) aspect ratio of the UI container.
-    // The UI uses AspectRatio(aspectRatio: 3 / 4 in portrait or 4 / 3 in landscape) and FittedBox(fit: BoxFit.cover).
-    // This creates a center crop of the image to the target ratio.
-    int imgWidth = capturedImage.width;
-    int imgHeight = capturedImage.height;
-    bool isImagePortrait = imgWidth < imgHeight;
-    double targetRatio = isImagePortrait ? 3.0 / 4.0 : 4.0 / 3.0;
-    double currentRatio = imgWidth / imgHeight;
-
-    int cropX = 0;
-    int cropY = 0;
-    int cropWidth = imgWidth;
-    int cropHeight = imgHeight;
-
-    if ((currentRatio - targetRatio).abs() > 0.01) {
-      if (currentRatio < targetRatio) {
-        // Image is taller than target ratio (e.g. 9:16). Crop height (top and bottom).
-        cropWidth = imgWidth;
-        cropHeight = (imgWidth / targetRatio).round();
-        cropY = ((imgHeight - cropHeight) / 2).round();
-      } else {
-        // Image is wider than target ratio. Crop width (left and right).
-        cropHeight = imgHeight;
-        cropWidth = (imgHeight * targetRatio).round();
-        cropX = ((imgWidth - cropWidth) / 2).round();
-      }
-
-      capturedImage = img.copyCrop(
-        capturedImage,
-        x: cropX,
-        y: cropY,
-        width: cropWidth,
-        height: cropHeight,
-      );
-    }
-
-    // Re-encode to JPEG with 85% quality to maintain proper quality as requested
-    return img.encodeJpg(capturedImage, quality: 85);
-  } catch (e) {
-    debugPrint('Error processing image in isolate: $e');
-    return null;
-  }
 }
 
 /// Futuristic animated validation dialog with glowing effects, glassmorphism, and smooth animations.
@@ -1078,17 +1064,17 @@ class _AnimatedValidationDialogState extends State<_AnimatedValidationDialog>
                   color: cardBg,
                   borderRadius: BorderRadius.circular(28),
                   border: Border.all(
-                    color: widget.accentColor.withOpacity(0.2 + pulseVal * 0.15),
+                    color: widget.accentColor.withValues(alpha: 0.2 + pulseVal * 0.15),
                     width: 1.5,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: widget.accentColor.withOpacity(0.08 + pulseVal * 0.12),
+                      color: widget.accentColor.withValues(alpha: 0.08 + pulseVal * 0.12),
                       blurRadius: 40 + pulseVal * 20,
                       spreadRadius: pulseVal * 6,
                     ),
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.15),
+                      color: Colors.black.withValues(alpha: 0.15),
                       blurRadius: 20,
                       offset: const Offset(0, 10),
                     ),
@@ -1109,9 +1095,9 @@ class _AnimatedValidationDialogState extends State<_AnimatedValidationDialog>
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: [
-                        widget.accentColor.withOpacity(0.9),
-                        widget.accentColor.withOpacity(0.6),
-                        widget.accentColor.withOpacity(0.4),
+                        widget.accentColor.withValues(alpha: 0.9),
+                        widget.accentColor.withValues(alpha: 0.6),
+                        widget.accentColor.withValues(alpha: 0.4),
                       ],
                     ),
                     borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
@@ -1129,7 +1115,7 @@ class _AnimatedValidationDialogState extends State<_AnimatedValidationDialog>
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               border: Border.all(
-                                color: Colors.white.withOpacity(0.15 + _pulseController.value * 0.1),
+                                color: Colors.white.withValues(alpha: 0.15 + _pulseController.value * 0.1),
                                 width: 2,
                               ),
                             ),
@@ -1148,12 +1134,12 @@ class _AnimatedValidationDialogState extends State<_AnimatedValidationDialog>
                           width: 72,
                           height: 72,
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
+                            color: Colors.white.withValues(alpha: 0.2),
                             shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white.withOpacity(0.4), width: 2),
+                            border: Border.all(color: Colors.white.withValues(alpha: 0.4), width: 2),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.2),
+                                color: Colors.black.withValues(alpha: 0.2),
                                 blurRadius: 16,
                                 offset: const Offset(0, 6),
                               ),
@@ -1207,7 +1193,7 @@ class _AnimatedValidationDialogState extends State<_AnimatedValidationDialog>
                         backgroundColor: widget.accentColor,
                         foregroundColor: Colors.white,
                         elevation: 8,
-                        shadowColor: widget.accentColor.withOpacity(0.5),
+                        shadowColor: widget.accentColor.withValues(alpha: 0.5),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),

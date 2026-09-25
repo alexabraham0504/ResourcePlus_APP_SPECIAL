@@ -1,8 +1,10 @@
 import 'package:get/get.dart';
 import 'package:dio/dio.dart';
 import 'package:get_storage/get_storage.dart';
+import 'dart:io';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:local_auth/local_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import '../../../controllers/language_controller.dart';
 import '../../../services/api_service.dart';
 import '../../../config/api_endpoints.dart';
@@ -209,9 +211,34 @@ class AuthController extends GetxController {
           );
           await GetStorage().write('username', data['Username'] ?? '');
           await GetStorage().write('email', data['Email'] ?? '');
+          await GetStorage().write('lastLoginTime', DateTime.now().toIso8601String());
           await secureStorage.write(key: 'password', value: password); // Store password for biometric login
           await GetStorage().write('instanceName', effectiveInstance);
-          // Enable biometric login
+          
+          // Phase 2: Upload FCM Device Token to Backend
+          try {
+            String? fcmToken = await FirebaseMessaging.instance.getToken();
+            
+            // Print the token to the terminal so Alex can copy it and send it to Ma'am
+            print("\n\n====== MY FCM TOKEN ======");
+            print(fcmToken);
+            print("==========================\n\n");
+
+            if (fcmToken != null) {
+              await _dio.post(
+                ApiEndpoints.updateDeviceToken,
+                data: {
+                  'InstanceName': effectiveInstance,
+                  'UsrEmail': data['Email'] ?? '',
+                  'DeviceToken': fcmToken,
+                  'DeviceOS': Platform.isIOS ? 'iOS' : 'Android'
+                },
+              );
+              print('DEBUG: Successfully sent FCM Token to backend!');
+            }
+          } catch (e) {
+            print('DEBUG: Failed to send FCM Token to backend: $e');
+          }
 
           isLoading.value = false;
           return {
@@ -420,15 +447,14 @@ class AuthController extends GetxController {
 
   Future<bool> isBiometricAvailable() async {
     try {
-      final isAvailable = await _localAuth.canCheckBiometrics;
+      // NOTE: canCheckBiometrics is deprecated and returns false on Android 12+ (Samsung A16 etc)
       final isDeviceSupported = await _localAuth.isDeviceSupported();
       final availableBiometrics = await _localAuth.getAvailableBiometrics();
 
-      print('Debug: canCheckBiometrics: $isAvailable');
       print('Debug: isDeviceSupported: $isDeviceSupported');
       print('Debug: availableBiometrics: $availableBiometrics');
 
-      return isAvailable && isDeviceSupported && availableBiometrics.isNotEmpty;
+      return isDeviceSupported && availableBiometrics.isNotEmpty;
     } catch (e) {
       print('Debug: Biometric availability error: $e');
       return false;
@@ -464,22 +490,14 @@ class AuthController extends GetxController {
       print('Debug: Calling _localAuth.authenticate...');
 
       // Try different authentication options
-      AuthenticationOptions authOptions;
-      if (availableBiometrics.contains(BiometricType.fingerprint)) {
-        print('Debug: Using fingerprint authentication');
-        authOptions = const AuthenticationOptions(
-          biometricOnly: false,
-          stickyAuth: true,
-          sensitiveTransaction: false,
-        );
-      } else {
-        print('Debug: Using general biometric authentication');
-        authOptions = const AuthenticationOptions(
-          biometricOnly: false,
-          stickyAuth: true,
-          sensitiveTransaction: false,
-        );
-      }
+      // On Android 12+, we MUST set biometricOnly: true to prevent Samsung from showing a PIN dialog
+      // We also don't filter by type anymore because Android 15 Samsung returns BiometricType.strong
+      print('Debug: Using generic biometric authentication (biometricOnly: true)');
+      const authOptions = AuthenticationOptions(
+        biometricOnly: true,
+        stickyAuth: true,
+        sensitiveTransaction: false,
+      );
 
       final authenticated = await _localAuth.authenticate(
         localizedReason: 'Please authenticate to set up biometric login',
@@ -647,6 +665,7 @@ class AuthController extends GetxController {
           );
           await GetStorage().write('username', data['Username'] ?? '');
           await GetStorage().write('email', data['Email'] ?? '');
+          await GetStorage().write('lastLoginTime', DateTime.now().toIso8601String());
           await secureStorage.write(
             key: 'password',
             value: password,

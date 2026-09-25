@@ -26,7 +26,7 @@ class PermissionService {
       final status = await Permission.camera.request();
       return status.isGranted;
     } catch (e) {
-      print('Error requesting camera permission: $e');
+      debugPrint('Error requesting camera permission: \$e');
       return false;
     }
   }
@@ -37,7 +37,7 @@ class PermissionService {
       final status = await Permission.camera.status;
       return status.isGranted;
     } catch (e) {
-      print('Error checking camera permission: $e');
+      debugPrint('Error checking camera permission: \$e');
       return false;
     }
   }

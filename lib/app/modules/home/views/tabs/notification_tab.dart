@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../controllers/home_controller.dart';
 import '../../../../services/notification_service.dart';
-import '../../../../routes/app_routes.dart';
 import '../widgets/tab_header.dart';
+import '../webview_page.dart' as resource_plus_webview;
 
 class NotificationTab extends StatelessWidget {
-  const NotificationTab({Key? key}) : super(key: key);
+  const NotificationTab({super.key});
 
   // ─── Professional Corporate Palette ──────────────────────────────
   static const _primary = Color(0xFF0F172A); // Slate 900
@@ -49,13 +49,13 @@ class NotificationTab extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
                 child: Column(
                   children: [
-                    const TabHeader(title: 'Notifications'),
+                    const TabHeader(title: 'Notifications'), // Uses API/static translation in TabHeader if needed, but title prop isn't actually used by TabHeader's UI since it uses the logo.
                     const SizedBox(height: 16),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'Recent Activity',
+                          'recent_activity'.tr,
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
@@ -67,7 +67,7 @@ class NotificationTab extends StatelessWidget {
                             onPressed: () => _markAllAsRead(controller),
                             icon: const Icon(Icons.done_all_rounded, size: 18),
                             label: Text(
-                              controller.notificationStaticContents['MarkAllText'] ?? 'Mark all as read',
+                              controller.notificationStaticContents['MarkAllText'] ?? 'mark_all_read'.tr,
                               style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                             ),
                             style: TextButton.styleFrom(
@@ -132,14 +132,14 @@ class NotificationTab extends StatelessWidget {
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
-          color: isRead ? cardBg : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF0FDF4)), // very subtle green if unread
+          color: isRead ? cardBg : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF2F8FF)), // Distinct light blue for unread
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: isRead ? borderColor : _unreadColor.withOpacity(isDark ? 0.4 : 0.2)),
+          border: Border.all(color: isRead ? borderColor : Colors.blue[400]!, width: isRead ? 1 : 1.5),
           boxShadow: [
             if (!isDark && !isRead)
-              BoxShadow(color: _unreadColor.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
+              BoxShadow(color: Colors.blue.withValues(alpha: 0.1), blurRadius: 10, offset: const Offset(0, 4)),
             if (!isDark && isRead)
-              BoxShadow(color: const Color(0xFF0F172A).withOpacity(0.02), blurRadius: 8, offset: const Offset(0, 2)),
+              BoxShadow(color: const Color(0xFF0F172A).withValues(alpha: 0.02), blurRadius: 8, offset: const Offset(0, 2)),
           ],
         ),
         child: Material(
@@ -172,8 +172,8 @@ class NotificationTab extends StatelessWidget {
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: isRead
-                              ? (isDark ? Colors.white.withOpacity(0.05) : _bg)
-                              : _unreadColor.withOpacity(0.1),
+                              ? (isDark ? Colors.white.withValues(alpha: 0.05) : _bg)
+                              : _unreadColor.withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
@@ -203,12 +203,15 @@ class NotificationTab extends StatelessWidget {
                                 ),
                                 if (!isRead)
                                   Container(
-                                    width: 8,
-                                    height: 8,
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                     margin: const EdgeInsets.only(left: 8),
-                                    decoration: const BoxDecoration(
-                                      color: _unreadColor,
-                                      shape: BoxShape.circle,
+                                    decoration: BoxDecoration(
+                                      color: Colors.blue[600],
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: const Text(
+                                      'NEW',
+                                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
                                     ),
                                   ),
                               ],
@@ -272,17 +275,17 @@ class NotificationTab extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
+                color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
                 shape: BoxShape.circle,
                 boxShadow: [
-                  if (!isDark) BoxShadow(color: _primary.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, 10))
+                  if (!isDark) BoxShadow(color: _primary.withValues(alpha: 0.05), blurRadius: 20, offset: const Offset(0, 10))
                 ],
               ),
               child: Icon(Icons.notifications_off_outlined, size: 60, color: Colors.grey[400]),
             ),
             const SizedBox(height: 24),
             Text(
-              'No Notifications',
+              'no_notifications'.tr,
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w800,
@@ -291,7 +294,7 @@ class NotificationTab extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'You\'re all caught up!',
+              'all_caught_up'.tr,
               style: TextStyle(
                 fontSize: 14,
                 color: isDark ? Colors.grey[400] : Colors.grey[500],
@@ -310,13 +313,13 @@ class NotificationTab extends StatelessWidget {
         children: [
           Icon(Icons.cloud_off_rounded, size: 48, color: Colors.grey[400]),
           const SizedBox(height: 16),
-          Text('Error Loading Notifications',
+          Text('error_loading_notifications'.tr,
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey[700])),
           const SizedBox(height: 16),
           TextButton.icon(
             onPressed: controller.refreshNotificationData,
             icon: const Icon(Icons.refresh),
-            label: const Text('Retry'),
+            label: Text('retry'.tr),
             style: TextButton.styleFrom(foregroundColor: _primary),
           ),
         ],
@@ -332,13 +335,22 @@ class NotificationTab extends StatelessWidget {
     final queryString = notification['QueryString']?.toString() ?? '';
 
     if (queryString.isNotEmpty) {
-      final fullUrl = (queryString.startsWith('http://') || queryString.startsWith('https://'))
+      String fullUrl = (queryString.startsWith('http://') || queryString.startsWith('https://'))
           ? queryString
           : (baseUrl + queryString);
+      
+      // Fix case-sensitivity: server requires 'NSPApp' (uppercase) not 'nspApp'
+      fullUrl = fullUrl
+          .replaceAll('/nspApp/', '/NSPApp/')
+          .replaceAll('/nspapp/', '/NSPApp/');
 
       try {
         final notificationTitle = notification['NotifcnTitle'] ?? 'Notification';
-        Get.toNamed(AppRoutes.webview, parameters: {'url': fullUrl, 'title': notificationTitle.toString()});
+        
+        Get.to(() => resource_plus_webview.WebViewPage(
+          url: fullUrl,
+          title: notificationTitle.toString(),
+        ));
 
         if (!isRead) _markSingleAsRead(controller, notification);
       } catch (e) {

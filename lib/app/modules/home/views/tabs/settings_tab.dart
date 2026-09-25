@@ -87,7 +87,7 @@ class SettingsTab extends StatelessWidget {
                               trailing: Obx(() => Switch(
                                 value: themeController.isDarkMode.value,
                                 onChanged: (value) => themeController.toggleTheme(),
-                                activeColor: isDark ? Colors.white : _primary,
+                                activeThumbColor: isDark ? Colors.white : _primary,
                                 activeTrackColor: isDark ? _primary : Colors.grey[300],
                               )),
                               onTap: null,
@@ -268,7 +268,7 @@ class SettingsTab extends StatelessWidget {
               border: Border.all(color: borderColor),
               boxShadow: [
                 if (!isDark)
-                  BoxShadow(color: const Color(0xFF0F172A).withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4)),
+                  BoxShadow(color: const Color(0xFF0F172A).withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4)),
               ],
             ),
             child: Column(children: items),
@@ -303,8 +303,8 @@ class SettingsTab extends StatelessWidget {
                 height: 44,
                 decoration: BoxDecoration(
                   color: isDestructive
-                      ? _error.withOpacity(0.1)
-                      : (isDark ? Colors.white.withOpacity(0.05) : _bg),
+                      ? _error.withValues(alpha: 0.1)
+                      : (isDark ? Colors.white.withValues(alpha: 0.05) : _bg),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
                 ),
@@ -621,7 +621,7 @@ class SettingsTab extends StatelessWidget {
                   width: 50,
                   height: 5,
                   decoration: BoxDecoration(
-                    color: Colors.grey.withOpacity(0.3),
+                    color: Colors.grey.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
@@ -639,7 +639,7 @@ class SettingsTab extends StatelessWidget {
                   leading: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(Icons.privacy_tip_outlined, color: Theme.of(context).colorScheme.primary),
@@ -657,7 +657,7 @@ class SettingsTab extends StatelessWidget {
                   leading: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(Icons.description_outlined, color: Theme.of(context).colorScheme.primary),
@@ -733,7 +733,7 @@ class SettingsTab extends StatelessWidget {
 }
 
 class _ChangePasswordDialogContent extends StatefulWidget {
-  const _ChangePasswordDialogContent({Key? key}) : super(key: key);
+  const _ChangePasswordDialogContent();
 
   @override
   State<_ChangePasswordDialogContent> createState() => _ChangePasswordDialogContentState();

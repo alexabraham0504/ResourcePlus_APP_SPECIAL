@@ -9,7 +9,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 
 class AppDrawer extends StatelessWidget {
   final VoidCallback? onClose;
-  const AppDrawer({Key? key, this.onClose}) : super(key: key);
+  const AppDrawer({super.key, this.onClose});
 
   static const Color corporateBlue = Color(0xFF004A77);
   static const Color primaryGreen = Color(0xFF006E1C);
@@ -60,7 +60,7 @@ class AppDrawer extends StatelessWidget {
                     
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-                      child: Divider(height: 1, color: iconColor.withOpacity(0.15)),
+                      child: Divider(height: 1, color: iconColor.withValues(alpha: 0.15)),
                     ),
                     
                     _buildPremiumNavItem(4, Icons.settings_suggest_rounded, 'settings'.tr, controller, textColor, iconColor, closeDrawer),
@@ -71,7 +71,7 @@ class AppDrawer extends StatelessWidget {
                       leading: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: corporateBlue.withOpacity(0.1),
+                          color: corporateBlue.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: const Icon(Icons.language_rounded, color: corporateBlue, size: 22),
@@ -110,7 +110,7 @@ class AppDrawer extends StatelessWidget {
                       leading: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: errorColor.withOpacity(0.1),
+                          color: errorColor.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: const Icon(Icons.power_settings_new_rounded, color: errorColor, size: 22),
@@ -167,7 +167,7 @@ class AppDrawer extends StatelessWidget {
                               '${'version'.tr} $version',
                               style: TextStyle(
                                 fontSize: 11,
-                                color: iconColor.withOpacity(0.5),
+                                color: iconColor.withValues(alpha: 0.5),
                                 fontWeight: FontWeight.w500,
                               ),
                             );
@@ -202,11 +202,11 @@ class AppDrawer extends StatelessWidget {
                 width: 70, height: 70,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
+                  color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
                   border: Border.all(color: primaryGreen, width: 2.5),
                   boxShadow: [
                     BoxShadow(
-                      color: primaryGreen.withOpacity(0.2),
+                      color: primaryGreen.withValues(alpha: 0.2),
                       blurRadius: 15, spreadRadius: 2,
                     ),
                   ],
@@ -224,7 +224,7 @@ class AppDrawer extends StatelessWidget {
                 onPressed: closeDrawer,
                 icon: Icon(Icons.close_rounded, color: subTextColor),
                 style: IconButton.styleFrom(
-                  backgroundColor: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
+                  backgroundColor: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
                   shape: const CircleBorder(),
                   padding: const EdgeInsets.all(8),
                 ),
@@ -251,7 +251,7 @@ class AppDrawer extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: primaryGreen.withOpacity(0.1),
+                  color: primaryGreen.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
@@ -287,7 +287,7 @@ class AppDrawer extends StatelessWidget {
       final activeColor = primaryGreen;
       final itemTextColor = isSelected ? activeColor : textColor;
       final itemIconColor = isSelected ? activeColor : subTextColor;
-      final bgColor = isSelected ? activeColor.withOpacity(0.12) : Colors.transparent;
+      final bgColor = isSelected ? activeColor.withValues(alpha: 0.12) : Colors.transparent;
 
       return Padding(
         padding: const EdgeInsets.only(bottom: 8),
@@ -300,7 +300,7 @@ class AppDrawer extends StatelessWidget {
           leading: Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: isSelected ? activeColor.withOpacity(0.1) : (Theme.of(Get.context!).brightness == Brightness.dark ? Colors.white10 : Colors.black.withOpacity(0.04)),
+              color: isSelected ? activeColor.withValues(alpha: 0.1) : (Theme.of(Get.context!).brightness == Brightness.dark ? Colors.white10 : Colors.black.withValues(alpha: 0.04)),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(icon, color: itemIconColor, size: 22),

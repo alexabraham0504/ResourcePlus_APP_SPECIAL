@@ -1,18 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:resourceplus_app/main.dart';
+import 'package:resourceplus_app/services/settings_service.dart';
+
+import '../../../routes/app_routes.dart';
 import '../controllers/home_controller.dart';
 import 'tabs/home_tab.dart';
-import 'widgets/attendance_history_view.dart';
+import 'tabs/attendance_tab.dart';
+import 'tabs/self_service_tab.dart';
 import 'tabs/profile_tab.dart';
-import 'tabs/notification_tab.dart';
 import 'tabs/settings_tab.dart';
-import 'package:resource_plus/app/routes/app_routes.dart';
-import '../../auth/controllers/auth_controller.dart';
-import 'widgets/app_drawer.dart';
-import 'package:flutter_zoom_drawer/flutter_zoom_drawer.dart';
+import 'tabs/notification_tab.dart' as resource_plus_notifications;
+import 'tabs/ai_chat_tab.dart';
+import 'tabs/ai_workforce_tab.dart';
+import 'widgets/global_expandable_fab.dart';
 
 class HomeView extends GetView<HomeController> {
-  const HomeView({Key? key}) : super(key: key);
+  const HomeView({super.key});
 
   // Design system colors
   static const Color corporateBlue = Color(0xFF004A77);
@@ -27,52 +33,87 @@ class HomeView extends GetView<HomeController> {
       final isHomeTab = controller.currentIndex.value == 0;
       
       return PopScope(
-        canPop: isHomeTab,
-        onPopInvoked: (didPop) {
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) {
           if (didPop) return;
-          if (controller.zoomDrawerController.isOpen?.call() ?? false) {
-            controller.zoomDrawerController.close?.call();
-            return;
-          }
           if (!isHomeTab) {
             controller.changeTab(0);
+          } else {
+            // If on home tab and user presses back, exit the app properly
+            SystemNavigator.pop();
           }
         },
-        child: ZoomDrawer(
-          controller: controller.zoomDrawerController,
-          menuScreen: AppDrawer(onClose: () => controller.zoomDrawerController.toggle?.call()),
-          mainScreen: Scaffold(
+        child: GlobalExpandableFab(
+          isVisible: controller.currentIndex.value != 6 && controller.currentIndex.value != 7,
+          child: Scaffold(
             key: controller.scaffoldKey,
-            floatingActionButton: controller.currentIndex.value == 1
-                ? PulsingPunchFab(
-                    onPressed: () => Get.toNamed(AppRoutes.hrPortal),
-                  )
-                : null,
-            // No bottom navigation bar - tabs are in the drawer now
-            body: () {
-              switch (controller.currentIndex.value) {
-                case 0:
-                  return const HomeTab();
-                case 1:
-                  return const AttendanceHistoryView();
-                case 2:
-                  return const ProfileTab();
-                case 4:
-                  return const SettingsTab();
-                default:
-                  return const HomeTab();
-              }
-            }(),
+            body: IndexedStack(
+              index: controller.currentIndex.value > 7 ? 0 : controller.currentIndex.value,
+              children: const [
+                HomeTab(),
+                LazyTab(index: 1, child: AttendanceTab()),
+                SelfServiceTab(), // SelfServiceTab handles its own laziness internally
+                LazyTab(index: 3, child: ProfileTab()),
+                LazyTab(index: 4, child: SettingsTab()),
+                LazyTab(index: 5, child: resource_plus_notifications.NotificationTab()),
+                LazyTab(index: 6, child: AIChatTab()),
+                LazyTab(index: 7, child: AiWorkforceTab()),
+              ],
+            ),
+            bottomNavigationBar: Container(
+              decoration: BoxDecoration(
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, -5),
+                  ),
+                ],
+              ),
+              child: BottomNavigationBar(
+                currentIndex: controller.currentIndex.value > 4 ? 0 : controller.currentIndex.value,
+                onTap: (index) => controller.changeTab(index),
+                backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                selectedItemColor: controller.currentIndex.value > 4
+                    ? (isDark ? Colors.grey[500] : Colors.grey[400])
+                    : [
+                        corporateBlue,
+                        primaryGreen,
+                        const Color(0xFF8B5CF6), // Purple for Self Service
+                        const Color(0xFFFC943B), // Orange for Profile
+                        const Color(0xFF6F7A6B), // Grey for Settings
+                      ][controller.currentIndex.value],
+                unselectedItemColor: isDark ? Colors.grey[500] : Colors.grey[400],
+                showUnselectedLabels: true,
+                type: BottomNavigationBarType.fixed,
+                selectedFontSize: 10.0,
+                unselectedFontSize: 10.0,
+                elevation: 0,
+                items: [
+                  BottomNavigationBarItem(
+                    icon: const Icon(Icons.home_rounded),
+                    label: 'home'.tr,
+                  ),
+                  BottomNavigationBarItem(
+                    icon: const Icon(Icons.calendar_month_rounded),
+                    label: 'attendance'.tr,
+                  ),
+                  BottomNavigationBarItem(
+                    icon: const Icon(Icons.widgets_rounded),
+                    label: 'self_service'.tr,
+                  ),
+                  BottomNavigationBarItem(
+                    icon: const Icon(Icons.person_rounded),
+                    label: 'profile'.tr,
+                  ),
+                  BottomNavigationBarItem(
+                    icon: const Icon(Icons.settings_rounded),
+                    label: 'settings'.tr,
+                  ),
+                ],
+              ),
+            ),
           ),
-          borderRadius: 24.0,
-          showShadow: true,
-          angle: -10.0,
-          isRtl: true, // This moves the menu to the right side
-          drawerShadowsBackgroundColor: isDark ? Colors.grey.shade900 : Colors.grey.shade300,
-          slideWidth: MediaQuery.of(context).size.width * 0.65,
-          openCurve: Curves.easeOutCubic,
-          closeCurve: Curves.easeOutQuint,
-          duration: const Duration(milliseconds: 450),
         ),
       );
     });
@@ -81,7 +122,7 @@ class HomeView extends GetView<HomeController> {
 
 class PulsingPunchFab extends StatefulWidget {
   final VoidCallback onPressed;
-  const PulsingPunchFab({Key? key, required this.onPressed}) : super(key: key);
+  const PulsingPunchFab({super.key, required this.onPressed});
 
   @override
   State<PulsingPunchFab> createState() => _PulsingPunchFabState();
@@ -119,7 +160,7 @@ class _PulsingPunchFabState extends State<PulsingPunchFab> with SingleTickerProv
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF004A77).withOpacity(0.4 * _animation.value),
+                  color: const Color(0xFF004A77).withValues(alpha: 0.4 * _animation.value),
                   blurRadius: 15 * _animation.value,
                   spreadRadius: 2 * _animation.value,
                 ),
@@ -135,5 +176,32 @@ class _PulsingPunchFabState extends State<PulsingPunchFab> with SingleTickerProv
         );
       },
     );
+  }
+}
+
+class LazyTab extends StatefulWidget {
+  final Widget child;
+  final int index;
+  const LazyTab({super.key, required this.child, required this.index});
+
+  @override
+  State<LazyTab> createState() => _LazyTabState();
+}
+
+class _LazyTabState extends State<LazyTab> {
+  final controller = Get.find<HomeController>();
+  bool _hasBeenActivated = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      if (controller.currentIndex.value == widget.index) {
+        _hasBeenActivated = true;
+      }
+      if (!_hasBeenActivated) {
+        return const SizedBox.shrink();
+      }
+      return widget.child;
+    });
   }
 }

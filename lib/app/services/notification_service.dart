@@ -1,4 +1,3 @@
-import 'package:get_storage/get_storage.dart';
 
 /// Notification service — all methods are no-ops.
 /// Push notifications and local notifications have been fully disabled

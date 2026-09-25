@@ -115,10 +115,10 @@ class _PrivacyConsentViewState extends State<PrivacyConsentView> {
     final primaryColor = Theme.of(context).colorScheme.primary;
     final secondaryColor = Theme.of(context).colorScheme.secondary;
     final errorColor = Theme.of(context).colorScheme.error;
-    final onBackgroundColor = Theme.of(context).colorScheme.onBackground;
+    final onBackgroundColor = Theme.of(context).colorScheme.onSurface;
 
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.background,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
         child: Column(
           children: [
@@ -134,7 +134,7 @@ class _PrivacyConsentViewState extends State<PrivacyConsentView> {
                       width: 90,
                       height: 90,
                       decoration: BoxDecoration(
-                        color: primaryColor.withOpacity(0.1),
+                        color: primaryColor.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
@@ -163,7 +163,7 @@ class _PrivacyConsentViewState extends State<PrivacyConsentView> {
                       'privacy_consent_subtitle'.tr,
                       style: TextStyle(
                         fontSize: 15,
-                        color: onBackgroundColor.withOpacity(0.6),
+                        color: onBackgroundColor.withValues(alpha: 0.6),
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -178,8 +178,8 @@ class _PrivacyConsentViewState extends State<PrivacyConsentView> {
                         boxShadow: [
                           BoxShadow(
                             color: Theme.of(context).brightness == Brightness.light
-                                ? Colors.grey.withOpacity(0.08)
-                                : Colors.black.withOpacity(0.2),
+                                ? Colors.grey.withValues(alpha: 0.08)
+                                : Colors.black.withValues(alpha: 0.2),
                             spreadRadius: 1,
                             blurRadius: 10,
                             offset: const Offset(0, 4),
@@ -187,8 +187,8 @@ class _PrivacyConsentViewState extends State<PrivacyConsentView> {
                         ],
                         border: Border.all(
                           color: Theme.of(context).brightness == Brightness.light
-                              ? Colors.grey.withOpacity(0.15)
-                              : Colors.white.withOpacity(0.08),
+                              ? Colors.grey.withValues(alpha: 0.15)
+                              : Colors.white.withValues(alpha: 0.08),
                         ),
                       ),
                       child: Column(
@@ -232,10 +232,10 @@ class _PrivacyConsentViewState extends State<PrivacyConsentView> {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: primaryColor.withOpacity(0.05),
+                        color: primaryColor.withValues(alpha: 0.05),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: primaryColor.withOpacity(0.1),
+                          color: primaryColor.withValues(alpha: 0.1),
                         ),
                       ),
                       child: RichText(
@@ -244,7 +244,7 @@ class _PrivacyConsentViewState extends State<PrivacyConsentView> {
                           style: TextStyle(
                             fontSize: 14,
                             height: 1.5,
-                            color: onBackgroundColor.withOpacity(0.8),
+                            color: onBackgroundColor.withValues(alpha: 0.8),
                             fontFamily: 'Roboto',
                           ),
                           children: [
@@ -300,7 +300,7 @@ class _PrivacyConsentViewState extends State<PrivacyConsentView> {
                 color: Theme.of(context).colorScheme.surface,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withValues(alpha: 0.05),
                     spreadRadius: 1,
                     blurRadius: 10,
                     offset: const Offset(0, -2),
@@ -342,7 +342,7 @@ class _PrivacyConsentViewState extends State<PrivacyConsentView> {
                     child: OutlinedButton(
                       onPressed: _onCancel,
                       style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: onBackgroundColor.withOpacity(0.2)),
+                        side: BorderSide(color: onBackgroundColor.withValues(alpha: 0.2)),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -351,7 +351,7 @@ class _PrivacyConsentViewState extends State<PrivacyConsentView> {
                         'cancel_not_agree'.tr,
                         style: TextStyle(
                           fontSize: 16,
-                          color: onBackgroundColor.withOpacity(0.7),
+                          color: onBackgroundColor.withValues(alpha: 0.7),
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -378,7 +378,7 @@ class _PrivacyConsentViewState extends State<PrivacyConsentView> {
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(
@@ -405,7 +405,7 @@ class _PrivacyConsentViewState extends State<PrivacyConsentView> {
                 description,
                 style: TextStyle(
                   fontSize: 13,
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.65),
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.65),
                   height: 1.3,
                 ),
               ),

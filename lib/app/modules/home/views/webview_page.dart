@@ -4,17 +4,17 @@ import 'dart:collection';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../../widgets/error_page_widget.dart';
+import '../controllers/home_controller.dart';
 
 class WebViewPage extends StatefulWidget {
   final String url;
   final String title;
+  final bool isEmbedded;
 
-  const WebViewPage({Key? key, required this.url, required this.title})
-      : super(key: key);
+  const WebViewPage({super.key, required this.url, required this.title, this.isEmbedded = false});
 
   @override
   State<WebViewPage> createState() => _WebViewPageState();
@@ -25,7 +25,7 @@ class _WebViewPageState extends State<WebViewPage> {
   bool isLoading = true;
   double loadingProgress = 0.0;
   String? errorMessage;
-  bool _hasShownPermissionDialog = false;
+  final bool _hasShownPermissionDialog = false;
 
   @override
   void initState() {
@@ -35,6 +35,17 @@ class _WebViewPageState extends State<WebViewPage> {
   @override
   void dispose() {
     super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant WebViewPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // If the URL changes (e.g., from changing languages), force the WebView to load the new URL
+    if (oldWidget.url != widget.url) {
+      if (webViewController != null) {
+        webViewController!.loadUrl(urlRequest: URLRequest(url: WebUri(widget.url)));
+      }
+    }
   }
 
 
@@ -49,8 +60,14 @@ class _WebViewPageState extends State<WebViewPage> {
         if (webViewController != null && await webViewController!.canGoBack()) {
           webViewController!.goBack();
         } else {
-          if (context.mounted) {
-            Navigator.of(context).pop();
+          if (widget.isEmbedded) {
+            if (Get.isRegistered<HomeController>()) {
+              Get.find<HomeController>().changeTab(0);
+            }
+          } else {
+            if (context.mounted) {
+              Navigator.of(context).pop();
+            }
           }
         }
       },
@@ -138,7 +155,9 @@ class _WebViewPageState extends State<WebViewPage> {
                   debugPrint('WebView Resource Error: ${error.description} (Code: ${error.type}) for URL: ${request.url}');
                   // Don't show error page for minor SSL subresource issues
                   if (error.type == WebResourceErrorType.CANCELLED || 
-                      error.type == WebResourceErrorType.TIMEOUT) return;
+                      error.type == WebResourceErrorType.TIMEOUT) {
+                    return;
+                  }
 
                   if (request.isForMainFrame == true && mounted) {
                     setState(() {
@@ -250,7 +269,7 @@ class _WebViewPageState extends State<WebViewPage> {
               return LinearProgressIndicator(
                 value: value > 0 ? value / 100 : null,
                 backgroundColor: isDark
-                    ? Colors.white.withOpacity(0.05)
+                    ? Colors.white.withValues(alpha: 0.05)
                     : const Color(0xFFE2E8F0),
                 valueColor: const AlwaysStoppedAnimation<Color>(
                   Color(0xFF3B82F6),

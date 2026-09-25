@@ -4,7 +4,7 @@ import '../../controllers/home_controller.dart';
 import '../widgets/tab_header.dart';
 
 class ProfileTab extends StatelessWidget {
-  const ProfileTab({Key? key}) : super(key: key);
+  const ProfileTab({super.key});
 
   // ─── Professional Corporate Palette ──────────────────────────────
   static const _primary = Color(0xFF0F172A); // Slate 900
@@ -111,7 +111,7 @@ class ProfileTab extends StatelessWidget {
         boxShadow: [
           if (!isDark)
             BoxShadow(
-              color: const Color(0xFF0F172A).withOpacity(0.03),
+              color: const Color(0xFF0F172A).withValues(alpha: 0.03),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -196,7 +196,7 @@ class ProfileTab extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFF1F5F9),
+                    color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF1F5F9),
                     borderRadius: BorderRadius.circular(6),
                     border: Border.all(color: borderColor),
                   ),
@@ -218,7 +218,7 @@ class ProfileTab extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: primaryGreen.withOpacity(0.1),
+              color: primaryGreen.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: const Icon(Icons.verified_rounded, color: primaryGreen, size: 24),
@@ -460,7 +460,7 @@ class ProfileTab extends StatelessWidget {
         boxShadow: [
           if (!isDark)
             BoxShadow(
-              color: const Color(0xFF0F172A).withOpacity(0.02),
+              color: const Color(0xFF0F172A).withValues(alpha: 0.02),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -479,7 +479,7 @@ class ProfileTab extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: isDark ? Colors.white.withOpacity(0.05) : _bg,
+              color: isDark ? Colors.white.withValues(alpha: 0.05) : _bg,
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
             ),

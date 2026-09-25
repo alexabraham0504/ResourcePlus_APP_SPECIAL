@@ -110,11 +110,12 @@ class _PermissionRequestViewState extends State<PermissionRequestView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.background,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               // App Logo
@@ -122,7 +123,7 @@ class _PermissionRequestViewState extends State<PermissionRequestView> {
                 width: 120,
                 height: 120,
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Icon(
@@ -140,7 +141,7 @@ class _PermissionRequestViewState extends State<PermissionRequestView> {
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.onBackground,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -154,7 +155,7 @@ class _PermissionRequestViewState extends State<PermissionRequestView> {
                   fontSize: 16,
                   color: Theme.of(
                     context,
-                  ).colorScheme.onBackground.withOpacity(0.7),
+                  ).colorScheme.onSurface.withValues(alpha: 0.7),
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -207,8 +208,9 @@ class _PermissionRequestViewState extends State<PermissionRequestView> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildPermissionItem({
     required IconData icon,
@@ -220,13 +222,13 @@ class _PermissionRequestViewState extends State<PermissionRequestView> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: isGranted
-            ? Colors.green.withOpacity(0.1)
+            ? Colors.green.withValues(alpha: 0.1)
             : Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: isGranted
-              ? Colors.green.withOpacity(0.3)
-              : Theme.of(context).colorScheme.outline.withOpacity(0.3),
+              ? Colors.green.withValues(alpha: 0.3)
+              : Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
         ),
       ),
       child: Row(
@@ -236,8 +238,8 @@ class _PermissionRequestViewState extends State<PermissionRequestView> {
             height: 48,
             decoration: BoxDecoration(
               color: isGranted
-                  ? Colors.green.withOpacity(0.2)
-                  : Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                  ? Colors.green.withValues(alpha: 0.2)
+                  : Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
@@ -278,7 +280,7 @@ class _PermissionRequestViewState extends State<PermissionRequestView> {
                     fontSize: 14,
                     color: Theme.of(
                       context,
-                    ).colorScheme.onSurface.withOpacity(0.7),
+                    ).colorScheme.onSurface.withValues(alpha: 0.7),
                   ),
                 ),
               ],

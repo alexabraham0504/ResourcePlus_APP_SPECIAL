@@ -17,4 +17,14 @@ abstract class AppRoutes {
   static const privacyTermsDetail = '/privacy-terms-detail';
   static const attendanceHistory = '/attendance-history';
   static const updateRequired = '/update-required';
+
+  // Attendance punch screens
+  static const faceDetectionPunch = '/face-detection-punch';
+  static const faceEnrollment = '/face-enrollment';
+  static const localPunchHistory = '/local-punch-history';
+  static const fingerprintPunch = '/fingerprint-punch';
+  static const bluetoothPunch = '/bluetooth-punch';
+  static const QR_ATTENDANCE = '/qr-attendance';
+  
+  static const aiChat = '/ai-chat';
 }

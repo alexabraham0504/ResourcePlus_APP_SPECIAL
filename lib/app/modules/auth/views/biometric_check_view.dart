@@ -42,7 +42,12 @@ class _BiometricCheckViewState extends State<BiometricCheckView> {
         if (loginResult['isNeedToResetPwd'] == true) {
           Get.offAllNamed(AppRoutes.newPassword);
         } else {
-          Get.offAllNamed(AppRoutes.home);
+          final isFromResume = Get.arguments != null && Get.arguments['isFromResume'] == true;
+          if (isFromResume) {
+            Get.back(); // Go back to whatever screen they were on
+          } else {
+            Get.offAllNamed(AppRoutes.home); // Fresh login
+          }
         }
       } else {
         setState(() => _isLoading = false);
@@ -72,7 +77,7 @@ class _BiometricCheckViewState extends State<BiometricCheckView> {
     const orange = Color(0xFFF7941D);
 
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.background,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: Center(
         child: SingleChildScrollView(
           child: Column(
@@ -182,7 +187,12 @@ class _BiometricCheckViewState extends State<BiometricCheckView> {
                                       if (loginResult['isNeedToResetPwd'] == true) {
                                         Get.offAllNamed(AppRoutes.newPassword);
                                       } else {
-                                        Get.offAllNamed(AppRoutes.home);
+                                        final isFromResume = Get.arguments != null && Get.arguments['isFromResume'] == true;
+                                        if (isFromResume) {
+                                          Get.back();
+                                        } else {
+                                          Get.offAllNamed(AppRoutes.home);
+                                        }
                                       }
                                     } else {
                                       setState(() {

@@ -2,17 +2,19 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:dio/dio.dart';
 import 'package:get_storage/get_storage.dart';
-import 'package:flutter/foundation.dart';
+import 'package:dio/dio.dart';
+import 'package:intl/intl.dart';
 import '../../../controllers/language_controller.dart';
 import '../../../services/notification_service.dart';
 import '../../../services/api_service.dart';
 import '../../../config/api_endpoints.dart';
 import '../../../routes/app_routes.dart';
 import 'package:flutter_zoom_drawer/flutter_zoom_drawer.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import '../views/tabs/attendance_tab.dart';
 
-class HomeController extends GetxController {
+class HomeController extends GetxController with GetSingleTickerProviderStateMixin, WidgetsBindingObserver {
   final Dio _dio = ApiService().dio;
   final NotificationService _notificationService = NotificationService();
 
@@ -98,18 +100,15 @@ class HomeController extends GetxController {
 
   // Unread notifications count getter
   int get unreadNotificationsCount {
-    return notifications.where((notification) {
-      final readStatusValue =
-          notification['ReadStatus'] ??
-          notification['IsRead'] ??
-          notification['isRead'];
-      final isRead =
-          readStatusValue == 'True' ||
-          readStatusValue == 'true' ||
-          readStatusValue == 1 ||
-          readStatusValue == true;
-      return !isRead;
-    }).length;
+    int unreadCount = 0;
+    for (var notif in notifications) {
+      final readStatus = notif['ReadStatus'] ?? notif['IsRead'] ?? notif['isRead'];
+      final isRead = readStatus == 'True' || readStatus == 'true' || readStatus == 1 || readStatus == true;
+      if (!isRead) {
+        unreadCount++;
+      }
+    }
+    return unreadCount;
   }
 
   // Notification Static Contents
@@ -138,7 +137,7 @@ class HomeController extends GetxController {
   final RxBool pushNotificationsEnabled = true.obs;
 
   // Cached portal URL for faster HR Portal loading
-  String? _cachedPortalUrl;
+  final cachedPortalUrl = ''.obs;
 
   @override
   void onInit() {
@@ -148,59 +147,165 @@ class HomeController extends GetxController {
     fetchHomeData();
     fetchAttendanceData();
     fetchProfileData();
-    fetchNotificationData();
+    fetchNotificationData(); // Re-enabled so it loads automatically!
     fetchSettingsData();
     
     initializeProfilePicture();
     _loadPollingSettings();
-    // Notifications disabled for next release
-    // _startNotificationPolling();
+    // Listen for app lifecycle changes to refresh data on resume
+    WidgetsBinding.instance.addObserver(this);
+  }
 
-    // Pre-fetch portal URL in background for faster HR Portal loading
-    _preFetchPortalUrl();
+  // Tracks when the app went to background to avoid triggering biometric
+  // for brief interruptions like pulling down the notification shade.
+  DateTime? _backgroundedAt;
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      // Record when the app went to background
+      _backgroundedAt ??= DateTime.now();
+    }
+
+    if (state == AppLifecycleState.resumed) {
+      final secondsInBackground = _backgroundedAt == null
+          ? 0
+          : DateTime.now().difference(_backgroundedAt!).inSeconds;
+      _backgroundedAt = null; // reset
+
+      // 1. Check if biometric is required on resume.
+      // Only trigger if the app was TRULY in background for >30 seconds.
+      // This prevents the biometric screen from appearing when the user
+      // simply swipes down the notification bar and releases it.
+      const int biometricTimeoutSeconds = 30;
+
+      if (secondsInBackground >= biometricTimeoutSeconds) {
+        final storage = GetStorage();
+        final hasBiometric = storage.read('hasBiometric');
+        final biometricEnabled = storage.read('biometricEnabled') == true;
+        final biometricSetupComplete = storage.read('biometricSetupComplete') == true;
+        
+        final currentRoute = Get.currentRoute;
+        // Do not trigger global biometric lock if we are already doing a biometric check 
+        // for attendance! Doing so crashes Android due to overlapping BiometricPrompt fragments.
+        if (hasBiometric == true && 
+            biometricEnabled && 
+            biometricSetupComplete && 
+            currentRoute != AppRoutes.biometricCheck &&
+            currentRoute != AppRoutes.biometricLink &&
+            currentRoute != AppRoutes.fingerprintPunch) {
+          Get.toNamed(AppRoutes.biometricCheck, arguments: {'isFromResume': true});
+        }
+      }
+
+      // 2. Refresh the current page silently to prevent lag
+      if (currentIndex.value == 0) {
+        fetchHomeData(silent: true);
+      } else if (currentIndex.value == 1) {
+        fetchAttendanceData(silent: true);
+      } else if (currentIndex.value == 3) {
+        fetchProfileData(silent: true);
+      } else if (currentIndex.value == 4) {
+        fetchSettingsData(silent: true);
+      }
+    }
   }
 
   @override
   void onClose() {
+    WidgetsBinding.instance.removeObserver(this);
     // _stopNotificationPolling();
     super.onClose();
   }
 
   void changeTab(int index) {
     currentIndex.value = index;
-    // Only fetch if data hasn't been loaded yet to prevent redundant loading spinners
-    if (index == 1 && attendanceRate.isEmpty) {
-      fetchAttendanceData();
+    // Always silently refresh the attendance tab when the user taps on it
+    if (index == 1) {
+      fetchAttendanceData(silent: true);
     }
-    if (index == 2 && profileEmpNumber.value.isEmpty) {
+    if (index == 0) {
+      fetchHomeData(silent: true);
+    }
+    if (index == 3 && profileEmpNumber.value.isEmpty) {
       fetchProfileData();
-    }
-    if (index == 3 && notifications.isEmpty) {
-      fetchNotificationData();
     }
     if (index == 4 && settingsStaticContents.isEmpty) {
       fetchSettingsData();
     }
   }
 
-  Future<void> fetchHomeData() async {
+  Future<void> openTodayPunches(BuildContext context) async {
+    // 1. Switch to Attendance Tab first!
+    changeTab(1);
+    await Future.delayed(const Duration(milliseconds: 300));
+    
+    final today = DateTime.now();
+    final todayStr = DateFormat('dd/MM/yyyy').format(today);
+    final apiDate = DateFormat('MM/dd/yyyy').format(today);
+    
+    // 1. Try to find today's records in recentActivities first (which uses dd/MM/yyyy)
+    final todayRecords = recentActivities.where((r) {
+      return (r['AttDate'] ?? '').toString() == todayStr || (r['AttDate'] ?? '').toString() == apiDate;
+    }).cast<Map<String, dynamic>>().toList();
+    
+    if (todayRecords.isEmpty) {
+      Get.snackbar('No Data', 'No attendance records found for today.', backgroundColor: Colors.orange.withOpacity(0.8), colorText: Colors.white);
+      return;
+    }
+    
+    // 2. Show loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (c) => const Center(child: CircularProgressIndicator()),
+    );
+    
+    // 3. Fetch raw punches
+    final formattedApiDate = DateFormat('yyyy-MM-dd').format(today);
+    final rawPunches = await fetchPunchesForDate(formattedApiDate);
+    
+    if (rawPunches.isNotEmpty) {
+      final summary = todayRecords.first;
+      final inAddr = summary['CheckINAddr']?.toString() ?? '';
+      final outAddr = summary['CheckoutAddr']?.toString() ?? '';
+      final fallbackLoc = summary['Location']?.toString() ?? summary['locationinfo']?.toString() ?? '';
+      
+      for (var punch in rawPunches) {
+        final type = punch['Type']?.toString().toUpperCase() ?? '';
+        if (type == 'IN' && inAddr.isNotEmpty) punch['CheckINAddr'] = inAddr;
+        else if (type == 'OUT' && outAddr.isNotEmpty) punch['CheckoutAddr'] = outAddr;
+        if (fallbackLoc.isNotEmpty) punch['Location'] = fallbackLoc;
+      }
+    }
+    
+    // 4. Close loading & show bottom sheet
+    Navigator.pop(context);
+    AttendanceTab.showPunchesBottomSheet(context, todayRecords, rawPunches.isNotEmpty ? rawPunches.cast<Map<String, dynamic>>() : todayRecords);
+  }
+
+  Future<void> fetchHomeData({bool silent = false}) async {
     try {
-      isLoading.value = true;
+      final storage = GetStorage();
+      if (!silent) {
+        final cachedData = storage.read('cachedHomeData');
+        if (cachedData != null) {
+          _parseHomeData(cachedData);
+          silent = true;
+        } else {
+          isLoading.value = true;
+        }
+      }
       hasError.value = false;
       errorMessage.value = '';
 
-      // TODO: Get these values from auth controller or shared preferences
-      String instanceName = await GetStorage().read(
-        'instanceName',
-      ); //'Universal';
-      String userName = await GetStorage().read('username');
-      String userEmail = await GetStorage().read(
-        'email',
-      ); // 'email@netsoftpro.net';
+      String instanceName = storage.read('instanceName') ?? '';
+      String userName = storage.read('username') ?? '';
+      String userEmail = storage.read('email') ?? '';
       
-      String usrEmailValue = (userName != null && userName.toString().isNotEmpty)
-          ? userName.toString()
-          : (userEmail ?? '').toString();
+      String usrEmailValue = userName.isNotEmpty ? userName : userEmail;
 
       final languageController = Get.find<LanguageController>();
 
@@ -214,15 +319,35 @@ class HomeController extends GetxController {
       );
 
       if (response.statusCode == 200) {
-        final data = response.data;
-        print('API Response: $data'); // Debug print
+        storage.write('cachedHomeData', response.data);
+        _parseHomeData(response.data);
+      }
+    } catch (e) {
+      hasError.value = true;
+      errorMessage.value = 'Failed to load home data: ${e.toString()}';
+      print('Error fetching home data: $e');
+    } finally {
+      isLoading.value = false;
+    }
+  }
 
-        // Parse employee details
+  void _parseHomeData(dynamic data) {
+    if (data == null) return;
+    // Parse employee details
         if (data['EmployeeDetails'] != null) {
           try {
             final empDetails = data['EmployeeDetails'];
             print('EmployeeDetails type: ${empDetails.runtimeType}');
             print('EmployeeDetails value: $empDetails');
+            
+            // Fetch and print FCM Token right on startup so Alex can easily copy it
+            FirebaseMessaging.instance.getToken().then((token) {
+              print("\n\n====== MY FCM TOKEN ======");
+              print(token);
+              print("==========================\n\n");
+            }).catchError((e) {
+              print('Failed to fetch token on home load: $e');
+            });
 
             if (empDetails is Map<String, dynamic>) {
               empNumber.value = empDetails['Emp_Number']?.toString() ?? '';
@@ -291,34 +416,32 @@ class HomeController extends GetxController {
             staticContents.value = {};
           }
         }
-      }
-    } catch (e) {
-      hasError.value = true;
-      errorMessage.value = 'Failed to load home data: ${e.toString()}';
-      print('Error fetching home data: $e');
-      print('Error stack trace: ${e.toString()}');
-    } finally {
-      isLoading.value = false;
-    }
   }
 
   void refreshData() {
     fetchHomeData();
   }
 
-  Future<void> fetchAttendanceData() async {
+  Future<void> fetchAttendanceData({bool silent = false}) async {
     try {
-      isAttendanceLoading.value = true;
+      final storage = GetStorage();
+      if (!silent) {
+        final cachedData = storage.read('cachedAttendanceData');
+        if (cachedData != null) {
+          _parseAttendanceData(cachedData);
+          silent = true;
+        } else {
+          isAttendanceLoading.value = true;
+        }
+      }
       hasAttendanceError.value = false;
       attendanceErrorMessage.value = '';
 
-      String instanceName = await GetStorage().read('instanceName');
-      String userName = await GetStorage().read('username');
-      String userEmail = await GetStorage().read('email');
+      String instanceName = storage.read('instanceName') ?? '';
+      String userName = storage.read('username') ?? '';
+      String userEmail = storage.read('email') ?? '';
       
-      String usrEmailValue = (userName != null && userName.toString().isNotEmpty)
-          ? userName.toString()
-          : (userEmail ?? '').toString();
+      String usrEmailValue = userName.isNotEmpty ? userName : userEmail;
 
       final languageController = Get.find<LanguageController>();
 
@@ -331,11 +454,150 @@ class HomeController extends GetxController {
         },
       );
 
-      if (response.statusCode == 200) {
-        final data = response.data;
-        print('Attendance API Response: $data');
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        storage.write('cachedAttendanceData', response.data);
+        
+        try {
+          final rawJsonStr = jsonEncode(response.data);
+          final lowerJson = rawJsonStr.toLowerCase();
+          print('--- RAW JSON OUTPUT START ---');
+          print('Does raw JSON contain "punchimagebyte"? ${lowerJson.contains('punchimagebyte')}');
+          print('Does raw JSON contain "selfie"? ${lowerJson.contains('selfie')}');
+          if (lowerJson.contains('punchimagebyte')) {
+            print('YES! The backend IS sending the base64 string somewhere! We just need to find it.');
+          }
+          print('RAW_JSON_LENGTH: ${rawJsonStr.length}');
+          // If the image is there, print the first few chunks
+          if (lowerJson.contains('punchimagebyte') || rawJsonStr.length < 5000) {
+            final chunks = (rawJsonStr.length / 800).ceil();
+            for(var i=0; i< (chunks > 10 ? 10 : chunks); i++) {
+              int start = i * 800;
+              int end = (start + 800 < rawJsonStr.length) ? start + 800 : rawJsonStr.length;
+              print('JSON_CHUNK_$i: ${rawJsonStr.substring(start, end)}');
+            }
+          }
+          print('--- RAW JSON OUTPUT END ---');
+        } catch(e) {}
 
-        // Parse Attendance Rate
+        _parseAttendanceData(response.data);
+      }
+    } on DioException catch (e) {
+      hasAttendanceError.value = true;
+      attendanceErrorMessage.value = 'Failed to load attendance data: ${e.response?.statusCode}';
+      print('DioException in fetchAttendanceData: ${e.response?.statusCode} - ${e.response?.data}');
+    } catch (e) {
+      hasAttendanceError.value = true;
+      attendanceErrorMessage.value = 'Failed to load attendance data: ${e.toString()}';
+      print('Error fetching attendance data: $e');
+    } finally {
+      isAttendanceLoading.value = false;
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> fetchPunchesForDate(String dateStr) async {
+    try {
+      final storage = GetStorage();
+      String instanceName = storage.read('instanceName') ?? '';
+      String userName = storage.read('username') ?? '';
+      String userEmail = storage.read('email') ?? '';
+      String usrEmailValue = userName.isNotEmpty ? userName : userEmail;
+      final languageController = Get.find<LanguageController>();
+
+      final response = await _dio.get(
+        ApiEndpoints.getAttendancePunchData,
+        queryParameters: {
+          'usrEmail': usrEmailValue,
+          'instanceName': instanceName,
+          'Lang': languageController.currentLangCode,
+          'Date': dateStr,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        var data = response.data;
+        if (data is String) {
+          try {
+            data = jsonDecode(data);
+          } catch (_) {}
+        }
+        
+        try {
+          final rawJsonStr = jsonEncode(data);
+          final lowerJson = rawJsonStr.toLowerCase();
+          print('--- RAW JSON OUTPUT START (GetAttendancePunchData) ---');
+          print('Does raw JSON contain "punchimagebyte"? ${lowerJson.contains('punchimagebyte')}');
+          if (lowerJson.contains('punchimagebyte')) {
+            print('YES! The backend IS sending the base64 string in the NEW API! We just need to find it.');
+          } else {
+            print('NO! The backend is STILL NOT sending punchimagebyte in the NEW API.');
+          }
+          print('--- RAW JSON OUTPUT END ---');
+        } catch(e) {}
+
+        if (data is List) {
+          return List<Map<String, dynamic>>.from(data.whereType<Map>().map((x) => Map<String, dynamic>.from(x)));
+        } else if (data is Map) {
+          // If the backend wraps it in a data field or similar
+          if (data.containsKey('data') && data['data'] is List) {
+            return List<Map<String, dynamic>>.from((data['data'] as List).whereType<Map>().map((x) => Map<String, dynamic>.from(x)));
+          } else if (data.containsKey('Data') && data['Data'] is List) {
+            return List<Map<String, dynamic>>.from((data['Data'] as List).whereType<Map>().map((x) => Map<String, dynamic>.from(x)));
+          }
+          
+          // First try to look for explicit rawPunches or Punches keys
+          if (data.containsKey('rawPunches') && data['rawPunches'] is List) {
+            return List<Map<String, dynamic>>.from((data['rawPunches'] as List).whereType<Map>().map((x) => Map<String, dynamic>.from(x)));
+          } else if (data.containsKey('Punches') && data['Punches'] is List) {
+            return List<Map<String, dynamic>>.from((data['Punches'] as List).whereType<Map>().map((x) => Map<String, dynamic>.from(x)));
+          }
+          
+          // Look for any value that is a List of Maps (fallback)
+          for (var key in data.keys) {
+            if (key.toLowerCase().contains('summary')) continue; // skip summary list
+            var value = data[key];
+            if (value is List && value.isNotEmpty && value.first is Map) {
+              return List<Map<String, dynamic>>.from(value.whereType<Map>().map((x) => Map<String, dynamic>.from(x)));
+            }
+          }
+        }
+        
+        Get.snackbar('Notice', 'API returned success but no recognizable punch list. Type: ${data.runtimeType}', 
+            snackPosition: SnackPosition.BOTTOM, duration: const Duration(seconds: 5));
+      } else if (response.statusCode == 204) {
+        return [];
+      } else {
+        Get.snackbar('Error', 'Failed to fetch punches. Status: ${response.statusCode}', 
+            snackPosition: SnackPosition.BOTTOM, duration: const Duration(seconds: 5));
+      }
+    } catch (e) {
+      String url = '';
+      String errorMsg = e.toString();
+      if (e is DioException) {
+        url = e.requestOptions.uri.toString();
+        print('DioException [${e.response?.statusCode}]: ${e.response?.data}');
+        errorMsg = 'Status ${e.response?.statusCode}: ${e.response?.data}';
+      }
+      print('Error fetching punches for date $dateStr: $e\nURL: $url');
+      Get.snackbar('Error 400', 'URL: $url\nResp: $errorMsg', 
+          snackPosition: SnackPosition.BOTTOM, duration: const Duration(seconds: 12));
+    }
+    return [];
+  }
+
+  void _parseAttendanceData(dynamic data) {
+    if (data == null || (data is String && data.isEmpty) || data == "") return;
+    // If it's a string that contains JSON, try decoding it
+    if (data is String) {
+      try {
+        data = jsonDecode(data);
+      } catch (e) {
+        return; // If it's not valid JSON, just return
+      }
+    }
+    // Now verify it's a map before proceeding
+    if (data is! Map) return;
+    
+    // Parse Attendance Rate
         if (data['Attendance Rate'] != null) {
           try {
             final rateList = data['Attendance Rate'] as List;
@@ -382,6 +644,12 @@ class HomeController extends GetxController {
 
             for (final item in activitiesList) {
               if (item is Map<String, dynamic>) {
+                // DEBUG: print keys of first record to verify API fields
+                if (parsedActivities.isEmpty) {
+                  print('ATT RECORD KEYS: ${item.keys.toList()}');
+                  print('ATT punch_image: ${item['punch_image']}');
+                  print('ATT PunchImageByte length: ${(item['PunchImageByte'] ?? item['punch_image_byte'] ?? '').toString().length}');
+                }
                 // Create a unique key based on date and times to filter out duplicates
                 final date = item['AttDate'] ?? '';
                 final checkIn = item['CheckIN'] ?? '';
@@ -458,34 +726,32 @@ class HomeController extends GetxController {
             attendanceStaticContents.value = {};
           }
         }
-      }
-    } catch (e) {
-      hasAttendanceError.value = true;
-      attendanceErrorMessage.value =
-          'Failed to load attendance data: ${e.toString()}';
-      print('Error fetching attendance data: $e');
-    } finally {
-      isAttendanceLoading.value = false;
-    }
   }
 
   void refreshAttendanceData() {
     fetchAttendanceData();
   }
 
-  Future<void> fetchProfileData() async {
+  Future<void> fetchProfileData({bool silent = false}) async {
     try {
-      isProfileLoading.value = true;
+      final storage = GetStorage();
+      if (!silent) {
+        final cachedData = storage.read('cachedProfileData');
+        if (cachedData != null) {
+          _parseProfileData(cachedData);
+          silent = true;
+        } else {
+          isProfileLoading.value = true;
+        }
+      }
       hasProfileError.value = false;
       profileErrorMessage.value = '';
 
-      String instanceName = await GetStorage().read('instanceName');
-      String userName = await GetStorage().read('username');
-      String userEmail = await GetStorage().read('email');
+      String instanceName = storage.read('instanceName') ?? '';
+      String userName = storage.read('username') ?? '';
+      String userEmail = storage.read('email') ?? '';
       
-      String usrEmailValue = (userName != null && userName.toString().isNotEmpty)
-          ? userName.toString()
-          : (userEmail ?? '').toString();
+      String usrEmailValue = userName.isNotEmpty ? userName : userEmail;
 
       final languageController = Get.find<LanguageController>();
 
@@ -499,10 +765,21 @@ class HomeController extends GetxController {
       );
 
       if (response.statusCode == 200) {
-        final data = response.data;
-        print('Profile API Response: $data');
+        storage.write('cachedProfileData', response.data);
+        _parseProfileData(response.data);
+      }
+    } catch (e) {
+      hasProfileError.value = true;
+      profileErrorMessage.value = 'Failed to load profile data: ${e.toString()}';
+      print('Error fetching profile data: $e');
+    } finally {
+      isProfileLoading.value = false;
+    }
+  }
 
-        // Parse Contact Information
+  void _parseProfileData(dynamic data) {
+    if (data == null) return;
+    // Parse Contact Information
         if (data['Contact information'] != null) {
           try {
             final contactInfo =
@@ -603,24 +880,15 @@ class HomeController extends GetxController {
             profileStaticContents.value = {};
           }
         }
-      }
-    } catch (e) {
-      hasProfileError.value = true;
-      profileErrorMessage.value =
-          'Failed to load profile data: ${e.toString()}';
-      print('Error fetching profile data: $e');
-    } finally {
-      isProfileLoading.value = false;
-    }
   }
 
   void refreshProfileData() {
     fetchProfileData();
   }
 
-  Future<void> fetchNotificationData() async {
+  Future<void> fetchNotificationData({bool silent = false}) async {
     try {
-      isNotificationLoading.value = true;
+      if (!silent) isNotificationLoading.value = true;
       hasNotificationError.value = false;
       notificationErrorMessage.value = '';
 
@@ -628,7 +896,7 @@ class HomeController extends GetxController {
       String userName = await GetStorage().read('username');
       String userEmail = await GetStorage().read('email');
       
-      String usrEmailValue = (userName != null && userName.toString().isNotEmpty)
+      String usrEmailValue = (userName.toString().isNotEmpty)
           ? userName.toString()
           : (userEmail ?? '').toString();
 
@@ -639,27 +907,37 @@ class HomeController extends GetxController {
         queryParameters: {
           'instanceName': instanceName,
           'usrEmail': usrEmailValue,
-          'lang': languageController.currentLangCode,
+          'lang': languageController.currentLangCode == 'ar' ? 2 : 1,
         },
+        options: Options(
+          responseType: ResponseType.json,
+          headers: {'Accept': 'application/json'},
+        ),
       );
 
       if (response.statusCode == 200) {
-        final data = response.data;
+        var data = response.data;
+        if (data is String) {
+          try {
+            data = json.decode(data);
+          } catch (e) {
+            print('DEBUG: Failed to parse JSON: $e');
+          }
+        }
+
         print('Notification API Response: $data');
 
         // Parse Notifications
-        if (data['Notifications'] != null) {
+        if (data is Map && data['Notifications'] != null) {
           try {
             final notificationsList = data['Notifications'] as List;
             final parsedNotifications = <Map<String, dynamic>>[];
-
             for (final item in notificationsList) {
-              if (item is Map<String, dynamic>) {
-                parsedNotifications.add(item);
+              if (item is Map) {
+                parsedNotifications.add(Map<String, dynamic>.from(item));
               }
             }
-
-            notifications.value = parsedNotifications;
+            notifications.assignAll(parsedNotifications);
 
             // Notifications disabled for this release
             // Check for new notifications and show local push notification
@@ -673,13 +951,14 @@ class HomeController extends GetxController {
         }
 
         // Parse Static Contents
-        if (data['StaticContents'] != null) {
+        if (data is Map && data['StaticContents'] != null) {
           try {
             final contents = data['StaticContents'] as List;
             final tempContents = <String, String>{};
 
-            for (final content in contents) {
-              if (content is Map<String, dynamic>) {
+            for (final item in contents) {
+              if (item is Map) {
+                final content = Map<String, dynamic>.from(item);
                 final contentType = content['ContentType']?.toString();
                 final contentText = content['ContentText']?.toString() ?? '';
 
@@ -689,7 +968,7 @@ class HomeController extends GetxController {
               }
             }
 
-            notificationStaticContents.value = tempContents;
+            notificationStaticContents.assignAll(tempContents);
           } catch (e) {
             print('Error parsing notification static contents: $e');
             notificationStaticContents.value = {};
@@ -697,19 +976,20 @@ class HomeController extends GetxController {
         }
 
         // Parse Common Contents
-        if (data['CommonContents'] != null) {
+        if (data is Map && data['CommonContents'] != null) {
           try {
             final commonList = data['CommonContents'] as List;
             final tempCommon = <String, String>{};
 
-            for (final content in commonList) {
-              if (content is Map<String, dynamic>) {
+            for (final item in commonList) {
+              if (item is Map) {
+                final content = Map<String, dynamic>.from(item);
                 final baseUrl = content['BaseUrl']?.toString() ?? '';
                 tempCommon['BaseUrl'] = baseUrl;
               }
             }
 
-            commonContents.value = tempCommon;
+            commonContents.assignAll(tempCommon);
           } catch (e) {
             print('Error parsing common contents: $e');
             commonContents.value = {};
@@ -736,7 +1016,7 @@ class HomeController extends GetxController {
       String userName = await GetStorage().read('username');
       String userEmail = await GetStorage().read('email');
       
-      String usrEmailValue = (userName != null && userName.toString().isNotEmpty)
+      String usrEmailValue = (userName.toString().isNotEmpty)
           ? userName.toString()
           : (userEmail ?? '').toString();
 
@@ -819,58 +1099,15 @@ class HomeController extends GetxController {
   }
 
   void _startNotificationPolling() {
-    if (!isPollingEnabled.value || isPollingActive.value) return;
-
-    if (kDebugMode) {
-      print(
-        'Starting notification polling every ${pollingIntervalMinutes.value} minutes',
-      );
-    }
-    isPollingActive.value = true;
-
-    _notificationTimer = Timer.periodic(
-      Duration(minutes: pollingIntervalMinutes.value),
-      (timer) => _pollForNotifications(),
-    );
+    // Disabled for V2
   }
 
   void _stopNotificationPolling() {
-    if (kDebugMode) {
-      print('Stopping notification polling');
-    }
-    _notificationTimer?.cancel();
-    _notificationTimer = null;
-    isPollingActive.value = false;
+    // Disabled for V2
   }
 
   Future<void> _pollForNotifications() async {
-    if (!isPollingEnabled.value) return;
-
-    try {
-      if (kDebugMode) {
-        print('Polling for new notifications...');
-      }
-      final previousCount = notifications.length;
-
-      // Fetch notifications silently (without showing loading)
-      await _fetchNotificationDataSilently();
-
-      final newCount = notifications.length;
-
-      if (newCount > previousCount) {
-        if (kDebugMode) {
-          print('New notifications detected! Count: $previousCount -> $newCount');
-        }
-        // Show local notification for new notifications only if push notifications are enabled
-        if (pushNotificationsEnabled.value) {
-          await _notificationService.checkForNewNotifications(newCount);
-        }
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        print('Error during notification polling: $e');
-      }
-    }
+    // Disabled for V2
   }
 
   Future<void> _fetchNotificationDataSilently() async {
@@ -879,7 +1116,7 @@ class HomeController extends GetxController {
       String userName = await GetStorage().read('username');
       String userEmail = await GetStorage().read('email');
       
-      String usrEmailValue = (userName != null && userName.toString().isNotEmpty)
+      String usrEmailValue = (userName.toString().isNotEmpty)
           ? userName.toString()
           : (userEmail ?? '').toString();
 
@@ -1002,14 +1239,23 @@ class HomeController extends GetxController {
     _pollForNotifications();
   }
 
-  Future<void> fetchSettingsData() async {
+  Future<void> fetchSettingsData({bool silent = false}) async {
     try {
-      isSettingsLoading.value = true;
+      final storage = GetStorage();
+      if (!silent) {
+        final cachedData = storage.read('cachedSettingsData');
+        if (cachedData != null) {
+          _parseSettingsData(cachedData);
+          silent = true;
+        } else {
+          isSettingsLoading.value = true;
+        }
+      }
       hasSettingsError.value = false;
       settingsErrorMessage.value = '';
 
-      String instanceName = await GetStorage().read('instanceName');
-      String userEmail = await GetStorage().read('email');
+      String instanceName = storage.read('instanceName') ?? '';
+      String userEmail = storage.read('email') ?? '';
 
       final languageController = Get.find<LanguageController>();
 
@@ -1023,10 +1269,21 @@ class HomeController extends GetxController {
       );
 
       if (response.statusCode == 200) {
-        final data = response.data;
-        print('Settings API Response: $data');
+        storage.write('cachedSettingsData', response.data);
+        _parseSettingsData(response.data);
+      }
+    } catch (e) {
+      hasSettingsError.value = true;
+      settingsErrorMessage.value = 'Failed to load settings data: ${e.toString()}';
+      print('Error fetching settings data: $e');
+    } finally {
+      isSettingsLoading.value = false;
+    }
+  }
 
-        // Parse Settings Static Contents
+  void _parseSettingsData(dynamic data) {
+    if (data == null) return;
+    // Parse Settings Static Contents
         if (data['StaticContents'] != null) {
           try {
             final contents = data['StaticContents'] as List;
@@ -1049,15 +1306,6 @@ class HomeController extends GetxController {
             settingsStaticContents.value = {};
           }
         }
-      }
-    } catch (e) {
-      hasSettingsError.value = true;
-      settingsErrorMessage.value =
-          'Failed to load settings data: ${e.toString()}';
-      print('Error fetching settings data: $e');
-    } finally {
-      isSettingsLoading.value = false;
-    }
   }
 
   void refreshSettingsData() {
@@ -1066,13 +1314,12 @@ class HomeController extends GetxController {
 
   // Refresh all data after language change
   void refreshAllData() {
-    // Clear the cached HR portal URL so it gets re-fetched with the new language code
-    _cachedPortalUrl = null;
-    _preFetchPortalUrl();
+    // Clear the cached HR portal URL so it gets re-fetched on demand with the new language code
+    cachedPortalUrl.value = '';
 
     fetchHomeData();
     fetchSettingsData();
-    fetchNotificationData();
+    // fetchNotificationData(); // Disabled for V2
     fetchAttendanceData();
     fetchProfileData(); // Ensure profile tab static contents update with language
     // Refresh profile picture URL with new language
@@ -1097,13 +1344,14 @@ class HomeController extends GetxController {
   }
 
   // Pre-fetch portal URL for faster loading
-  Future<void> _preFetchPortalUrl() async {
+  Future<void> preFetchPortalUrl() async {
     try {
       String instanceName = GetStorage().read('instanceName')?.toString() ?? '';
       String userName = GetStorage().read('username')?.toString() ?? '';
       String userEmail = GetStorage().read('email')?.toString() ?? '';
       
-      String usrEmailValue = userEmail.isNotEmpty ? userEmail : userName;
+      // FIX: Prioritize username over email because the backend now rejects full emails!
+      String usrEmailValue = userName.isNotEmpty ? userName : userEmail;
       if (usrEmailValue.isEmpty || instanceName.isEmpty) return;
 
       final languageController = Get.find<LanguageController>();
@@ -1121,12 +1369,12 @@ class HomeController extends GetxController {
       if (response.statusCode == 200 && response.data != null) {
         final url = _extractPortalUrl(response.data);
         if (url != null && url.isNotEmpty) {
-          _cachedPortalUrl = url;
+          cachedPortalUrl.value = url;
         }
       }
     } catch (e) {
-      // Silent fail — URL will be fetched when user taps
-      print('Pre-fetch portal URL failed (non-critical): $e');
+      // API might be broken or offline, fail silently
+      print('Pre-fetch portal URL failed: $e');
     }
   }
 
@@ -1148,13 +1396,22 @@ class HomeController extends GetxController {
     }
 
     if (data is List && data.isNotEmpty) {
-      return data[0]['ClientUrl']?.toString();
+      final rawUrl = data[0]['ClientUrl']?.toString();
+      return rawUrl != null ? _fixPortalUrlCasing(rawUrl) : null;
     }
     return null;
   }
 
+  /// Fixes case-sensitivity issues in the portal URL path.
+  /// The API returns 'nspApp' (lowercase) but the server expects 'NSPApp' (uppercase).
+  String _fixPortalUrlCasing(String url) {
+    return url
+        .replaceAll('/nspApp/', '/NSPApp/')
+        .replaceAll('/nspapp/', '/NSPApp/');
+  }
+
   // Helper to append language to the portal URL
-  String _appendLangToUrl(String url) {
+  String appendLangToUrl(String url) {
     try {
       final langCode = Get.find<LanguageController>().currentLangCode.toString();
       final uri = Uri.parse(url);
@@ -1167,14 +1424,14 @@ class HomeController extends GetxController {
     }
   }
 
+  // Launch HR Portal
   Future<void> launchHrPortal({String? title}) async {
     try {
-      // Use cached URL if available for instant loading
-      if (_cachedPortalUrl != null && _cachedPortalUrl!.isNotEmpty) {
+      if (cachedPortalUrl.value.isNotEmpty) {
         final headText = title ?? staticContents['HrLinkHeadText'] ?? 'hr_portal'.tr;
         Get.toNamed(AppRoutes.webview,
             preventDuplicates: true,
-            parameters: {'url': _appendLangToUrl(_cachedPortalUrl!), 'title': headText});
+            parameters: {'url': appendLangToUrl(cachedPortalUrl.value), 'title': headText});
         return;
       }
 
@@ -1187,9 +1444,8 @@ class HomeController extends GetxController {
       String userName = GetStorage().read('username')?.toString() ?? '';
       String userEmail = GetStorage().read('email')?.toString() ?? '';
       
-      String usrEmailValue = userEmail.isNotEmpty
-          ? userEmail
-          : userName;
+      // FIX: Prioritize username over email
+      String usrEmailValue = userName.isNotEmpty ? userName : userEmail;
 
       final languageController = Get.find<LanguageController>();
 
@@ -1212,15 +1468,14 @@ class HomeController extends GetxController {
 
         if (clientUrl != null && clientUrl.isNotEmpty) {
           // Cache for next time
-          _cachedPortalUrl = clientUrl;
+          cachedPortalUrl.value = clientUrl;
           final headText = title ?? staticContents['HrLinkHeadText'] ?? 'hr_portal'.tr;
           Get.toNamed(AppRoutes.webview,
               preventDuplicates: true,
-              parameters: {'url': _appendLangToUrl(clientUrl), 'title': headText});
-        } else {return;
+              parameters: {'url': appendLangToUrl(clientUrl), 'title': headText});
+          return; // Success, exit method
         }
       }
-      
 
       Get.defaultDialog(
         title: 'API Error',

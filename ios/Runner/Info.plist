@@ -79,6 +79,8 @@
 	<array>
 		<string>fetch</string>
 		<string>remote-notification</string>
+		<string>location</string>
+		<string>bluetooth-central</string>
 	</array>
 	<key>NSLocationAlwaysUsageDescription</key>
 	<string>This app needs location access to record your attendance location.</string>
@@ -92,10 +94,16 @@
 	<string>This app needs location access to record your attendance location.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>This app needs microphone access for video calls and audio recording in the HR Portal.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>This app uses speech recognition to allow you to talk to the AI Assistant instead of typing.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>This app needs permission to save attendance photos to your photo library.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>This app needs photo library access to save attendance photos.</string>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>ResourcePlus uses Bluetooth to detect your presence at the workplace for attendance punch-in/out.</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>ResourcePlus uses Bluetooth to detect office beacons for attendance verification.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

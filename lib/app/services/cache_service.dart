@@ -69,7 +69,7 @@ class CacheService {
     // Server & Employee data
     final webLink = storage.read('webLink');
     final empDisplayName = storage.read('empDisplayName');
-    final deviceId_v2 = storage.read('deviceId_v2');
+    final deviceIdV2 = storage.read('deviceId_v2');
 
     // Biometric flags
     final hasBiometric = storage.read('hasBiometric');
@@ -96,7 +96,7 @@ class CacheService {
     
     if (webLink != null) storage.write('webLink', webLink);
     if (empDisplayName != null) storage.write('empDisplayName', empDisplayName);
-    if (deviceId_v2 != null) storage.write('deviceId_v2', deviceId_v2);
+    if (deviceIdV2 != null) storage.write('deviceId_v2', deviceIdV2);
     
     if (hasBiometric != null) storage.write('hasBiometric', hasBiometric);
     if (biometricEnabled != null) storage.write('biometricEnabled', biometricEnabled);

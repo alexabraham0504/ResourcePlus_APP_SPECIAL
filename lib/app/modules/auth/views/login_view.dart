@@ -74,7 +74,7 @@ class _LoginViewState extends State<LoginView> {
     const orange = Color(0xFFF7941D);
 
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.background,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: Center(
         child: SingleChildScrollView(
           child: Column(

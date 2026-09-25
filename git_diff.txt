@@ -1,0 +1,87 @@
+commit fa1c9446dbbe07874883f9f51706ba399215b960
+Author: alexabraham0504 <alexabraham2025@mca.ajce.in>
+Date:   Fri Jun 19 19:44:37 2026 +0530
+
+    feat: implement mandatory update guard with version enforcement and UpdateRequiredView
+
+diff --git a/lib/app/modules/home/controllers/home_controller.dart b/lib/app/modules/home/controllers/home_controller.dart
+index b51ef34..5c9f9bc 100644
+--- a/lib/app/modules/home/controllers/home_controller.dart
++++ b/lib/app/modules/home/controllers/home_controller.dart
+@@ -1066,10 +1066,15 @@ class HomeController extends GetxController {
+ 
+   // Refresh all data after language change
+   void refreshAllData() {
++    // Clear the cached HR portal URL so it gets re-fetched with the new language code
++    _cachedPortalUrl = null;
++    _preFetchPortalUrl();
++
+     fetchHomeData();
+     fetchSettingsData();
+     fetchNotificationData();
+     fetchAttendanceData();
++    fetchProfileData(); // Ensure profile tab static contents update with language
+     // Refresh profile picture URL with new language
+     initializeProfilePicture();
+   }
+@@ -1151,7 +1156,7 @@ class HomeController extends GetxController {
+   // Helper to append language to the portal URL
+   String _appendLangToUrl(String url) {
+     try {
+-      final langCode = Get.find<LanguageController>().currentLangCode;
++      final langCode = Get.find<LanguageController>().currentLangCode.toString();
+       final uri = Uri.parse(url);
+       final newParams = Map<String, dynamic>.from(uri.queryParameters);
+       newParams['lang'] = langCode;
+
+commit 2062e1700dd4a0e2dc087df0b58d909adbb54ca9
+Author: alexabraham0504 <alexabraham2025@mca.ajce.in>
+Date:   Thu Jun 18 19:57:08 2026 +0530
+
+    feat: implement full application authentication, home module, and update service architecture
+
+diff --git a/lib/app/modules/home/controllers/home_controller.dart b/lib/app/modules/home/controllers/home_controller.dart
+index bd552a5..b51ef34 100644
+--- a/lib/app/modules/home/controllers/home_controller.dart
++++ b/lib/app/modules/home/controllers/home_controller.dart
+@@ -1148,6 +1148,20 @@ class HomeController extends GetxController {
+     return null;
+   }
+ 
++  // Helper to append language to the portal URL
++  String _appendLangToUrl(String url) {
++    try {
++      final langCode = Get.find<LanguageController>().currentLangCode;
++      final uri = Uri.parse(url);
++      final newParams = Map<String, dynamic>.from(uri.queryParameters);
++      newParams['lang'] = langCode;
++      return uri.replace(queryParameters: newParams).toString();
++    } catch (e) {
++      final separator = url.contains('?') ? '&' : '?';
++      return '$url${separator}lang=${Get.find<LanguageController>().currentLangCode}';
++    }
++  }
++
+   Future<void> launchHrPortal({String? title}) async {
+     try {
+       // Use cached URL if available for instant loading
+@@ -1155,7 +1169,7 @@ class HomeController extends GetxController {
+         final headText = title ?? staticContents['HrLinkHeadText'] ?? 'hr_portal'.tr;
+         Get.toNamed(AppRoutes.webview,
+             preventDuplicates: true,
+-            parameters: {'url': _cachedPortalUrl!, 'title': headText});
++            parameters: {'url': _appendLangToUrl(_cachedPortalUrl!), 'title': headText});
+         return;
+       }
+ 
+@@ -1197,8 +1211,8 @@ class HomeController extends GetxController {
+           final headText = title ?? staticContents['HrLinkHeadText'] ?? 'hr_portal'.tr;
+           Get.toNamed(AppRoutes.webview,
+               preventDuplicates: true,
+-              parameters: {'url': clientUrl, 'title': headText});
+-          return;
++              parameters: {'url': _appendLangToUrl(clientUrl), 'title': headText});
++        } else {return;
+         }
+       }
+       

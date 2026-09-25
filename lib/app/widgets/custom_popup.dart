@@ -34,7 +34,6 @@ class CustomPopup {
         gradientColors = [const Color(0xFF3B6EA5), const Color(0xFF5B8EC5)];
         break;
       case CustomPopupType.error:
-      default:
         primaryColor = const Color(0xFFE53935); // Deep Red
         iconData = Icons.error_outline_rounded;
         gradientColors = [const Color(0xFFE53935), const Color(0xFFEF5350)];
@@ -48,7 +47,7 @@ class CustomPopup {
       context: context,
       barrierDismissible: true,
       barrierLabel: 'Dismiss',
-      barrierColor: Colors.black.withOpacity(0.6),
+      barrierColor: Colors.black.withValues(alpha: 0.6),
       transitionDuration: const Duration(milliseconds: 350),
       pageBuilder: (context, anim1, anim2) => const SizedBox.shrink(),
       transitionBuilder: (context, anim1, anim2, child) {
@@ -68,7 +67,7 @@ class CustomPopup {
                   borderRadius: BorderRadius.circular(28),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
+                      color: Colors.black.withValues(alpha: 0.2),
                       blurRadius: 15,
                       offset: const Offset(0, 10),
                     ),
@@ -87,7 +86,7 @@ class CustomPopup {
                           height: 150,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: primaryColor.withOpacity(0.08),
+                            color: primaryColor.withValues(alpha: 0.08),
                           ),
                         ),
                       ),
@@ -100,7 +99,7 @@ class CustomPopup {
                             Container(
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
-                                color: primaryColor.withOpacity(0.1),
+                                color: primaryColor.withValues(alpha: 0.1),
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
@@ -147,7 +146,7 @@ class CustomPopup {
                                   ),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: primaryColor.withOpacity(0.3),
+                                      color: primaryColor.withValues(alpha: 0.3),
                                       blurRadius: 8,
                                       offset: const Offset(0, 4),
                                     ),

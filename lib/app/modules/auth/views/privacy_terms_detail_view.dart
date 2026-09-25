@@ -22,12 +22,12 @@ class PrivacyTermsDetailView extends StatelessWidget {
         : (isArabic ? PrivacyPolicyText.termsAndConditionsAr : PrivacyPolicyText.termsAndConditions);
 
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.background,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
         title: Text(
           title,
           style: TextStyle(
-            color: Theme.of(context).colorScheme.onBackground,
+            color: Theme.of(context).colorScheme.onSurface,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -36,7 +36,7 @@ class PrivacyTermsDetailView extends StatelessWidget {
         leading: IconButton(
           icon: Icon(
             Icons.arrow_back_ios_new,
-            color: Theme.of(context).colorScheme.onBackground,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
           onPressed: () => Navigator.of(context).pop(),
         ),
@@ -52,10 +52,10 @@ class PrivacyTermsDetailView extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.all(16.0),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary.withOpacity(0.08),
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: Theme.of(context).colorScheme.primary.withOpacity(0.15),
+                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
                   ),
                 ),
                 child: Row(
@@ -63,7 +63,7 @@ class PrivacyTermsDetailView extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primary.withOpacity(0.15),
+                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
@@ -82,7 +82,7 @@ class PrivacyTermsDetailView extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color: Theme.of(context).colorScheme.onBackground,
+                              color: Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
                           const SizedBox(height: 4),
@@ -90,7 +90,7 @@ class PrivacyTermsDetailView extends StatelessWidget {
                             'last_updated'.tr,
                             style: TextStyle(
                               fontSize: 13,
-                              color: Theme.of(context).colorScheme.onBackground.withOpacity(0.6),
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                             ),
                           ),
                         ],
@@ -106,7 +106,7 @@ class PrivacyTermsDetailView extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 15,
                   height: 1.6,
-                  color: Theme.of(context).colorScheme.onBackground.withOpacity(0.85),
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.85),
                   fontFamily: 'Roboto', // Clean default sans-serif font
                 ),
               ),

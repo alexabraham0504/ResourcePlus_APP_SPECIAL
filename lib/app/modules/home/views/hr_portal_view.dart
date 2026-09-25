@@ -1,13 +1,9 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:camera/camera.dart';
 import '../controllers/hr_portal_controller.dart';
-import '../controllers/home_controller.dart';
-import 'widgets/app_drawer.dart';
 import 'widgets/tab_header.dart';
-import 'package:flutter_zoom_drawer/flutter_zoom_drawer.dart';
+import 'package:resource_plus/app/routes/app_routes.dart';
 
 class HrPortalView extends GetView<HrPortalController> {
   const HrPortalView({super.key});
@@ -21,38 +17,25 @@ class HrPortalView extends GetView<HrPortalController> {
     final primaryGreen = const Color(0xFF10B981);
     final primaryRed = const Color(0xFFEF4444);
 
-    return ZoomDrawer(
-      controller: controller.zoomDrawerController,
-      menuScreen: AppDrawer(onClose: () => controller.zoomDrawerController.toggle?.call()),
-      mainScreen: Scaffold(
-        backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+    return Scaffold(
+      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
       body: SafeArea(
         child: Column(
           children: [
             // Header
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              child: Builder(
-                builder: (BuildContext context) {
-                  return TabHeader(
-                    title: '',
-                    onMenuTap: () {
-                      controller.zoomDrawerController.toggle?.call();
-                    },
-                    onNotificationTap: () {
-                      Get.back();
-                      Get.find<HomeController>().changeTab(3);
-                    },
-                  );
-                }
-              ),
+              child: TabHeader(title: ''),
             ),
             
             Expanded(
-              child: CustomScrollView(
-                physics: const BouncingScrollPhysics(),
-                slivers: [
-                  SliverToBoxAdapter(
+              child: RefreshIndicator(
+                onRefresh: controller.refreshData,
+                color: colorScheme.primary,
+                child: CustomScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                  slivers: [
+                    SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
                       child: Column(
@@ -74,7 +57,7 @@ class HrPortalView extends GetView<HrPortalController> {
                                 Container(
                                   padding: const EdgeInsets.all(8),
                                   decoration: BoxDecoration(
-                                    color: colorScheme.primary.withOpacity(0.1),
+                                    color: colorScheme.primary.withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: Icon(Icons.face_rounded, color: colorScheme.primary, size: 28),
@@ -114,7 +97,7 @@ class HrPortalView extends GetView<HrPortalController> {
                                 borderRadius: BorderRadius.circular(32),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: colorScheme.primary.withOpacity(0.08),
+                                    color: colorScheme.primary.withValues(alpha: 0.08),
                                     blurRadius: 30,
                                     offset: const Offset(0, 10),
                                   ),
@@ -193,20 +176,11 @@ class HrPortalView extends GetView<HrPortalController> {
                   ),
                 ],
               ),
+              ),
             ),
           ],
         ),
       ),
-      ),
-      borderRadius: 24.0,
-      showShadow: true,
-      angle: -10.0,
-      isRtl: true,
-      drawerShadowsBackgroundColor: isDark ? Colors.grey.shade900 : Colors.grey.shade300,
-      slideWidth: MediaQuery.of(context).size.width * 0.65,
-      openCurve: Curves.easeOutCubic,
-      closeCurve: Curves.easeOutQuint,
-      duration: const Duration(milliseconds: 450),
     );
   }
 
@@ -225,12 +199,12 @@ class HrPortalView extends GetView<HrPortalController> {
             color: colorScheme.surface,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: colorScheme.outline.withOpacity(0.2),
+              color: colorScheme.outline.withValues(alpha: 0.2),
               width: 2,
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.1),
+                color: Colors.black.withValues(alpha: 0.1),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -244,9 +218,9 @@ class HrPortalView extends GetView<HrPortalController> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.camera_alt_outlined, size: 48, color: colorScheme.onSurface.withOpacity(0.5)),
+                      Icon(Icons.camera_alt_outlined, size: 48, color: colorScheme.onSurface.withValues(alpha: 0.5)),
                       const SizedBox(height: 8),
-                      Text('Camera permission required', style: TextStyle(color: colorScheme.onSurface.withOpacity(0.7), fontSize: 14)),
+                      Text('Camera permission required', style: TextStyle(color: colorScheme.onSurface.withValues(alpha: 0.7), fontSize: 14)),
                     ],
                   ),
                 );
@@ -259,7 +233,7 @@ class HrPortalView extends GetView<HrPortalController> {
                     children: [
                       CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary)),
                       const SizedBox(height: 12),
-                      Text('Initializing camera...', style: TextStyle(color: colorScheme.onSurface.withOpacity(0.7), fontSize: 14)),
+                      Text('Initializing camera...', style: TextStyle(color: colorScheme.onSurface.withValues(alpha: 0.7), fontSize: 14)),
                     ],
                   ),
                 );
@@ -276,13 +250,13 @@ class HrPortalView extends GetView<HrPortalController> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           if (cameraValue.hasError)
-                            Icon(Icons.error_outline, size: 48, color: colorScheme.onSurface.withOpacity(0.5))
+                            Icon(Icons.error_outline, size: 48, color: colorScheme.onSurface.withValues(alpha: 0.5))
                           else
                             CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary)),
                           const SizedBox(height: 12),
                           Text(
                             cameraValue.hasError ? 'Camera error occurred' : 'Initializing camera...',
-                            style: TextStyle(color: colorScheme.onSurface.withOpacity(0.7), fontSize: 14),
+                            style: TextStyle(color: colorScheme.onSurface.withValues(alpha: 0.7), fontSize: 14),
                           ),
                         ],
                       ),
@@ -290,7 +264,6 @@ class HrPortalView extends GetView<HrPortalController> {
                   }
 
                   final previewSize = cameraValue.previewSize;
-                  
                   if (previewSize != null) {
                     return FittedBox(
                       fit: BoxFit.cover,
@@ -310,7 +283,7 @@ class HrPortalView extends GetView<HrPortalController> {
                           const SizedBox(height: 12),
                           Text(
                             'Starting camera feed...',
-                            style: TextStyle(color: colorScheme.onSurface.withOpacity(0.7), fontSize: 14),
+                            style: TextStyle(color: colorScheme.onSurface.withValues(alpha: 0.7), fontSize: 14),
                           ),
                         ],
                       ),
@@ -321,9 +294,9 @@ class HrPortalView extends GetView<HrPortalController> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.error_outline, size: 48, color: colorScheme.onSurface.withOpacity(0.5)),
+                        Icon(Icons.error_outline, size: 48, color: colorScheme.onSurface.withValues(alpha: 0.5)),
                         const SizedBox(height: 8),
-                        Text('Camera preview error', style: TextStyle(color: colorScheme.onSurface.withOpacity(0.7), fontSize: 14)),
+                        Text('Camera preview error', style: TextStyle(color: colorScheme.onSurface.withValues(alpha: 0.7), fontSize: 14)),
                       ],
                     ),
                   );
@@ -333,7 +306,7 @@ class HrPortalView extends GetView<HrPortalController> {
               return Center(
                 child: Text(
                   'Camera not available',
-                  style: TextStyle(color: colorScheme.onSurface.withOpacity(0.7), fontSize: 14),
+                  style: TextStyle(color: colorScheme.onSurface.withValues(alpha: 0.7), fontSize: 14),
                 ),
               );
             }),
@@ -383,13 +356,30 @@ class HrPortalView extends GetView<HrPortalController> {
           children: [
             Container(
               padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(color: colorScheme.primary.withOpacity(0.1), shape: BoxShape.circle),
+              decoration: BoxDecoration(color: colorScheme.primary.withValues(alpha: 0.1), shape: BoxShape.circle),
               child: Icon(Icons.history_rounded, size: 18, color: colorScheme.primary),
             ),
             const SizedBox(width: 10),
             Text(
               'last_5_punches'.tr,
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+            ),
+            const Spacer(),
+            TextButton(
+              onPressed: () => Get.toNamed(AppRoutes.attendanceHistory),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: Text(
+                'See More',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: colorScheme.primary,
+                ),
+              ),
             ),
           ],
         ),
@@ -398,7 +388,7 @@ class HrPortalView extends GetView<HrPortalController> {
           decoration: BoxDecoration(
             color: isDark ? const Color(0xFF1E293B) : Colors.white,
             borderRadius: BorderRadius.circular(24),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))],
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))],
           ),
           child: Obx(() {
             if (controller.isLoadingPunches.value) {
@@ -420,7 +410,7 @@ class HrPortalView extends GetView<HrPortalController> {
               physics: const NeverScrollableScrollPhysics(),
               padding: const EdgeInsets.all(12),
               itemCount: controller.lastPunches.length,
-              separatorBuilder: (_, __) => Divider(height: 1, color: colorScheme.outline.withOpacity(0.05)),
+              separatorBuilder: (_, __) => Divider(height: 1, color: colorScheme.outline.withValues(alpha: 0.05)),
               itemBuilder: (context, index) {
                 final punch = controller.lastPunches[index];
                 return _buildPunchItem(punch, colorScheme, isDark);
@@ -450,7 +440,7 @@ class HrPortalView extends GetView<HrPortalController> {
         children: [
           Container(
             width: 44, height: 44,
-            decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
             child: Icon(isIn ? Icons.login_rounded : Icons.logout_rounded, color: color, size: 20),
           ),
           const SizedBox(width: 16),
@@ -466,7 +456,7 @@ class HrPortalView extends GetView<HrPortalController> {
           ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(color: punch.status == 'Success' ? const Color(0xFF10B981).withOpacity(0.1) : Colors.red.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
+            decoration: BoxDecoration(color: punch.status == 'Success' ? const Color(0xFF10B981).withValues(alpha: 0.1) : Colors.red.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
             child: Text(displayStatus, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: punch.status == 'Success' ? const Color(0xFF10B981) : Colors.red)),
           ),
         ],
@@ -480,13 +470,13 @@ class HrPortalView extends GetView<HrPortalController> {
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(24),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))],
       ),
       child: Column(
         children: [
           Row(
             children: [
-              Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: colorScheme.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(10)), child: Icon(Icons.schedule_rounded, color: colorScheme.primary, size: 18)),
+              Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: colorScheme.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)), child: Icon(Icons.schedule_rounded, color: colorScheme.primary, size: 18)),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
@@ -502,11 +492,11 @@ class HrPortalView extends GetView<HrPortalController> {
           ),
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 16),
-            child: Divider(height: 1, color: colorScheme.outline.withOpacity(0.1)),
+            child: Divider(height: 1, color: colorScheme.outline.withValues(alpha: 0.1)),
           ),
           Row(
             children: [
-              Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: colorScheme.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(10)), child: Icon(Icons.location_on_rounded, color: colorScheme.primary, size: 18)),
+              Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: colorScheme.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)), child: Icon(Icons.location_on_rounded, color: colorScheme.primary, size: 18)),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
@@ -595,9 +585,9 @@ class _AnimatedPunchButtonState extends State<_AnimatedPunchButton> with SingleT
           duration: const Duration(milliseconds: 200),
           height: 54,
           decoration: BoxDecoration(
-            color: widget.isDisabled ? Colors.grey.withOpacity(0.1) : widget.color.withOpacity(0.1),
+            color: widget.isDisabled ? Colors.grey.withValues(alpha: 0.1) : widget.color.withValues(alpha: 0.1),
             border: Border.all(
-              color: widget.isDisabled ? Colors.grey.withOpacity(0.3) : widget.color.withOpacity(0.5),
+              color: widget.isDisabled ? Colors.grey.withValues(alpha: 0.3) : widget.color.withValues(alpha: 0.5),
               width: 1.5,
             ),
             borderRadius: BorderRadius.circular(27),
@@ -605,7 +595,7 @@ class _AnimatedPunchButtonState extends State<_AnimatedPunchButton> with SingleT
                 ? []
                 : [
                     BoxShadow(
-                      color: widget.color.withOpacity(0.1),
+                      color: widget.color.withValues(alpha: 0.1),
                       blurRadius: 8,
                       offset: const Offset(0, 4),
                     )

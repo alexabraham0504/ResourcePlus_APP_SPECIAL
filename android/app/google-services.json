@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "380906298664",
+    "project_id": "resourceplus-ess-b620b",
+    "storage_bucket": "resourceplus-ess-b620b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:380906298664:android:83de3045ae2cffdbf7c41d",
+        "android_client_info": {
+          "package_name": "com.resourceplus.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB8pNfkr4yDM96gzTJ0o2dEbvmm3MA_tac"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
