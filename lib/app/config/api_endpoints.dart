@@ -48,4 +48,7 @@ class ApiEndpoints {
   // POST /Mobile/api/Attendance/Bluetooth/Register?instanceName={instanceName}
   // Body: { usrEmail, deviceIdentifier }
   static const String bluetoothRegister = '$biometricBaseUrl/Attendance/Bluetooth/Register';
+  
+  // GET /Mobile/api/Attendance/Bluetooth/CheckRegistration?instanceName={instanceName}
+  static const String bluetoothCheckRegistration = '$biometricBaseUrl/Attendance/Bluetooth/CheckRegistration';
 }
