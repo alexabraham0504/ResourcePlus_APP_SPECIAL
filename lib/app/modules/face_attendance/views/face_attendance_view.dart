@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:camera/camera.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../controllers/face_attendance_controller.dart';
+import '../../home/views/widgets/shift_location_block.dart';
 
 class FaceAttendanceView extends GetView<FaceAttendanceController> {
   const FaceAttendanceView({super.key});
@@ -193,92 +194,13 @@ class FaceAttendanceView extends GetView<FaceAttendanceController> {
   }
 
   Widget _buildInfoOverlay() {
-    return Obx(() {
-      return Container(
-        margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.4),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.1), width: 1),
-          boxShadow: [
-            BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 5))
-          ]
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(24),
-          child: BackdropFilter(
-            filter: ui.ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        controller.currentDate.value,
-                        style: GoogleFonts.outfit(color: Colors.white70, fontSize: 14),
-                      ),
-                      Text(
-                        controller.currentTime.value,
-                        style: GoogleFonts.outfit(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Divider(color: Colors.white.withValues(alpha: 0.1), height: 1),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.location_on_rounded, color: Colors.white, size: 16),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          controller.mockLocation.value,
-                          style: GoogleFonts.outfit(color: Colors.white, fontSize: 14),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.work_rounded, color: Colors.white, size: 16),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          controller.mockShift.value,
-                          style: GoogleFonts.outfit(color: Colors.white, fontSize: 14),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      );
-    });
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      child: ShiftLocationBlock(
+        colorScheme: Theme.of(Get.context!).colorScheme,
+        isDark: true, // Force dark mode for camera overlay
+      ),
+    );
   }
 
   Widget _buildActionArea() {

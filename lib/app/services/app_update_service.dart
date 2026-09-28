@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:in_app_update/in_app_update.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -28,6 +29,10 @@ class AppUpdateService extends GetxService with WidgetsBindingObserver {
   /// Tracks whether a check is already in progress to prevent overlapping calls.
   bool _checking = false;
 
+  /// Whether the app was installed from the Play Store.
+  /// If false, all Play Core API calls are skipped to avoid native binder crashes.
+  bool _isPlayStoreInstall = false;
+
   /// Observable flag: true when an update is required and the user must be blocked.
   final RxBool isUpdateRequired = false.obs;
 
@@ -35,10 +40,32 @@ class AppUpdateService extends GetxService with WidgetsBindingObserver {
   void onInit() {
     super.onInit();
     WidgetsBinding.instance.addObserver(this);
-    // Trigger first update check once the UI is ready
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    // Determine install source FIRST, then trigger update check.
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _detectInstallSource();
       checkAndHandleUpdate();
     });
+  }
+
+  /// Checks if the app was installed via the Play Store.
+  /// Sideloaded builds return a different installer package name (or null),
+  /// which causes the Play Core binder to die with a native crash.
+  /// We skip all Play Core calls for non-Play-Store installs.
+  Future<void> _detectInstallSource() async {
+    if (Platform.isIOS) {
+      _isPlayStoreInstall = false; // iOS uses App Store, handled separately.
+      return;
+    }
+    try {
+      const channel = MethodChannel('com.resourceplus.app/installer');
+      final installer = await channel.invokeMethod<String>('getInstallerPackageName');
+      _isPlayStoreInstall = installer == 'com.android.vending';
+      debugPrint('AppUpdateService: installer=$installer, isPlayStore=$_isPlayStoreInstall');
+    } catch (_) {
+      // Channel not available — assume sideloaded to be safe.
+      _isPlayStoreInstall = false;
+      debugPrint('AppUpdateService: Could not determine installer source — assuming sideloaded.');
+    }
   }
 
   @override
@@ -72,26 +99,26 @@ class AppUpdateService extends GetxService with WidgetsBindingObserver {
       return; // Updates are managed by the App Store natively on iOS.
     }
 
+    // CRITICAL: Skip Play Core entirely for sideloaded apps.
+    // The Play Store binder crashes at the native (C++) level when the app
+    // is not owned by any Play Store account. Flutter's try/catch cannot
+    // intercept native crashes — the only safe fix is to never call Play Core.
+    if (!_isPlayStoreInstall) {
+      debugPrint('AppUpdateService: Skipping update check — app is not a Play Store install.');
+      _checking = false;
+      return;
+    }
+
     try {
       final info = await InAppUpdate.checkForUpdate();
       await _handleUpdateResult(info);
     } catch (e) {
-      // Play Core API failed. This happens when:
-      //   - App is sideloaded (not from Play Store)
-      //   - Running on emulator
-      //   - Network is completely down
-      //   - Play Store app is outdated
-      //
-      // If we were already in an "update required" state, keep blocking.
-      // Otherwise, allow the user through (we can't determine update status).
+      // Play Core API failed even for a Play Store install (e.g., network down,
+      // Play Store outdated). Log and allow through unless previously blocked.
       debugPrint('AppUpdateService: Play Core API failed: $e');
       if (isUpdateRequired.value) {
-        // We know an update was required from a previous check.
-        // Keep the user blocked and offer Play Store fallback.
         _navigateToUpdateRequired();
       }
-      // If isUpdateRequired is false, we have no evidence of an update.
-      // Allow the user to proceed (cannot block without evidence).
     } finally {
       _checking = false;
     }

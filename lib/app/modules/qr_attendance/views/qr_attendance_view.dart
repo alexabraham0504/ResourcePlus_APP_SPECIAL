@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../controllers/qr_attendance_controller.dart';
+import '../../home/views/widgets/shift_location_block.dart';
 
 class QRAttendanceView extends GetView<QRAttendanceController> {
   const QRAttendanceView({super.key});
@@ -53,10 +54,18 @@ class QRAttendanceView extends GetView<QRAttendanceController> {
 
           // 4. Status Card (Glassmorphism)
           Positioned(
-            bottom: 60,
-            left: 30,
-            right: 30,
-            child: Obx(() {
+            bottom: 30,
+            left: 20,
+            right: 20,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ShiftLocationBlock(
+                  colorScheme: Theme.of(context).colorScheme,
+                  isDark: true, // Force dark text visibility over camera
+                ),
+                const SizedBox(height: 16),
+                Obx(() {
               final isSuccess = controller.statusMessage.value == 'Punch Successful!';
               return ClipRRect(
                 borderRadius: BorderRadius.circular(20),
@@ -100,6 +109,8 @@ class QRAttendanceView extends GetView<QRAttendanceController> {
                 ),
               );
             }),
+            ],
+            ),
           ),
         ],
       ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../controllers/home_controller.dart';
+import '../widgets/tab_header.dart';
 import '../webview_page.dart';
 
 class SelfServiceTab extends StatefulWidget {
@@ -29,11 +30,7 @@ class _SelfServiceTabState extends State<SelfServiceTab> {
       final isActive = controller.currentIndex.value == 2;
       
       if (isActive && !_wasActive) {
-        // We just navigated to this tab, increment count to force a fresh load
         _activationCount++;
-        
-        // Force clear the URL so it generates a fresh token every time!
-        // The old URL might have an expired session token!
         WidgetsBinding.instance.addPostFrameCallback((_) {
           controller.cachedPortalUrl.value = '';
           _fetchUrl();
@@ -43,14 +40,14 @@ class _SelfServiceTabState extends State<SelfServiceTab> {
       _wasActive = isActive;
 
       if (_activationCount == 0) {
-        // Tab hasn't been visited yet
         return const SizedBox.shrink();
       }
 
       final url = controller.cachedPortalUrl.value;
       
+      Widget content;
       if (url.isEmpty) {
-        return Center(
+        content = Center(
           child: _isFetching 
             ? const CircularProgressIndicator()
             : Column(
@@ -68,13 +65,21 @@ class _SelfServiceTabState extends State<SelfServiceTab> {
                 ],
               ),
         );
+      } else {
+        content = WebViewPage(
+          key: ValueKey('self_service_tab_$_activationCount'),
+          url: controller.appendLangToUrl(url),
+          title: 'self_service'.tr,
+          isEmbedded: true,
+        );
       }
       
-      return WebViewPage(
-        key: ValueKey('self_service_tab_$_activationCount'),
-        url: controller.appendLangToUrl(url),
-        title: 'self_service'.tr,
-        isEmbedded: true,
+      return SafeArea(
+        child: Column(
+          children: [
+            Expanded(child: content),
+          ],
+        ),
       );
     });
   }

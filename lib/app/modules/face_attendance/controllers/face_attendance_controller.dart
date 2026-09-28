@@ -48,6 +48,7 @@ import '../../home/controllers/hr_portal_controller.dart';
 import '../../../controllers/language_controller.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../../routes/app_routes.dart';
+import 'package:flutter_background_service/flutter_background_service.dart';
 
 /// All possible states in the verification flow
 enum VerificationState {
@@ -114,10 +115,12 @@ class FaceAttendanceController extends GetxController {
     if (Get.arguments != null && Get.arguments is String) {
       checkType.value = Get.arguments as String;
     }
-
+    // Stop BLE scan while camera + TFLite are active to free native heap
+    try { FlutterBackgroundService().invoke('pauseScan'); } catch (_) {}
     detectionService.resume(); // Ensure singleton is unpaused
     _startClock();
-    _initAttendance(); // this now handles location fetch too
+    // Delay init so the route transition completes before native libs load
+    Future.delayed(const Duration(milliseconds: 500), _initAttendance);
   }
 
   Future<void> _fetchLiveLocation() async {
@@ -565,6 +568,8 @@ class FaceAttendanceController extends GetxController {
     _enrolledTemplate = null;
     _enrolledModelVersion = null;
     _pendingImageBytes = null;
+    // Resume BLE scanning now that camera resources are freed
+    try { FlutterBackgroundService().invoke('resumeScan'); } catch (_) {}
     super.onClose();
   }
 }

@@ -19,7 +19,8 @@ class ApiEndpoints {
   static const String getAttendancePunchData = '$baseUrl/Mobile/api/Client/GetAttendancePunchData';
   static const String getProfileData = '$baseUrl/Mobile/api/Client/GetProfileData';
   static const String getNotifcnData = '$baseUrl/Mobile/api/Client/GetNotifcnData';
-  static const String updateReadStatus = '$baseUrl/Mobile/api/Client/UpdateReadStatus';
+  // static const String updateReadStatus = '$baseUrl/Mobile/api/Client/UpdateReadStatus';
+
   static const String getSettingsData = '$baseUrl/Mobile/api/Client/GetSettingsData';
   static const String getProfPicture = '$baseUrl/Mobile/api/Client/GetProfPicture';
 
@@ -49,6 +50,6 @@ class ApiEndpoints {
   // Body: { usrEmail, deviceIdentifier }
   static const String bluetoothRegister = '$biometricBaseUrl/Attendance/Bluetooth/Register';
   
-  // GET /Mobile/api/Attendance/Bluetooth/CheckRegistration?instanceName={instanceName}
-  static const String bluetoothCheckRegistration = '$biometricBaseUrl/Attendance/Bluetooth/CheckRegistration';
+  // GET /Mobile/api/Bluetooth/CheckRegistration?instanceName={instanceName}
+  static const String bluetoothCheckRegistration = '$biometricBaseUrl/Bluetooth/CheckRegistration';
 }

@@ -27,7 +27,7 @@ class TabHeader extends StatelessWidget {
     return Row(
       children: [
         // Logo (Left side)
-        Image.asset(
+        Expanded(child: Align(alignment: AlignmentDirectional.centerStart, child: Image.asset(
           'assets/app_logo.png',
           height: 22,
           errorBuilder: (_, __, ___) => Text('ResourcePlus',
@@ -38,8 +38,8 @@ class TabHeader extends StatelessWidget {
               ).createShader(const Rect.fromLTWH(0, 0, 200, 24)),
             ),
           ),
-        ),
-        const Spacer(),
+        ))),
+        const SizedBox(width: 8),
         // Action icons (Right side)
         Row(
           children: [

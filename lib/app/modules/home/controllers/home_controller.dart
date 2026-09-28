@@ -457,28 +457,6 @@ class HomeController extends GetxController with GetSingleTickerProviderStateMix
       if (response.statusCode == 200 || response.statusCode == 204) {
         storage.write('cachedAttendanceData', response.data);
         
-        try {
-          final rawJsonStr = jsonEncode(response.data);
-          final lowerJson = rawJsonStr.toLowerCase();
-          print('--- RAW JSON OUTPUT START ---');
-          print('Does raw JSON contain "punchimagebyte"? ${lowerJson.contains('punchimagebyte')}');
-          print('Does raw JSON contain "selfie"? ${lowerJson.contains('selfie')}');
-          if (lowerJson.contains('punchimagebyte')) {
-            print('YES! The backend IS sending the base64 string somewhere! We just need to find it.');
-          }
-          print('RAW_JSON_LENGTH: ${rawJsonStr.length}');
-          // If the image is there, print the first few chunks
-          if (lowerJson.contains('punchimagebyte') || rawJsonStr.length < 5000) {
-            final chunks = (rawJsonStr.length / 800).ceil();
-            for(var i=0; i< (chunks > 10 ? 10 : chunks); i++) {
-              int start = i * 800;
-              int end = (start + 800 < rawJsonStr.length) ? start + 800 : rawJsonStr.length;
-              print('JSON_CHUNK_$i: ${rawJsonStr.substring(start, end)}');
-            }
-          }
-          print('--- RAW JSON OUTPUT END ---');
-        } catch(e) {}
-
         _parseAttendanceData(response.data);
       }
     } on DioException catch (e) {
@@ -520,19 +498,6 @@ class HomeController extends GetxController with GetSingleTickerProviderStateMix
             data = jsonDecode(data);
           } catch (_) {}
         }
-        
-        try {
-          final rawJsonStr = jsonEncode(data);
-          final lowerJson = rawJsonStr.toLowerCase();
-          print('--- RAW JSON OUTPUT START (GetAttendancePunchData) ---');
-          print('Does raw JSON contain "punchimagebyte"? ${lowerJson.contains('punchimagebyte')}');
-          if (lowerJson.contains('punchimagebyte')) {
-            print('YES! The backend IS sending the base64 string in the NEW API! We just need to find it.');
-          } else {
-            print('NO! The backend is STILL NOT sending punchimagebyte in the NEW API.');
-          }
-          print('--- RAW JSON OUTPUT END ---');
-        } catch(e) {}
 
         if (data is List) {
           return List<Map<String, dynamic>>.from(data.whereType<Map>().map((x) => Map<String, dynamic>.from(x)));
@@ -1022,31 +987,28 @@ class HomeController extends GetxController with GetSingleTickerProviderStateMix
 
       final languageController = Get.find<LanguageController>();
 
-      final response = await _dio.get(
-        ApiEndpoints.updateReadStatus,
-        queryParameters: {
-          'instanceName': instanceName,
-          'Usremail': usrEmailValue,
-          'Lang': languageController.currentLangCode,
-          'notifcnID': notificationId,
-          'readStatus': readStatus,
-        },
-      );
+      // API call temporarily disabled as per instructions
+      // final response = await _dio.get(
+      //   ApiEndpoints.updateReadStatus,
+      //   queryParameters: {
+      //     'instanceName': instanceName,
+      //     'Usremail': usrEmailValue,
+      //     'Lang': languageController.currentLangCode,
+      //     'notifcnID': notificationId,
+      //     'readStatus': readStatus,
+      //   },
+      // );
+      
+      print('Update Read Status Mock Response: OK (API Disabled)');
 
-      if (response.statusCode == 200) {
-        final data = response.data;
-        print('Update Read Status Response: $data');
-
-        // Refresh notification data after update only if requested
-        if (refreshAfterUpdate) {
+      if (refreshAfterUpdate) {
         await fetchNotificationData();
-        }
-
-        return;
       }
+      return;
+      
     } catch (e) {
       print('Error updating notification read status: $e');
-      rethrow;
+      // rethrow;
     }
   }
 

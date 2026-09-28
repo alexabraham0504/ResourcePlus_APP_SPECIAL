@@ -3,6 +3,9 @@
 // Tests for template string conversion and mock repository logic.
 
 import 'dart:convert';
+import 'dart:io';
+import 'package:flutter/services.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:resource_plus/app/modules/face_attendance/models/face_enrollment_template_request.dart';
 import 'package:resource_plus/app/modules/face_attendance/models/face_template_response.dart';
@@ -10,6 +13,17 @@ import 'package:resource_plus/app/modules/face_attendance/repositories/face_temp
 import 'package:resource_plus/app/modules/face_attendance/services/face_embedding_service.dart' show kEmbeddingDimension, kFaceModelVersion;
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  late Directory storageDirectory;
+  setUpAll(() async {
+    storageDirectory = await Directory.systemTemp.createTemp('face-template-test-');
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(const MethodChannel('plugins.flutter.io/path_provider'),
+            (_) async => storageDirectory.path);
+    await GetStorage.init();
+  });
+  // GetStorage retains an open file and schedules backup writes. Keep the
+  // temporary directory and handler alive until this test isolate exits.
   group('Template JSON String Conversion', () {
     test('FaceEnrollmentTemplateRequest converts embedding to JSON string', () {
       final dummyEmbedding = List.generate(kEmbeddingDimension, (i) => i * 0.01);
@@ -51,7 +65,7 @@ void main() {
       final repo = MockFaceTemplateRepository();
       
       // Clear static storage before test
-      MockFaceTemplateRepository.clearMockStorageForTests();
+      await MockFaceTemplateRepository.clearMockStorageForTests();
 
       // 1. Initial get should be null
       final initialGet = await repo.getTemplate();

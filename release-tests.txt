@@ -1,0 +1,88 @@
+00:00 +0: loading D:/ResourcePlus_APP - SPECIAL/resource_plus-App-V2_IOSUSER/test/face_attendance/face_matching_service_test.dart
+00:00 +0: D:/ResourcePlus_APP - SPECIAL/resource_plus-App-V2_IOSUSER/test/face_attendance/face_matching_service_test.dart: FaceMatchingService - Same Person (MATCH) Identical embeddings should return MATCHED
+[FaceMatching] Similarity computed (debug only): threshold=0.55
+00:00 +1: D:/ResourcePlus_APP - SPECIAL/resource_plus-App-V2_IOSUSER/test/face_attendance/face_matching_service_test.dart: FaceMatchingService - Same Person (MATCH) Very similar embeddings (small perturbation) should return MATCHED
+[FaceMatching] Similarity computed (debug only): threshold=0.55
+00:00 +2: D:/ResourcePlus_APP - SPECIAL/resource_plus-App-V2_IOSUSER/test/face_attendance/face_matching_service_test.dart: FaceMatchingService - Different Person (NO MATCH) Opposite direction embeddings should return NOT_MATCHED
+[FaceMatching] Similarity computed (debug only): threshold=0.55
+00:00 +3: D:/ResourcePlus_APP - SPECIAL/resource_plus-App-V2_IOSUSER/test/face_attendance/face_matching_service_test.dart: FaceMatchingService - Different Person (NO MATCH) Orthogonal embeddings should return NOT_MATCHED (similarity ≈ 0)
+[FaceMatching] Similarity computed (debug only): threshold=0.55
+00:00 +4: D:/ResourcePlus_APP - SPECIAL/resource_plus-App-V2_IOSUSER/test/face_attendance/face_matching_service_test.dart: FaceMatchingService - Invalid Inputs Empty live embedding should return INVALID_TEMPLATE
+[FaceMatching] Invalid embedding vector
+00:00 +5: D:/ResourcePlus_APP - SPECIAL/resource_plus-App-V2_IOSUSER/test/face_attendance/face_matching_service_test.dart: FaceMatchingService - Invalid Inputs All-zero embedding should return INVALID_TEMPLATE
+[FaceMatching] Invalid embedding vector
+00:00 +6: D:/ResourcePlus_APP - SPECIAL/resource_plus-App-V2_IOSUSER/test/face_attendance/face_matching_service_test.dart: FaceMatchingService - Invalid Inputs NaN in embedding should return INVALID_TEMPLATE
+[FaceMatching] Invalid embedding vector
+00:00 +7: D:/ResourcePlus_APP - SPECIAL/resource_plus-App-V2_IOSUSER/test/face_attendance/face_matching_service_test.dart: FaceMatchingService - Invalid Inputs Infinity in embedding should return INVALID_TEMPLATE
+[FaceMatching] Invalid embedding vector
+00:00 +8: D:/ResourcePlus_APP - SPECIAL/resource_plus-App-V2_IOSUSER/test/face_attendance/face_matching_service_test.dart: FaceMatchingService - Invalid Inputs Wrong vector length should return INVALID_TEMPLATE
+[FaceMatching] Invalid embedding vector
+00:00 +9: D:/ResourcePlus_APP - SPECIAL/resource_plus-App-V2_IOSUSER/test/face_attendance/face_matching_service_test.dart: FaceMatchingService - Model Version Model version mismatch should return MODEL_VERSION_MISMATCH
+[FaceMatching] Model version mismatch: enrolled=mobilefacenet_v0, current=mobilefacenet_v1
+00:00 +10: D:/ResourcePlus_APP - SPECIAL/resource_plus-App-V2_IOSUSER/test/face_attendance/face_matching_service_test.dart: FaceMatchingService - Model Version Correct model version should not trigger mismatch
+[FaceMatching] Similarity computed (debug only): threshold=0.55
+00:01 +11: D:/ResourcePlus_APP - SPECIAL/resource_plus-App-V2_IOSUSER/test/face_attendance/face_template_repository_test.dart: Template JSON String Conversion FaceEnrollmentTemplateRequest converts embedding to JSON string
+00:02 +12: D:/ResourcePlus_APP - SPECIAL/resource_plus-App-V2_IOSUSER/test/face_attendance/face_template_repository_test.dart: Template JSON String Conversion FaceTemplateResponse parses JSON string back to List<double>
+00:02 +13: D:/ResourcePlus_APP - SPECIAL/resource_plus-App-V2_IOSUSER/test/face_attendance/face_template_repository_test.dart: MockFaceTemplateRepository Should save and retrieve identical template in memory
+00:02 +13 -1: D:/ResourcePlus_APP - SPECIAL/resource_plus-App-V2_IOSUSER/test/face_attendance/face_template_repository_test.dart: MockFaceTemplateRepository Should save and retrieve identical template in memory [E]
+  Binding has not yet been initialized.
+  The "instance" getter on the ServicesBinding binding mixin is only available once that binding has been initialized.
+  Typically, this is done by calling "WidgetsFlutterBinding.ensureInitialized()" or "runApp()" (the latter calls the former). Typically this call is done in the "void main()" method. The "ensureInitialized" method is idempotent; calling it multiple times is not harmful. After calling that method, the "instance" getter will return the binding.
+  In a test, one can call "TestWidgetsFlutterBinding.ensureInitialized()" as the first line in the test's "main()" method to initialize the binding.
+  If ServicesBinding is a custom binding mixin, there must also be a custom binding class, like WidgetsFlutterBinding, but that mixes in the selected binding, and that is the class that must be constructed before using the "instance" getter.
+  package:flutter/src/foundation/binding.dart 314:9                                                    BindingBase.checkInstance.<fn>
+  package:flutter/src/foundation/binding.dart 401:6                                                    BindingBase.checkInstance
+  package:flutter/src/services/binding.dart 73:54                                                      ServicesBinding.instance
+  package:flutter/src/services/platform_channel.dart 178:25                                            _findBinaryMessenger
+  package:flutter/src/services/platform_channel.dart 319:56                                            MethodChannel.binaryMessenger
+  package:flutter/src/services/platform_channel.dart 359:17                                            MethodChannel._invokeMethod
+  package:flutter/src/services/platform_channel.dart 539:12                                            MethodChannel.invokeMethod
+  package:path_provider_platform_interface/src/method_channel_path_provider.dart 50:26                 MethodChannelPathProvider.getApplicationDocumentsPath
+  package:path_provider/path_provider.dart 119:40                                                      getApplicationDocumentsDirectory
+  package:get_storage/src/storage/io.dart 140:14                                                       StorageImpl._getImplicitDir
+  package:get_storage/src/storage/io.dart 132:23                                                       StorageImpl._fileDb
+  package:get_storage/src/storage/io.dart 124:26                                                       StorageImpl._getFile
+  package:get_storage/src/storage/io.dart 117:26                                                       StorageImpl._getRandomFile
+  package:get_storage/src/storage/io.dart 37:36                                                        StorageImpl.flush
+  package:get_storage/src/storage_impl.dart 146:23                                                     GetStorage._flush
+  package:get/get_utils/src/queue/get_queue.dart 42:47                                                 GetQueue._check
+  package:get/get_utils/src/queue/get_queue.dart 29:5                                                  GetQueue.add
+  package:get_storage/src/storage_impl.dart 141:18                                                     GetStorage._addToQueue
+  package:get_storage/src/storage_impl.dart 176:17                                                     Microtask.exec.<fn>
+  ===== asynchronous gap ===========================
+  dart:async                                                                                           _CustomZone.registerBinaryCallback
+  package:get/get_utils/src/queue/get_queue.dart 42:33                                                 GetQueue._check
+  package:get/get_utils/src/queue/get_queue.dart 29:5                                                  GetQueue.add
+  package:get_storage/src/storage_impl.dart 141:18                                                     GetStorage._addToQueue
+  package:get_storage/src/storage_impl.dart 176:17                                                     Microtask.exec.<fn>
+  ===== asynchronous gap ===========================
+  dart:async                                                                                           scheduleMicrotask
+  package:get_storage/src/storage_impl.dart 173:7                                                      Microtask.exec
+  package:get_storage/src/storage_impl.dart 137:22                                                     GetStorage._tryFlush
+  package:get_storage/src/storage_impl.dart 123:12                                                     GetStorage.remove
+  package:resource_plus/app/modules/face_attendance/repositories/face_template_repository.dart 243:13  MockFaceTemplateRepository.clearMockStorageForTests
+  test\face_attendance\face_template_repository_test.dart 54:34                                        main.<fn>.<fn>
+  
+  Binding has not yet been initialized.
+  The "instance" getter on the ServicesBinding binding mixin is only available once that binding has been initialized.
+  Typically, this is done by calling "WidgetsFlutterBinding.ensureInitialized()" or "runApp()" (the latter calls the former). Typically this call is done in the "void main()" method. The "ensureInitialized" method is idempotent; calling it multiple times is not harmful. After calling that method, the "instance" getter will return the binding.
+  In a test, one can call "TestWidgetsFlutterBinding.ensureInitialized()" as the first line in the test's "main()" method to initialize the binding.
+  If ServicesBinding is a custom binding mixin, there must also be a custom binding class, like WidgetsFlutterBinding, but that mixes in the selected binding, and that is the class that must be constructed before using the "instance" getter.
+  package:get_storage/src/storage_impl.dart 49:7                                                       GetStorage._init
+  ===== asynchronous gap ===========================
+  dart:async                                                                                           _CustomZone.registerBinaryCallback
+  package:get_storage/src/storage_impl.dart 30:7                                                       new GetStorage._internal.<fn>
+  ===== asynchronous gap ===========================
+  dart:async                                                                                           new Future
+  package:get_storage/src/storage_impl.dart 29:19                                                      new GetStorage._internal
+  package:get_storage/src/storage_impl.dart 18:35                                                      new GetStorage
+  package:resource_plus/app/modules/face_attendance/repositories/face_template_repository.dart 181:31  new MockFaceTemplateRepository
+  test\face_attendance\face_template_repository_test.dart 51:20                                        main.<fn>.<fn>
+  
+[FaceTemplate] No enrolled template found in local storage
+00:02 +13 -1: D:/ResourcePlus_APP - SPECIAL/resource_plus-App-V2_IOSUSER/test/bluetooth_attendance_response_test.dart: accepts explicit server acknowledgement
+00:02 +14 -1: D:/ResourcePlus_APP - SPECIAL/resource_plus-App-V2_IOSUSER/test/bluetooth_attendance_response_test.dart: does not mistake failure text for success
+00:02 +15 -1: D:/ResourcePlus_APP - SPECIAL/resource_plus-App-V2_IOSUSER/test/face_attendance/face_template_repository_test.dart: MockFaceTemplateRepository Should save and retrieve identical template in memory
+[FaceTemplate] ✅ Template saved to local storage (DEMO mode)
+[FaceTemplate] ✅ Template loaded from local storage (192 dims)
+00:03 +15 -1: Some tests failed.

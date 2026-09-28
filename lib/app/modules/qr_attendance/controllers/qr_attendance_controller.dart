@@ -3,9 +3,15 @@ import 'package:get/get.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:resource_plus/app/modules/face_attendance/services/attendance_security_service.dart';
 import 'package:resource_plus/app/modules/face_attendance/repositories/mock_local_punch_repository.dart';
+import 'package:flutter_background_service/flutter_background_service.dart';
 
 class QRAttendanceController extends GetxController {
-  final MobileScannerController scannerController = MobileScannerController();
+  // Use low resolution to avoid OOM on low-RAM devices (avoids ~460KB/frame native alloc at 30fps)
+  final MobileScannerController scannerController = MobileScannerController(
+    detectionSpeed: DetectionSpeed.noDuplicates,
+    detectionTimeoutMs: 1000, // Max 1 scan per second
+    returnImage: false,       // Never decode the actual image pixels into Dart
+  );
   final AttendanceSecurityService _securityService = AttendanceSecurityService();
   final MockLocalPunchRepository _punchRepo = MockLocalPunchRepository();
 
@@ -14,8 +20,19 @@ class QRAttendanceController extends GetxController {
   RxString foundQrData = ''.obs;
 
   @override
+  void onInit() {
+    super.onInit();
+    try {
+      FlutterBackgroundService().invoke('pauseScan');
+    } catch (_) {}
+  }
+
+  @override
   void onClose() {
     scannerController.dispose();
+    try {
+      FlutterBackgroundService().invoke('resumeScan');
+    } catch (_) {}
     super.onClose();
   }
 

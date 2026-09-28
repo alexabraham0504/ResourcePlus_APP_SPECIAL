@@ -150,6 +150,7 @@ class _WebViewPageState extends State<WebViewPage> {
 
                   _injectNavigationPreventionScript();
                   await _injectAutoLoginScript();
+                  await _hideWebPortalHeader();
                 },
                 onReceivedError: (controller, request, error) {
                   debugPrint('WebView Resource Error: ${error.description} (Code: ${error.type}) for URL: ${request.url}');
@@ -349,6 +350,34 @@ class _WebViewPageState extends State<WebViewPage> {
       }
     } catch (e) {
       debugPrint('Auto-login script injection failed: $e');
+    }
+  }
+
+  Future<void> _hideWebPortalHeader() async {
+    try {
+      if (widget.isEmbedded) {
+        await webViewController?.evaluateJavascript(source: '''
+          (function() {
+            var selectors = [
+              '.main-header', '.navbar', 'header.navbar', '#header', '.topbar'
+            ];
+            selectors.forEach(function(s) {
+              var elements = document.querySelectorAll(s);
+              elements.forEach(function(el) {
+                el.style.display = 'none';
+              });
+            });
+            // Adjust content wrapper margin if it was pushed down by the fixed header
+            var wrappers = document.querySelectorAll('.content-wrapper, .main-content');
+            wrappers.forEach(function(el) {
+              el.style.paddingTop = '0px';
+              el.style.marginTop = '0px';
+            });
+          })();
+        ''');
+      }
+    } catch (e) {
+      debugPrint('Header hide script injection failed: $e');
     }
   }
 

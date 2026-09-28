@@ -114,7 +114,7 @@ class HomeTab extends GetView<HomeController> {
       return Container(
         width: double.infinity,
         padding: EdgeInsets.only(
-          top: MediaQuery.of(context).padding.top + 8,
+          top: MediaQuery.of(context).padding.top,
           left: 18,
           right: 18,
           bottom: 14,
@@ -178,7 +178,7 @@ class HomeTab extends GetView<HomeController> {
                 if (btColor != null) ...[
                   _HeaderIconBtn(
                     onTap: () => btController.showBeaconDetails(),
-                    child: Icon(Icons.bluetooth_connected, color: btColor, size: 20),
+                    child: Icon(Icons.bluetooth_connected, color: btColor, size: 24),
                   ),
                   const SizedBox(width: 6),
                 ],
@@ -187,9 +187,9 @@ class HomeTab extends GetView<HomeController> {
                   child: Stack(
                     clipBehavior: Clip.none,
                     children: [
-                      const Icon(Icons.notifications_outlined, color: Colors.white, size: 20),
+                      const Icon(Icons.notifications_none_rounded, color: Colors.white, size: 24),
                       Positioned(
-                        right: -3, top: -3,
+                        right: -4, top: -4,
                         child: Container(
                           padding: const EdgeInsets.all(3),
                           decoration: BoxDecoration(
@@ -205,19 +205,25 @@ class HomeTab extends GetView<HomeController> {
                   onTap: () => controller.changeTab(5),
                 ),
                 const SizedBox(width: 6),
-                // Language toggle
                 Obx(() {
                   final lc = Get.find<LanguageController>();
                   final label = lc.currentLanguage.value == 'en' ? 'AR' : 'EN';
                   return _HeaderIconBtn(
-                    child: Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 11)),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.language_rounded, color: Colors.white, size: 22),
+                        const SizedBox(width: 4),
+                        Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
+                      ],
+                    ),
                     onTap: () => lc.toggleLanguage(),
                   );
                 }),
                 const SizedBox(width: 6),
                 // Logout
                 _HeaderIconBtn(
-                  child: const Icon(Icons.power_settings_new_rounded, color: Color(0xFFFF6B6B), size: 19),
+                  child: const Icon(Icons.power_settings_new_rounded, color: Color(0xFFFF6B6B), size: 26),
                   onTap: () {
                     final lc = Get.find<LanguageController>();
                     final isAr = lc.currentLanguage.value == 'ar';

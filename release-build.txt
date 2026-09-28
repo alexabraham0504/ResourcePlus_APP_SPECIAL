@@ -1,0 +1,22 @@
+Running Gradle task 'assembleRelease'...                        
+Font asset "MaterialIcons-Regular.otf" was tree-shaken, reducing it from 1645184 to 31036 bytes (98.1% reduction). Tree-shaking can be disabled by providing the --no-tree-shake-icons flag when building your app.
+D:\ResourcePlus_APP - SPECIAL\resource_plus-App-V2_IOSUSER\android\app\src\main\AndroidManifest.xml:115:13-37 Error:
+	Attribute service#id.flutter.flutter_background_service.BackgroundService@exported value=(false) from AndroidManifest.xml:115:13-37
+	is also present at [:flutter_background_service_android] AndroidManifest.xml:15:13-36 value=(true).
+	Suggestion: add 'tools:replace="android:exported"' to <service> element at AndroidManifest.xml:111:9-115:40 to override.
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:processReleaseMainManifest'.
+> Manifest merger failed with multiple errors, see logs
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 4m 6s
+Running Gradle task 'assembleRelease'...                          248.4s
+Gradle task assembleRelease failed with exit code 1

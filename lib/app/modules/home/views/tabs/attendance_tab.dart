@@ -21,6 +21,63 @@ Uint8List? decodeBase64Background(String base64Str) {
 class AttendanceTab extends GetView<HomeController> {
   const AttendanceTab({super.key});
 
+  // ═══════════════════════════════════════════════════════════
+  //  REUSABLE ACRONYM DIALOG
+  // ═══════════════════════════════════════════════════════════
+  static void showHourAcronymsDialog(BuildContext context, bool isDark) {
+    Widget acronymItem(String acr, String full, Color c, bool dark) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(color: c.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(6), border: Border.all(color: c.withValues(alpha: 0.5))),
+              child: Text(acr, style: TextStyle(color: c, fontWeight: FontWeight.bold, fontSize: 12)),
+            ),
+            const SizedBox(width: 12),
+            Expanded(child: Text(full, style: TextStyle(color: dark ? Colors.grey[200] : Colors.grey[800], fontWeight: FontWeight.w600, fontSize: 14))),
+          ],
+        ),
+      );
+    }
+
+    showDialog(
+      context: context,
+      builder: (bCtx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Hour Acronyms', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
+              const SizedBox(height: 16),
+              acronymItem('GSH', 'Gross Hours', Colors.blue, isDark),
+              acronymItem('NTH', 'Net Hours', Colors.lightBlue, isDark),
+              acronymItem('DIH', 'Difference Hours', Colors.orange, isDark),
+              acronymItem('EOH', 'Extra Out Hours', Colors.deepOrange, isDark),
+              acronymItem('LSH', 'Less Hours', Colors.red, isDark),
+              acronymItem('ESH', 'Extra Shift Hours', Colors.green, isDark),
+              const SizedBox(height: 16),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () => Navigator.pop(bCtx),
+                  child: Text('Close', style: TextStyle(color: Colors.blue[600], fontWeight: FontWeight.bold)),
+                ),
+              )
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   // ─── Professional Corporate Palette ──────────────────────────────
   static const _primary    = Color(0xFF0F172A); // Slate 900
   static const _surface    = Colors.white;
@@ -67,7 +124,7 @@ class AttendanceTab extends GetView<HomeController> {
             color: _primary,
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -213,7 +270,19 @@ class AttendanceTab extends GetView<HomeController> {
       Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text('recent_records'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: isDark ? Colors.white : _primary)),
+          Row(
+            children: [
+              Text('recent_records'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: isDark ? Colors.white : _primary)),
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: () => showHourAcronymsDialog(ctx, isDark),
+                child: Padding(
+                  padding: const EdgeInsets.all(4.0),
+                  child: Icon(Icons.info_outline, size: 18, color: Colors.blue[600]),
+                ),
+              ),
+            ],
+          ),
           if (filtered.length > 5)
             GestureDetector(
               onTap: () => Get.toNamed(AppRoutes.attendanceHistory),
@@ -476,7 +545,7 @@ class AttendanceTab extends GetView<HomeController> {
                           Padding(
                             padding: const EdgeInsets.symmetric(vertical: 24),
                             child: Center(
-                              child: Text('no_punch_data'.tr, style: TextStyle(fontSize: 13, color: Colors.grey[400], fontStyle: FontStyle.italic)),
+                              child: Text('No punch Data'.tr, style: TextStyle(fontSize: 13, color: Colors.grey[400], fontStyle: FontStyle.italic)),
                             ),
                           )
                         else ...[
@@ -551,7 +620,7 @@ class AttendanceTab extends GetView<HomeController> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('punch_details'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: isDark ? Colors.white : _primary)),
+        Text('Punch Details', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: isDark ? Colors.white : _primary)),
         const SizedBox(height: 16),
         Wrap(
           spacing: 12,
@@ -869,6 +938,31 @@ class AttendanceTab extends GetView<HomeController> {
                           ],
                         ),
                       ),
+                      const SizedBox(height: 16),
+                      // Hourly Badges Container (Clickable for Acronyms)
+                      GestureDetector(
+                        onTap: () => showHourAcronymsDialog(context, isDark),
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF0F172A) : Colors.white,
+                            border: Border.all(color: isDark ? const Color(0xFF334155) : Colors.grey[200]!),
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 4, offset: const Offset(0, 2))],
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              hoursCol('GSH', gsh, Colors.blue[600]!, isDark ? Colors.grey[300]! : Colors.grey[600]!),
+                              hoursCol('NTH', nth, Colors.lightBlue[400]!, isDark ? Colors.grey[300]! : Colors.grey[800]!),
+                              hoursCol('DIH', dih, Colors.orange, isDark ? Colors.grey[300]! : Colors.grey[600]!),
+                              hoursCol('EOH', eoh, Colors.deepOrange, isDark ? Colors.grey[300]! : Colors.grey[600]!),
+                              hoursCol('LSH', lsh, Colors.red[600]!, isDark ? Colors.grey[300]! : Colors.grey[800]!),
+                              hoursCol('ESH', esh, Colors.green, isDark ? Colors.grey[300]! : Colors.grey[600]!),
+                            ],
+                          ),
+                        ),
+                      ),
                       
                       const SizedBox(height: 24),
                       buildPunchGrid(context, parsedPunches, isDark),
@@ -904,7 +998,24 @@ class AttendanceTab extends GetView<HomeController> {
     String parsedDate = findValue(['AttDate', 'LogDate', 'PunchTime', 'PDateTime']);
     if (parsedDate.contains('T')) parsedDate = parsedDate.split('T')[0];
     
-    final date = parsedDate;
+    String date = parsedDate;
+    try {
+      if (date.isNotEmpty) {
+        if (date.contains('/')) {
+          final parts = date.split('/');
+          if (parts.length == 3) {
+            int p1 = int.parse(parts[0]);
+            int p2 = int.parse(parts[1]);
+            int p3 = int.parse(parts[2]);
+            if (p1 > 12) date = DateFormat('dd MMM yyyy').format(DateTime(p3, p2, p1));
+            else if (p2 > 12) date = DateFormat('dd MMM yyyy').format(DateTime(p3, p1, p2));
+            else date = DateFormat('dd MMM yyyy').format(DateTime(p3, p2, p1));
+          }
+        } else {
+          date = DateFormat('dd MMM yyyy').format(DateTime.parse(date));
+        }
+      }
+    } catch (_) {}
     final checkIn = findValue(['CheckIN', 'checkin_time']);
     final checkOut = findValue(['CheckOut', 'checkout_time']);
     final rawTime = findValue(['Time']);

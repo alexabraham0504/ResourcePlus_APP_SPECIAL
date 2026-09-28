@@ -4,6 +4,10 @@ import 'package:camera/camera.dart';
 import '../controllers/hr_portal_controller.dart';
 import 'widgets/tab_header.dart';
 import 'package:resource_plus/app/routes/app_routes.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'widgets/shift_location_block.dart';
+import 'widgets/home_bottom_navigation.dart';
+import '../controllers/home_controller.dart';
 
 class HrPortalView extends GetView<HrPortalController> {
   const HrPortalView({super.key});
@@ -120,7 +124,7 @@ class HrPortalView extends GetView<HrPortalController> {
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
-                                    'current_server_time'.tr,
+                                    'Current Time',
                                     style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600,
@@ -155,7 +159,7 @@ class HrPortalView extends GetView<HrPortalController> {
                               opacity: val,
                               child: Transform.translate(offset: Offset(0, 20 * (1 - val)), child: child),
                             ),
-                            child: _buildShiftAndCoordinates(context, colorScheme, isDark),
+                            child: ShiftLocationBlock(colorScheme: colorScheme, isDark: isDark),
                           ),
                           const SizedBox(height: 32),
 
@@ -180,6 +184,15 @@ class HrPortalView extends GetView<HrPortalController> {
             ),
           ],
         ),
+      ),
+      bottomNavigationBar: HomeBottomNavigation(
+        currentIndex: -1,
+        onTap: (index) {
+          Get.back();
+          if (Get.isRegistered<HomeController>()) {
+            Get.find<HomeController>().changeTab(index);
+          }
+        },
       ),
     );
   }
@@ -464,56 +477,6 @@ class HrPortalView extends GetView<HrPortalController> {
     );
   }
 
-  Widget _buildShiftAndCoordinates(BuildContext context, ColorScheme colorScheme, bool isDark) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))],
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: colorScheme.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)), child: Icon(Icons.schedule_rounded, color: colorScheme.primary, size: 18)),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('current_shift'.tr, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: isDark ? Colors.grey[400] : Colors.grey[500])),
-                    const SizedBox(height: 2),
-                    Obx(() => Text(controller.currentShift.value, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: isDark ? Colors.white : const Color(0xFF1E293B)))),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            child: Divider(height: 1, color: colorScheme.outline.withValues(alpha: 0.1)),
-          ),
-          Row(
-            children: [
-              Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: colorScheme.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)), child: Icon(Icons.location_on_rounded, color: colorScheme.primary, size: 18)),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('location'.tr, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: isDark ? Colors.grey[400] : Colors.grey[500])),
-                    const SizedBox(height: 2),
-                    Obx(() => Text(controller.currentCoordinates.value, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, fontFamily: 'monospace', color: isDark ? Colors.white : const Color(0xFF1E293B)))),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class _AnimatedPunchButton extends StatefulWidget {

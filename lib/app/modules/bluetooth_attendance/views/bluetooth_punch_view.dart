@@ -15,6 +15,7 @@ import '../services/background_tracking_service.dart';
 import '../config/bluetooth_attendance_config.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
+import '../../home/views/widgets/shift_location_block.dart';
 
 // ─── Radar Painter ─────────────────────────────────────────────────────────
 class _RadarPainter extends CustomPainter {
@@ -132,12 +133,33 @@ class _BluetoothPunchViewState extends State<BluetoothPunchView>
 
     _isRegistered = GetStorage().read('bt_device_registered') ?? false;
 
+    // CRITICAL: Push credentials to background service isolate.
+    // The background isolate has its own Dart VM and cannot read the main app's GetStorage.
+    // We must explicitly send credentials every time the app opens.
+    _pushCredentialsToBackgroundService();
+
     _checkServiceStatus();
     _listenToBackgroundService();
     _listenToHardwareStates();
   }
 
+  void _pushCredentialsToBackgroundService() {
+    final storage = GetStorage();
+    final username = (storage.read('username') ?? '').toString();
+    final email = (storage.read('email') ?? '').toString();
+    final instanceName = (storage.read('instanceName') ?? '').toString();
+    FlutterBackgroundService().invoke('updateCredentials', {
+      'username': username,
+      'email': email,
+      'instanceName': instanceName,
+    });
+    debugPrint('[BLE UI] Pushed credentials to service: username=$username instanceName=$instanceName');
+  }
+
   final Set<String> _checkingBeacons = {};
+  // Permanently tracks beacons whose status was FULLY checked (prevents infinite API loop)
+  final Set<String> _checkedBeacons = {};
+  final Map<String, DateTime> _registrationAttempts = {};
   String? _cachedDeviceId;
 
   Future<String> _getDeviceId() async {
@@ -153,12 +175,25 @@ class _BluetoothPunchViewState extends State<BluetoothPunchView>
     return _cachedDeviceId!;
   }
 
+  /// Returns true if the beacon is already registered in local cache.
+  /// Returns null if we have no local info (API check still needed).
+  bool? _isRegisteredLocally(String beaconId) {
+    final registered = List<String>.from(GetStorage().read('registered_beacons') ?? []);
+    if (registered.contains(beaconId)) return true;
+    return null; // unknown — let the API check decide
+  }
+
   Future<void> _checkRegistrationStatusForBeacon(String mac, String beaconId) async {
+    final now = DateTime.now();
+    final lastAttempt = _registrationAttempts[mac];
+    if (lastAttempt != null && now.difference(lastAttempt).inSeconds < 30) return;
+    _registrationAttempts[mac] = now;
     _checkingBeacons.add(mac);
     try {
       final deviceId = await _getDeviceId();
 
       final isReg = await BluetoothAttendanceConfig.checkRegistration(deviceId, beaconId: beaconId);
+      _checkedBeacons.add(mac);
       
       final storage = GetStorage();
       List<String> registered = List<String>.from(storage.read('registered_beacons') ?? []);
@@ -281,10 +316,15 @@ class _BluetoothPunchViewState extends State<BluetoothPunchView>
             zone: (map['zone'] ?? '') as String,
             lastSeen: DateTime.tryParse((map['lastSeen'] ?? '') as String) ?? DateTime.now(),
             isPunchedIn: existing?.isPunchedIn ?? false,
-            isRegistered: existing?.isRegistered,
+            // Preserve API result if we have one. Otherwise, check local cache first
+            // so already-registered beacons never flash "Tap to Register".
+            isRegistered: existing?.isRegistered ?? _isRegisteredLocally(beaconNameStr),
           );
           
-          if (existing?.isRegistered == null && !_checkingBeacons.contains(mac)) {
+          // Only call the API if we have NEVER gotten a result for this beacon yet.
+          // _checkedBeacons stores beacons that were FULLY checked (even if result is false).
+          // This prevents the infinite HTTP loop caused by isRegistered resetting to null each update.
+          if (existing?.isRegistered == null && !_checkingBeacons.contains(mac) && !_checkedBeacons.contains(mac)) {
             _checkRegistrationStatusForBeacon(mac, beaconNameStr);
           }
           
@@ -489,10 +529,17 @@ class _BluetoothPunchViewState extends State<BluetoothPunchView>
             ),
           ),
 
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: ShiftLocationBlock(
+              colorScheme: Theme.of(context).colorScheme, 
+              isDark: isDark,
+            ),
+          ),
           const SizedBox(height: 10),
 
-              // ── Bottom Panel ───────────────────────────────────────────────
-              Expanded(
+          // ── Bottom Panel ───────────────────────────────────────────────
+          Expanded(
                 child: Container(
                   width: double.infinity,
                   padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),

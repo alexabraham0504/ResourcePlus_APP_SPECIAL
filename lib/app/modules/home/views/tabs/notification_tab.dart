@@ -46,7 +46,7 @@ class NotificationTab extends StatelessWidget {
             children: [
               // Header
               Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
                 child: Column(
                   children: [
                     const TabHeader(title: 'Notifications'), // Uses API/static translation in TabHeader if needed, but title prop isn't actually used by TabHeader's UI since it uses the logo.

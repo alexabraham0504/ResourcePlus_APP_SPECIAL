@@ -7,7 +7,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:resourceplus_app/bloc/chat_bloc.dart';
 import 'package:resourceplus_app/services/ai_service.dart';
 import 'package:resourceplus_app/services/settings_service.dart';
-import 'package:resourceplus_app/screens/chatbot_screen.dart';
+import '../orbit_chat_screen.dart';
+import '../widgets/chat_details_sheet.dart';
 
 import '../../controllers/home_controller.dart';
 
@@ -21,9 +22,9 @@ class AIChatTab extends StatelessWidget {
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return const Scaffold(
-            backgroundColor: Color(0xFFF0F2F5),
+            backgroundColor: Colors.white,
             body: Center(
-              child: CircularProgressIndicator(color: Color(0xFF6366F1)),
+              child: CircularProgressIndicator(color: Color(0xFF004A77)),
             ),
           );
         }
@@ -31,13 +32,17 @@ class AIChatTab extends StatelessWidget {
         final settingsService = SettingsService(snapshot.data!);
 
         return Scaffold(
-          backgroundColor: const Color(0xFFF0F2F5),
+          backgroundColor: Colors.white,
           body: BlocProvider<ChatBloc>(
-            create: (_) => ChatBloc(
-              aiService: AIService(settings: settingsService),
-            ),
-            child: ChatbotScreen(
+            create: (_) =>
+                ChatBloc(aiService: AIService(settings: settingsService)),
+            child: OrbitChatScreen(
               settingsService: settingsService,
+              onQuickAccess: (shortcut) => showChatDetails(context, shortcut),
+              appHeader: ResourcePlusChatHeader(
+                onNotifications: () =>
+                    showChatDetails(context, ChatShortcut.notifications),
+              ),
               onBackPressed: () {
                 // Navigate back to Home Tab when back button is pressed inside the AI Chat Tab
                 Get.find<HomeController>().changeTab(0);

@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import '../../controllers/home_controller.dart';
 import 'tab_header.dart';
+import '../tabs/attendance_tab.dart';
 
 class AttendanceHistoryView extends StatefulWidget {
   const AttendanceHistoryView({super.key});
@@ -356,7 +357,50 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () => _showPunchDetailsDialog(ctx, item),
+        onTap: () async {
+          showDialog(
+            context: ctx,
+            barrierDismissible: false,
+            builder: (c) => const Center(child: CircularProgressIndicator()),
+          );
+
+          final homeController = Get.find<HomeController>();
+          final actualDateStr = (item['AttDate'] ?? '').toString(); 
+          
+          String formattedApiDate = actualDateStr;
+          try {
+            if (actualDateStr.contains('/')) {
+              final parts = actualDateStr.split('/');
+              if (parts.length == 3) {
+                 formattedApiDate = '${parts[2]}-${parts[1]}-${parts[0]}';
+              }
+            } else if (actualDateStr.contains('-')) {
+              final parts = actualDateStr.split('-');
+              if (parts.length == 3 && parts[0].length == 2) {
+                 formattedApiDate = '${parts[2]}-${parts[1]}-${parts[0]}';
+              }
+            }
+          } catch (_) {}
+          
+          final rawPunches = await homeController.fetchPunchesForDate(formattedApiDate);
+          
+          if (rawPunches.isNotEmpty) {
+            final inAddr = item['CheckINAddr']?.toString() ?? '';
+            final outAddr = item['CheckoutAddr']?.toString() ?? '';
+            final fallbackLoc = item['Location']?.toString() ?? item['locationinfo']?.toString() ?? '';
+            
+            for (var punch in rawPunches) {
+              final t = punch['Type']?.toString().toUpperCase() ?? '';
+              if (t == 'IN' && inAddr.isNotEmpty) punch['CheckINAddr'] = inAddr;
+              else if (t == 'OUT' && outAddr.isNotEmpty) punch['CheckoutAddr'] = outAddr;
+              
+              if (fallbackLoc.isNotEmpty) punch['Location'] = fallbackLoc;
+            }
+          }
+          
+          Navigator.pop(ctx);
+          AttendanceTab.showPunchesBottomSheet(ctx, [item], rawPunches.isNotEmpty ? rawPunches : [item]);
+        },
         borderRadius: BorderRadius.circular(12),
         child: Container(
           decoration: BoxDecoration(
@@ -458,7 +502,27 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
 
   void _showPunchDetailsDialog(BuildContext context, dynamic item) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final date = (item['AttDate'] ?? item['LogDate'] ?? '').toString();
+    String parsedDate = (item['AttDate'] ?? item['LogDate'] ?? '').toString();
+    if (parsedDate.contains('T')) parsedDate = parsedDate.split('T')[0];
+    
+    String date = parsedDate;
+    try {
+      if (date.isNotEmpty) {
+        if (date.contains('/')) {
+          final parts = date.split('/');
+          if (parts.length == 3) {
+            int p1 = int.parse(parts[0]);
+            int p2 = int.parse(parts[1]);
+            int p3 = int.parse(parts[2]);
+            if (p1 > 12) date = DateFormat('dd MMM yyyy').format(DateTime(p3, p2, p1));
+            else if (p2 > 12) date = DateFormat('dd MMM yyyy').format(DateTime(p3, p1, p2));
+            else date = DateFormat('dd MMM yyyy').format(DateTime(p3, p2, p1));
+          }
+        } else {
+          date = DateFormat('dd MMM yyyy').format(DateTime.parse(date));
+        }
+      }
+    } catch (_) {}
     final checkIn = (item['CheckIN'] ?? '--:--').toString();
     final checkOut = (item['CheckOut'] ?? '--:--').toString();
     final type = (item['DayType'] ?? '').toString();

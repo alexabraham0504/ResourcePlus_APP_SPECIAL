@@ -33,6 +33,7 @@ import '../../../controllers/language_controller.dart';
 
 import '../controllers/home_controller.dart';
 import '../controllers/hr_portal_controller.dart';
+import 'widgets/shift_location_block.dart';
 
 // ─── Fingerprint Pulse Painter ───────────────────────────────────────────────
 
@@ -613,43 +614,24 @@ class _FingerprintPunchViewState extends State<FingerprintPunchView>
                         ),
                         child: Column(
                           children: [
-                            Text(
-                              controller.statusMessage.value,
-                              textAlign: TextAlign.center,
-                              style: GoogleFonts.outfit(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                                color: color,
-                              ),
-                            ),
-                            if (s == _FingerprintPunchState.idle) ...[
-                              const SizedBox(height: 8),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.location_on,
-                                      color: isDark
-                                          ? Colors.grey[500]
-                                          : Colors.grey[400],
-                                      size: 13),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    controller.currentCoordinates.value,
-                                    style: GoogleFonts.outfit(
-                                        fontSize: 11,
-                                        color: isDark
-                                            ? Colors.grey[500]
-                                            : Colors.grey[400]),
-                                  ),
-                                ],
+                              Text(
+                                controller.statusMessage.value,
+                                textAlign: TextAlign.center,
+                                style: GoogleFonts.outfit(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: color,
+                                ),
                               ),
                             ],
-                          ],
-                        ),
-                      );
-                    }),
+                          ),
+                        );
+                      }),
 
-                    const SizedBox(height: 32),
+                      const SizedBox(height: 24),
+                      ShiftLocationBlock(colorScheme: Theme.of(context).colorScheme, isDark: isDark),
+
+                      const SizedBox(height: 32),
 
                     // ── Two-factor info chips ──
                     Row(

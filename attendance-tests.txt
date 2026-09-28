@@ -1,0 +1,4 @@
+00:00 +0: loading D:/ResourcePlus_APP - SPECIAL/resource_plus-App-V2_IOSUSER/test/bluetooth_attendance_response_test.dart
+00:00 +0: accepts explicit server acknowledgement
+00:00 +1: does not mistake failure text for success
+00:00 +2: All tests passed!

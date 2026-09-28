@@ -15,7 +15,7 @@ class AiWorkforceTab extends StatelessWidget {
         const SafeArea(
           bottom: false,
           child: Padding(
-            padding: EdgeInsets.fromLTRB(20, 16, 20, 0),
+            padding: EdgeInsets.fromLTRB(20, 0, 20, 16),
             child: TabHeader(title: 'AI Workforce'),
           ),
         ),

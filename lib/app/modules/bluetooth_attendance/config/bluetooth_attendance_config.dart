@@ -125,7 +125,7 @@ class BluetoothAttendanceConfig {
     final client = io_client.IOClient(ioClient);
 
     try {
-      final queryParams = {
+      final queryParams = <String, String>{
         'instanceName': instanceName,
         'usrEmail': usrEmail,
         'deviceIdentifier': deviceIdentifier,
@@ -143,15 +143,22 @@ class BluetoothAttendanceConfig {
       debugPrint('[BLE Check] Response ${response.statusCode}: ${response.body}');
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (data != null && data['isRegistered'] == true) {
+        final body = response.body.trim().replaceAll('"', '').toLowerCase();
+        if (body == 'false') return false;
+        if (body == 'true' || body.contains('isregistered') && body.contains('true')) {
           return true;
         }
+        try {
+          final data = jsonDecode(response.body);
+          if (data is Map && data['isRegistered'] == true) return true;
+          if (data is Map && data['isRegistered'] == false) return false;
+          if (data is bool) return data;
+        } catch (_) {}
       }
-      return false;
+      throw StateError('Registration check failed (${response.statusCode})');
     } catch (e) {
       debugPrint('[BLE Check] Error: $e');
-      return false;
+      rethrow;
     } finally {
       client.close();
     }

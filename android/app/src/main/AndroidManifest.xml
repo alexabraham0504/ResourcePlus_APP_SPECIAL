@@ -111,6 +111,7 @@
         <service
             android:name="id.flutter.flutter_background_service.BackgroundService"
             android:foregroundServiceType="connectedDevice"
+            android:stopWithTask="false"
             android:exported="true" />
             
     </application>

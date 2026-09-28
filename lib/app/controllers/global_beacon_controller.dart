@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -6,6 +7,15 @@ import '../modules/bluetooth_attendance/services/background_tracking_service.dar
 import '../modules/home/controllers/home_controller.dart';
 
 class GlobalBeaconController extends GetxController {
+  StreamSubscription? _punchSubscription;
+  StreamSubscription? _beaconSubscription;
+
+  @override
+  void onClose() {
+    _punchSubscription?.cancel();
+    _beaconSubscription?.cancel();
+    super.onClose();
+  }
   final Map<String, String> _lastRangeState = {};
   final Map<String, DateTime> _lastSeenMap = {};
   
@@ -25,7 +35,7 @@ class GlobalBeaconController extends GetxController {
   void _listenToPunchEvents() {
     final bgService = BackgroundTrackingService();
     
-    bgService.punchStream.listen((data) {
+    _punchSubscription = bgService.punchStream.listen((data) {
       if (data == null) return;
       
       final type = data['type'];
@@ -68,7 +78,7 @@ class GlobalBeaconController extends GetxController {
   void _listenToDetectedBeacons() {
     final bgService = BackgroundTrackingService();
     
-    bgService.beaconStream.listen((data) {
+    _beaconSubscription = bgService.beaconStream.listen((data) {
       if (data == null) return;
       final beaconList = data['beacons'] as List<dynamic>? ?? [];
       

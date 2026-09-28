@@ -1,11 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:resourceplus_app/main.dart';
-import 'package:resourceplus_app/services/settings_service.dart';
-
-import '../../../routes/app_routes.dart';
 import '../controllers/home_controller.dart';
 import 'tabs/home_tab.dart';
 import 'tabs/attendance_tab.dart';
@@ -16,6 +11,7 @@ import 'tabs/notification_tab.dart' as resource_plus_notifications;
 import 'tabs/ai_chat_tab.dart';
 import 'tabs/ai_workforce_tab.dart';
 import 'widgets/global_expandable_fab.dart';
+import 'widgets/home_bottom_navigation.dart';
 
 class HomeView extends GetView<HomeController> {
   const HomeView({super.key});
@@ -27,8 +23,6 @@ class HomeView extends GetView<HomeController> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Obx(() {
       final isHomeTab = controller.currentIndex.value == 0;
       
@@ -60,58 +54,9 @@ class HomeView extends GetView<HomeController> {
                 LazyTab(index: 7, child: AiWorkforceTab()),
               ],
             ),
-            bottomNavigationBar: Container(
-              decoration: BoxDecoration(
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, -5),
-                  ),
-                ],
-              ),
-              child: BottomNavigationBar(
-                currentIndex: controller.currentIndex.value > 4 ? 0 : controller.currentIndex.value,
-                onTap: (index) => controller.changeTab(index),
-                backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-                selectedItemColor: controller.currentIndex.value > 4
-                    ? (isDark ? Colors.grey[500] : Colors.grey[400])
-                    : [
-                        corporateBlue,
-                        primaryGreen,
-                        const Color(0xFF8B5CF6), // Purple for Self Service
-                        const Color(0xFFFC943B), // Orange for Profile
-                        const Color(0xFF6F7A6B), // Grey for Settings
-                      ][controller.currentIndex.value],
-                unselectedItemColor: isDark ? Colors.grey[500] : Colors.grey[400],
-                showUnselectedLabels: true,
-                type: BottomNavigationBarType.fixed,
-                selectedFontSize: 10.0,
-                unselectedFontSize: 10.0,
-                elevation: 0,
-                items: [
-                  BottomNavigationBarItem(
-                    icon: const Icon(Icons.home_rounded),
-                    label: 'home'.tr,
-                  ),
-                  BottomNavigationBarItem(
-                    icon: const Icon(Icons.calendar_month_rounded),
-                    label: 'attendance'.tr,
-                  ),
-                  BottomNavigationBarItem(
-                    icon: const Icon(Icons.widgets_rounded),
-                    label: 'self_service'.tr,
-                  ),
-                  BottomNavigationBarItem(
-                    icon: const Icon(Icons.person_rounded),
-                    label: 'profile'.tr,
-                  ),
-                  BottomNavigationBarItem(
-                    icon: const Icon(Icons.settings_rounded),
-                    label: 'settings'.tr,
-                  ),
-                ],
-              ),
+            bottomNavigationBar: HomeBottomNavigation(
+              currentIndex: controller.currentIndex.value,
+              onTap: controller.changeTab,
             ),
           ),
         ),

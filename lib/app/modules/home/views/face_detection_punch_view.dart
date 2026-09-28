@@ -23,6 +23,7 @@ import 'package:http/io_client.dart' as io_client;
 import 'package:http_parser/http_parser.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_background_service/flutter_background_service.dart';
 
 import '../../../config/api_endpoints.dart';
 import '../../../controllers/language_controller.dart';
@@ -90,32 +91,54 @@ class FaceDetectionPunchController extends GetxController {
   Position? _currentPosition;
 
   bool _isDetecting = false;
+  bool _isClosed = false;
+  DateTime _lastFrameTime = DateTime.fromMillisecondsSinceEpoch(0); // throttle
 
-  final FaceDetector _faceDetector = FaceDetector(
-    options: FaceDetectorOptions(
-      performanceMode: FaceDetectorMode.fast,
-      minFaceSize: 0.25,
-    ),
-  );
+  // Lazy — do NOT create FaceDetector in the constructor.
+  // ML Kit loads a native library synchronously which blocks the UI thread
+  // and causes "Skipped 96 frames" → app crash. Create it only when needed.
+  FaceDetector? _faceDetector;
+  FaceDetector get faceDetector {
+    _faceDetector ??= FaceDetector(
+      options: FaceDetectorOptions(
+        performanceMode: FaceDetectorMode.fast,
+        minFaceSize: 0.25,
+      ),
+    );
+    return _faceDetector!;
+  }
 
   @override
   void onInit() {
     super.onInit();
-    _checkPermissions();
+    try {
+      FlutterBackgroundService().invoke('pauseScan');
+    } catch (_) {}
+    // Defer ALL heavy init by 2 frames so the page route transition
+    // finishes rendering first (avoids "Skipped N frames" → OOM crash).
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (!_isClosed) _checkPermissions();
+    });
   }
 
   Future<void> _checkPermissions() async {
+    if (_isClosed) return;
     await Permission.camera.request();
     await Permission.location.request();
+    if (_isClosed) return;
     _initLocation();
     _initCamera();
   }
 
   @override
   void onClose() {
-    _faceDetector.close();
+    _isClosed = true;
+    _faceDetector?.close();
     cameraController?.stopImageStream();
     cameraController?.dispose();
+    try {
+      FlutterBackgroundService().invoke('resumeScan');
+    } catch (_) {}
     super.onClose();
   }
 
@@ -145,7 +168,7 @@ class FaceDetectionPunchController extends GetxController {
       );
       cameraController = CameraController(
         front,
-        ResolutionPreset.medium,
+        ResolutionPreset.low, // Keep native buffer small to avoid OOM on low-RAM devices
         enableAudio: false,
         imageFormatGroup: Platform.isAndroid
             ? ImageFormatGroup.nv21
@@ -162,7 +185,12 @@ class FaceDetectionPunchController extends GetxController {
 
   void _startFaceDetection() {
     cameraController?.startImageStream((CameraImage image) async {
+      // Throttle to max 2fps — face detection doesn't need more,
+      // and every skipped frame = ~460KB of NativeAlloc not allocated.
+      final now = DateTime.now();
+      if (now.difference(_lastFrameTime).inMilliseconds < 500) return;
       if (_isDetecting || isProcessing.value) return;
+      _lastFrameTime = now;
       _isDetecting = true;
       try {
         final faces = await _detectFaces(image);
@@ -192,7 +220,7 @@ class FaceDetectionPunchController extends GetxController {
           bytesPerRow: image.planes[0].bytesPerRow,
         ),
       );
-      return await _faceDetector.processImage(inputImage);
+      return await faceDetector.processImage(inputImage);
     } catch (_) {
       return [];
     }

@@ -1,6 +1,6 @@
 import 'dart:async';
+import 'attendance_response.dart';
 import 'dart:io';
-import 'dart:typed_data';
 import 'dart:ui';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
@@ -17,9 +17,6 @@ import 'package:intl/intl.dart';
 import '../config/bluetooth_attendance_config.dart';
 import '../../../config/api_endpoints.dart';
 import '../../face_attendance/repositories/mock_local_punch_repository.dart';
-import '../repositories/mock_bluetooth_attendance_repository.dart';
-import '../repositories/api_bluetooth_attendance_repository.dart';
-import '../models/bluetooth_attendance_request.dart';
 
 // ─── Data model: one detected BLE beacon ──────────────────────────────────
 class DetectedBeacon {
@@ -46,13 +43,15 @@ class DetectedBeacon {
     name: (json['name'] ?? '') as String,
     macAddress: (json['macAddress'] ?? '') as String,
     rssi: (json['rssi'] ?? -100) as int,
-    lastSeen: DateTime.tryParse((json['lastSeen'] ?? '') as String) ?? DateTime.now(),
+    lastSeen:
+        DateTime.tryParse((json['lastSeen'] ?? '') as String) ?? DateTime.now(),
   );
 }
 
 // ─── Service Manager ────────────────────────────────────────────────────────
 class BackgroundTrackingService {
-  static final BackgroundTrackingService _instance = BackgroundTrackingService._internal();
+  static final BackgroundTrackingService _instance =
+      BackgroundTrackingService._internal();
   factory BackgroundTrackingService() => _instance;
   BackgroundTrackingService._internal();
 
@@ -82,7 +81,8 @@ class BackgroundTrackingService {
 
     await flutterLocalNotificationsPlugin
         .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
+          AndroidFlutterLocalNotificationsPlugin
+        >()
         ?.createNotificationChannel(channel);
 
     await service.configure(
@@ -104,12 +104,12 @@ class BackgroundTrackingService {
   }
 
   Future<void> startService() async {
-    // Auto-registration has been removed. Registration now only happens securely 
+    // Auto-registration has been removed. Registration now only happens securely
     // via the UI when a physical beacon is detected in range.
 
     final service = FlutterBackgroundService();
     if (!(await service.isRunning())) {
-      service.startService();
+      await service.startService();
     }
   }
 
@@ -133,12 +133,11 @@ class BackgroundTrackingService {
   /// Stream of new beacon detections for global popups
   Stream<Map<String, dynamic>?> get beaconDetectedStream =>
       FlutterBackgroundService().on('beaconDetected');
-      
+
   /// Stream of punch errors from the background service to the UI
   Stream<Map<String, dynamic>?> get punchErrorStream =>
       FlutterBackgroundService().on('punchError');
 }
-
 
 // ─── iOS Background Handler ──────────────────────────────────────────────────
 @pragma('vm:entry-point')
@@ -169,31 +168,107 @@ Future<void> onStart(ServiceInstance service) async {
 
   // ── Service control commands ────────────────────────────────────────────
   if (service is AndroidServiceInstance) {
-    service.on('setAsForeground').listen((_) => service.setAsForegroundService());
-    service.on('setAsBackground').listen((_) => service.setAsBackgroundService());
+    service
+        .on('setAsForeground')
+        .listen((_) => service.setAsForegroundService());
+    service
+        .on('setAsBackground')
+        .listen((_) => service.setAsBackgroundService());
   }
-  service.on('stopService').listen((_) => service.stopSelf());
-  
+
   service.on('updateRegisteredBeacons').listen((event) {
     if (event != null && event['beacons'] != null) {
       GetStorage().write('registered_beacons', event['beacons']);
     }
   });
 
+  // The background isolate has a separate Dart VM — GetStorage is NOT synced with the main app.
+  // The main app pushes credentials here so the background punch always has the correct values.
+  service.on('updateCredentials').listen((event) {
+    if (event != null) {
+      if (event['username'] != null)
+        GetStorage().write('username', event['username']);
+      if (event['email'] != null) GetStorage().write('email', event['email']);
+      if (event['instanceName'] != null)
+        GetStorage().write('instanceName', event['instanceName']);
+      debugPrint(
+        '[BLE Service] Credentials updated: username=${event['username']} instanceName=${event['instanceName']}',
+      );
+    }
+  });
+
+
   // ── Fetch authorized beacons from the real API ──────────────────────────
   await BluetoothAttendanceConfig.refreshBeaconsFromApi();
-  debugPrint('[BLE Service] Authorized beacons: ${BluetoothAttendanceConfig.authorizedBeacons.length}');
+  debugPrint(
+    '[BLE Service] Authorized beacons: ${BluetoothAttendanceConfig.authorizedBeacons.length}',
+  );
 
   // ── State ───────────────────────────────────────────────────────────────
   final Map<String, DateTime> _beaconLastSeen = {};
-  final Set<String> _punchedIn = Set<String>.from(storage.read('punched_in_beacons') ?? []); // MAC addresses currently punched IN
-  final Set<String> _notifiedBeacons = {}; // MAC addresses we already notified the user about
+  final Set<String> _punchedIn = Set<String>.from(
+    storage.read('punched_in_beacons') ?? [],
+  ); // MAC addresses currently punched IN
+  final Set<String> _notifiedBeacons =
+      {}; // MAC addresses we already notified the user about
   final Map<String, List<int>> _rssiBuffer = {}; // Store last 5 RSSI readings
   bool _isBluetoothOn = false;
+  bool _isScanPausedByUi = false; // Prevents OOM when camera is open
+  bool _bluetoothAdapterJustTurnedOff =
+      false; // Track if adapter itself went OFF (vs beacon leaving range)
+  bool _scanStartInProgress = false;
+  bool _outCheckInProgress = false;
+  int _lastUiUpdate = 0;
+  int _lastPunchProcess = 0;
+  final Set<String> _pendingIn = {};
   StreamSubscription? _scanSub;
+  StreamSubscription? _adapterSub;
+  StreamSubscription? _rangingSub;
   Timer? _periodicScanTimer;
+  DateTime _lastAnyScanResult = DateTime.now();
+  Timer? _outTimer;
 
-  const Duration gracePeriod = Duration(seconds: 30); // Allow 30s buffer for missed bluetooth packets before punching OUT
+  // ── Reset punch state on logout ─────────────────────────────────────────
+  // When user logs out, the service keeps running but we must wipe all
+  // in-memory and persisted punch state so the next user starts clean.
+  service.on('resetPunchState').listen((_) {
+    _punchedIn.clear();
+    _pendingIn.clear();
+    _detectedBeacons.clear();
+    _beaconLastSeen.clear();
+    _rssiBuffer.clear();
+    _notifiedBeacons.clear();
+    GetStorage().write('punched_in_beacons', <String>[]);
+    // Clear all per-beacon debounce keys
+    final storage2 = GetStorage();
+    try {
+      final keys = storage2.getKeys<Iterable<String>>();
+      if (keys != null) {
+        for (final key in List<String>.from(keys)) {
+          if (key.startsWith('last_api_punch_')) storage2.remove(key);
+        }
+      }
+    } catch (_) {}
+    debugPrint('[BLE Service] Punch state reset on logout.');
+  });
+
+  service.on('stopService').listen((_) async {
+    _isBluetoothOn = false;
+    _periodicScanTimer?.cancel();
+    _outTimer?.cancel();
+    await _scanSub?.cancel();
+    await _adapterSub?.cancel();
+    await _rangingSub?.cancel();
+    try {
+      await FlutterBluePlus.stopScan();
+    } finally {
+      await service.stopSelf();
+    }
+  });
+
+  const Duration gracePeriod = Duration(
+    seconds: 30,
+  ); // Allow 30s buffer for missed bluetooth packets before punching OUT
   const int rssiThreshold = -100; // Only punch in if signal is strong enough
   const int minSamples = 1; // Require only 1 scan cycle for FAST detection
 
@@ -222,6 +297,12 @@ Future<void> onStart(ServiceInstance service) async {
     for (final entry in entriesCopy) {
       final mac = entry.key;
       final beacon = entry.value;
+      final seenAt = _beaconLastSeen[mac];
+      if (!_isBluetoothOn ||
+          _pendingIn.contains(mac) ||
+          seenAt == null ||
+          DateTime.now().difference(seenAt) > const Duration(seconds: 10))
+        continue;
 
       final employeeName = storage.read('employeeName') ?? 'Employee';
       final beaconName = (beacon['name'] as String?) ?? mac;
@@ -230,45 +311,59 @@ Future<void> onStart(ServiceInstance service) async {
       // Match against live authorized beacon list from the server.
       bool isAuthorized = BluetoothAttendanceConfig.authorizedBeacons.any((b) {
         final cleanUuid = b.uuid.replaceAll('-', '').toLowerCase();
-        final cleanMac = mac.replaceAll(':', '').replaceAll('-', '').toLowerCase();
+        final cleanMac = mac
+            .replaceAll(':', '')
+            .replaceAll('-', '')
+            .toLowerCase();
         final cleanName = name.replaceAll('-', '').toLowerCase();
         final cleanBeaconName = beaconName.replaceAll('-', '').toLowerCase();
         final cleanBeaconId = b.beaconId.replaceAll('-', '').toLowerCase();
 
         return cleanBeaconId == cleanBeaconName ||
-               cleanBeaconId == cleanName ||
-               cleanUuid == cleanMac ||
-               cleanUuid == cleanBeaconName ||
-               cleanUuid == cleanName;
+            cleanBeaconId == cleanName ||
+            cleanUuid == cleanMac ||
+            cleanUuid == cleanBeaconName ||
+            cleanUuid == cleanName;
       });
 
       final samples = _rssiBuffer[mac] ?? [];
-      final avgRssi = samples.isEmpty ? -100.0 : samples.reduce((a, b) => a + b) / samples.length;
+      final avgRssi = samples.isEmpty
+          ? -100.0
+          : samples.reduce((a, b) => a + b) / samples.length;
 
-      final registeredBeacons = List<String>.from(storage.read('registered_beacons') ?? []);
+      final registeredBeacons = List<String>.from(
+        storage.read('registered_beacons') ?? [],
+      );
       final isRegisteredLocally = registeredBeacons.contains(beaconName);
 
       // Read the true global state to prevent zombie isolates from duplicate punching
-      final currentPunchedIn = List<String>.from(storage.read('punched_in_beacons') ?? []);
+      final currentPunchedIn = List<String>.from(
+        storage.read('punched_in_beacons') ?? [],
+      );
 
-      if (!currentPunchedIn.contains(mac) && avgRssi >= rssiThreshold && samples.length >= minSamples && isAuthorized && isRegisteredLocally) {
+      if (!currentPunchedIn.contains(mac) &&
+          avgRssi >= rssiThreshold &&
+          samples.length >= minSamples &&
+          isAuthorized &&
+          isRegisteredLocally) {
         final nowMs = DateTime.now().millisecondsSinceEpoch;
         final lastPunch = storage.read('last_api_punch_$mac') ?? 0;
-        
+
         // GLOBAL DEBOUNCE: strictly prevent ANY punch (IN or OUT) within 60 seconds of a previous one
         if (nowMs - lastPunch < 60000) continue;
         storage.write('last_api_punch_$mac', nowMs);
 
-        currentPunchedIn.add(mac);
-        storage.write('punched_in_beacons', currentPunchedIn);
-        _punchedIn.add(mac); // sync local cache
+        _pendingIn.add(mac);
         try {
           // Fetch heavy hardware info ONLY when we actually need to punch in
           final deviceId = await _getDeviceId();
           Position? position;
           try {
             position = await Geolocator.getCurrentPosition(
-              locationSettings: const LocationSettings(accuracy: LocationAccuracy.high, timeLimit: Duration(seconds: 10)),
+              locationSettings: const LocationSettings(
+                accuracy: LocationAccuracy.high,
+                timeLimit: Duration(seconds: 10),
+              ),
             );
           } catch (_) {}
 
@@ -276,64 +371,68 @@ Future<void> onStart(ServiceInstance service) async {
           final email = (storage.read('email') ?? '').toString();
           final usrEmail = userName.isNotEmpty ? userName : email;
           final instanceName = (storage.read('instanceName') ?? '').toString();
+          debugPrint(
+            '[BLE Punch] usrEmail=$usrEmail instanceName=$instanceName',
+          );
 
           // ── Call MarkAttendancev2 directly for Bluetooth punch ──────────
           final now = DateTime.now();
           final utcStr = DateFormat('MM/dd/yyyy HH:mm:ss').format(now.toUtc());
           final localStr = DateFormat('MM/dd/yyyy HH:mm:ss').format(now);
           final off = now.timeZoneOffset;
-          final tz = '${off.inHours >= 0 ? '+' : ''}${off.inHours.toString().padLeft(2, '0')}:${off.inMinutes.remainder(60).toString().padLeft(2, '0')}';
+          final tz =
+              '${off.inHours >= 0 ? '+' : ''}${off.inHours.toString().padLeft(2, '0')}:${off.inMinutes.remainder(60).toString().padLeft(2, '0')}';
           final deviceinfo = '$deviceId|Bluetooth Mobile|$utcStr|$localStr|$tz';
           final lat = position?.latitude.toStringAsFixed(6) ?? '0.000000';
           final lng = position?.longitude.toStringAsFixed(6) ?? '0.000000';
-          final locationinfo = '$lat|$lng| Address : $lat/$lng,';
+          // Put the Beacon ID in the location address so it is safely recorded without breaking SQL column length limits
+          final locationinfo = '$lat|$lng| Address : BLE Beacon $beaconName,';
 
           final uri = Uri.parse(ApiEndpoints.markAttendancev2);
           final request = http.MultipartRequest('POST', uri);
-          request.fields['usrEmail']     = usrEmail;
+          request.fields['usrEmail'] = usrEmail;
           request.fields['instanceName'] = instanceName;
-          request.fields['checktype']    = '0'; // '0' = Punch IN (matches API contract)
-          request.fields['Devicename']   = 'Beacon: $beaconName'; // Sends Beacon ID so backend knows WHERE they punched
-          request.fields['deviceinfo']   = deviceinfo;
+          request.fields['checktype'] = '0'; // '0' = Punch IN
+          request.fields['Devicename'] =
+              'Bluetooth Mobile'; // Same pattern as 'Fingerprint Mobile' which works
+          request.fields['deviceinfo'] = deviceinfo;
           request.fields['locationinfo'] = locationinfo;
-          request.fields['Lang']         = (storage.read('currentLangCode') ?? storage.read('langCode') ?? '1').toString();
+          request.fields['Lang'] =
+              (storage.read('currentLangCode') ??
+                      storage.read('langCode') ??
+                      '1')
+                  .toString();
+          // NOTE: punchimage intentionally omitted — same as fingerprint punch which is confirmed to work on this backend
 
-          // Many employee profiles require a photo to punch in. Since Bluetooth happens in the pocket, we send a tiny 1x1 pixel image to bypass the backend's null check.
-          final dummyImage = Uint8List.fromList([
-            0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00, 0x01, 0x01, 0x01, 0x00, 0x48,
-            0x00, 0x48, 0x00, 0x00, 0xFF, 0xDB, 0x00, 0x43, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xC0, 0x00, 0x0B, 0x08, 0x00, 0x01,
-            0x00, 0x01, 0x01, 0x01, 0x11, 0x00, 0xFF, 0xC4, 0x00, 0x14, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x09, 0xFF, 0xDA, 0x00, 0x08,
-            0x01, 0x01, 0x00, 0x00, 0x3F, 0x00, 0x37, 0xFF, 0xD9
-          ]);
-          request.files.add(http.MultipartFile.fromBytes('punchimage', dummyImage, filename: 'bluetooth_punch.jpg'));
-
-          final ioClient = HttpClient()..badCertificateCallback = (_, __, ___) => true;
+          final ioClient = HttpClient()
+            ..badCertificateCallback = (_, __, ___) => true;
           final client = io_client.IOClient(ioClient);
-          http.StreamedResponse? resp;
+          late http.Response resp;
           try {
-            resp = await client.send(request).timeout(const Duration(seconds: 30));
+            resp = await client
+                .send(request)
+                .then(http.Response.fromStream)
+                .timeout(const Duration(seconds: 30));
           } finally {
             client.close();
           }
 
-          final body = await resp.stream.bytesToString();
+          final body = resp.body;
           debugPrint('[BLE Punch] MarkAttendancev2 ${resp.statusCode}: $body');
 
-          final ok = resp.statusCode == 200 &&
-              (body.replaceAll('"', '').trim().toLowerCase().startsWith('true') ||
-               body.toLowerCase().contains('success'));
+          final ok = attendanceAccepted(resp.statusCode, body);
 
           if (ok) {
+            _punchedIn.add(mac);
+            await storage.write('punched_in_beacons', _punchedIn.toList());
             try {
               final hasPerm = await Permission.notification.isGranted;
               if (hasPerm) {
+                // Use unique notification ID per event (timestamp-based) so each punch
+                // shows as a separate notification instead of overwriting the previous one
+                final notifId = DateTime.now().millisecondsSinceEpoch % 100000;
                 flutterLocalNotificationsPlugin.show(
-                  889,
+                  notifId,
                   '✅ Attendance: IN — $employeeName',
                   'Beacon "$beaconName" verified.',
                   const NotificationDetails(
@@ -375,6 +474,8 @@ Future<void> onStart(ServiceInstance service) async {
             'beaconName': beaconName,
             'error': e.toString(),
           });
+        } finally {
+          _pendingIn.remove(mac);
         }
       }
     }
@@ -384,26 +485,25 @@ Future<void> onStart(ServiceInstance service) async {
   void _startIBeaconScan() async {
     try {
       await flutterBeacon.initializeScanning;
-      
+
       final regions = BluetoothAttendanceConfig.authorizedBeacons.map((config) {
-        return Region(
-          identifier: config.beaconId,
-          proximityUUID: config.uuid,
-        );
+        return Region(identifier: config.beaconId, proximityUUID: config.uuid);
       }).toList();
 
-      flutterBeacon.ranging(regions).listen((RangingResult result) {
-        final Map<String, Map<String, dynamic>> detected = {};
+      _rangingSub = flutterBeacon.ranging(regions).listen((
+        RangingResult result,
+      ) {
         for (final beacon in result.beacons) {
-          final macOrId = beacon.macAddress ?? '${beacon.proximityUUID}-${beacon.major}-${beacon.minor}';
-          
-          detected[macOrId] = {
+          final macOrId = result.region.identifier;
+
+          _detectedBeacons[macOrId] = {
             'name': result.region.identifier,
             'macAddress': macOrId,
             'rssi': beacon.rssi,
             'lastSeen': DateTime.now().toIso8601String(),
           };
           _beaconLastSeen[macOrId] = DateTime.now();
+          _rssiBuffer[macOrId] = [beacon.rssi];
         }
 
         if (_detectedBeacons.isNotEmpty) {
@@ -425,31 +525,51 @@ Future<void> onStart(ServiceInstance service) async {
   // ── Generic BLE Scan (Android fallback) ──────────────────────────────────
 
   void _runScan() async {
-    if (!_isBluetoothOn) return;
-    
-    // Stop any existing scan before starting a fresh continuous one
-    try {
-      if (FlutterBluePlus.isScanningNow) {
-        await FlutterBluePlus.stopScan();
-        await Future.delayed(const Duration(seconds: 1));
-      }
-    } catch (_) {}
+    if (!_isBluetoothOn ||
+        _scanStartInProgress ||
+        _isScanPausedByUi ||
+        FlutterBluePlus.isScanningNow)
+      return;
 
+    _scanStartInProgress = true;
     try {
       await FlutterBluePlus.startScan(
-        // Use continuous updates to ensure we receive every packet.
-        // We removed the 15-second restart loop because it causes Samsung devices 
-        // to deadlock (ANR freeze) and forces Android to regurgitate ghost beacons.
-        continuousUpdates: true, 
+        // continuousUpdates: true keeps the scan alive indefinitely.
+        // Do NOT add withMsd/withNames: OS-level filters block beacons before our code sees them.
+        // Do NOT add continuousDivisor > 1: it drops packets and makes the beacon appear/disappear.
+        // Memory is controlled by the throttle in the scanResults listener instead.
+        continuousUpdates: true,
       );
     } catch (e) {
       debugPrint('[BLE] StartScan error: $e');
+    } finally {
+      _scanStartInProgress = false;
     }
   }
 
-  FlutterBluePlus.adapterState.listen((state) {
+  service.on('pauseScan').listen((_) async {
+    _isScanPausedByUi = true;
+    try {
+      await FlutterBluePlus.stopScan();
+      debugPrint('[BLE Service] Scan paused by UI to prevent OOM');
+    } catch (_) {}
+  });
+
+  service.on('resumeScan').listen((_) {
+    _isScanPausedByUi = false;
+    debugPrint('[BLE Service] Scan resumed by UI');
+    if (_isBluetoothOn) _runScan();
+  });
+
+  _adapterSub = FlutterBluePlus.adapterState.listen((state) async {
     if (state == BluetoothAdapterState.on) {
       _isBluetoothOn = true;
+      _bluetoothAdapterJustTurnedOff = false; // Adapter is back ON — reset flag
+      final resumedAt = DateTime.now();
+      for (final beacon in _punchedIn) {
+        _beaconLastSeen.putIfAbsent(beacon, () => resumedAt);
+      }
+      debugPrint('[BLE] Bluetooth is ON; ensuring scan is running');
       if (service is AndroidServiceInstance) {
         service.setForegroundNotificationInfo(
           title: '📡 ResourcePlus Active',
@@ -457,22 +577,39 @@ Future<void> onStart(ServiceInstance service) async {
         );
       }
       _runScan();
+      // Bluetooth can report ON before Android's scanner is ready. Retry only
+      // when FlutterBluePlus reports that scanning is no longer active.
       _periodicScanTimer?.cancel();
+      _periodicScanTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+        if (_isBluetoothOn && !FlutterBluePlus.isScanningNow) {
+          debugPrint('[BLE] Scanner inactive while Bluetooth is ON; retrying');
+          _runScan();
+        }
+      });
     } else {
       _isBluetoothOn = false;
+      _periodicScanTimer?.cancel();
+      _periodicScanTimer = null;
+      // FIX: Mark that the adapter itself turned OFF (user disabled Bluetooth).
+      // The grace period timer must NOT punch OUT in this case — it is NOT the same
+      // as physically leaving the beacon's range.
+      _bluetoothAdapterJustTurnedOff = true;
+      // Clear all beacon tracking so the timer does not fire punch OUTs
+      _beaconLastSeen.clear();
+      _detectedBeacons.clear();
+      _rssiBuffer.clear();
+      service.invoke('beaconUpdate', {'beacons': <Map<String, dynamic>>[]});
       if (service is AndroidServiceInstance) {
         service.setForegroundNotificationInfo(
           title: '📡 ResourcePlus Paused',
           content: 'Bluetooth is OFF. Scanning paused.',
         );
       }
-      FlutterBluePlus.stopScan();
-      _periodicScanTimer?.cancel();
-      
-      // We intentionally do NOT clear _beaconLastSeen here. 
-      // This allows the 30-second grace period timer to correctly identify
-      // that the beacon hasn't been seen recently, which will trigger the
-      // automatic Punch OUT API call!
+      try {
+        await FlutterBluePlus.stopScan();
+      } catch (e) {
+        debugPrint('[BLE] StopScan error while Bluetooth is OFF: $e');
+      }
     }
   });
 
@@ -480,6 +617,7 @@ Future<void> onStart(ServiceInstance service) async {
   _scanSub = FlutterBluePlus.scanResults.listen((results) async {
     if (!_isBluetoothOn) return;
     final now = DateTime.now();
+    _lastAnyScanResult = now;
 
     for (final result in results) {
       // Ignore stale cached results emitted by Android's continuous scanner
@@ -488,7 +626,7 @@ Future<void> onStart(ServiceInstance service) async {
       String name = result.device.platformName.trim().isNotEmpty
           ? result.device.platformName.trim()
           : result.advertisementData.advName.trim();
-          
+
       String extractedUuid = '';
 
       // Parse iBeacon manufacturer data (Apple = 76 / 0x004C)
@@ -497,7 +635,9 @@ Future<void> onStart(ServiceInstance service) async {
         // iBeacon packet structure: 02 15 [16 byte UUID] [2 byte Major] [2 byte Minor] [1 byte TX Power]
         if (data.length >= 23 && data[0] == 0x02 && data[1] == 0x15) {
           final uuidBytes = data.sublist(2, 18);
-          extractedUuid = uuidBytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join('');
+          extractedUuid = uuidBytes
+              .map((b) => b.toRadixString(16).padLeft(2, '0'))
+              .join('');
           // If the beacon didn't have a name, use its raw UUID as the identifier
           if (name.isEmpty) {
             name = extractedUuid;
@@ -505,42 +645,52 @@ Future<void> onStart(ServiceInstance service) async {
         }
       }
 
-      if (name.isEmpty && extractedUuid.isEmpty) continue; // Skip pure noise (nameless and non-iBeacon)
+      if (name.isEmpty && extractedUuid.isEmpty)
+        continue; // Skip pure noise (nameless and non-iBeacon)
 
       final mac = result.device.remoteId.str;
-      
+
       // Try to match against authorized beacons to get the REAL name (e.g. DEMO-OFFICE-001)
-      final cleanMacForMatch = mac.replaceAll(':', '').replaceAll('-', '').toLowerCase();
+      final cleanMacForMatch = mac
+          .replaceAll(':', '')
+          .replaceAll('-', '')
+          .toLowerCase();
       final cleanNameForMatch = name.replaceAll('-', '').toLowerCase();
-      final cleanExtractedUuid = extractedUuid.replaceAll('-', '').toLowerCase();
+      final cleanExtractedUuid = extractedUuid
+          .replaceAll('-', '')
+          .toLowerCase();
 
       bool isAuthorized = false;
       String site = '';
       String zone = '';
       for (final b in BluetoothAttendanceConfig.authorizedBeacons) {
-         final cleanUuid = b.uuid.replaceAll('-', '').toLowerCase();
-         final cleanBeaconId = b.beaconId.replaceAll('-', '').toLowerCase();
-         
-         if (cleanBeaconId == cleanNameForMatch ||
-             cleanUuid == cleanMacForMatch ||
-             cleanUuid == cleanExtractedUuid ||
-             cleanUuid == cleanNameForMatch) {
-             name = b.beaconId; // USE THE OFFICIAL NAME!
-             site = b.site;
-             zone = b.zone;
-             isAuthorized = true;
-             break;
-         }
+        final cleanUuid = b.uuid.replaceAll('-', '').toLowerCase();
+        final cleanBeaconId = b.beaconId.replaceAll('-', '').toLowerCase();
+
+        if (cleanBeaconId == cleanNameForMatch ||
+            cleanUuid == cleanMacForMatch ||
+            cleanUuid == cleanExtractedUuid ||
+            cleanUuid == cleanNameForMatch) {
+          name = b.beaconId; // USE THE OFFICIAL NAME!
+          site = b.site;
+          zone = b.zone;
+          isAuthorized = true;
+          break;
+        }
       }
 
-      // We no longer filter out unauthorized beacons here, because the user
-      // needs to see them in the UI in order to manually click "Register".
-      // The `_processPunches` function will still only punch IN if `isAuthorized` is true.
-      
+      // FIX: Only show AUTHORIZED beacons in the UI and tracking maps.
+      // Unauthorized devices (like "Sreelakshmi's iPhone") must be completely
+      // ignored — they clutter the beacon list and can cause false punches.
+      if (!isAuthorized) continue;
+
       // CRITICAL FIX: Apple/Android beacon simulators rotate their hardware MAC address for privacy.
-      // To prevent "seeing two of the same beacon", we MUST group authorized beacons by their 
+      // To prevent "seeing two of the same beacon", we MUST group authorized beacons by their
       // logical Beacon ID instead of their physical MAC address!
-      final trackingKey = isAuthorized ? name : mac;
+      final trackingKey = name; // Always use official beacon name as the key
+      final previousSeen = _beaconLastSeen[trackingKey];
+      if (previousSeen != null && !result.timeStamp.isAfter(previousSeen))
+        continue;
 
       _detectedBeacons[trackingKey] = {
         'name': name,
@@ -551,20 +701,19 @@ Future<void> onStart(ServiceInstance service) async {
         'lastSeen': result.timeStamp.toIso8601String(),
       };
       _beaconLastSeen[trackingKey] = result.timeStamp;
-      
+
       _rssiBuffer.putIfAbsent(trackingKey, () => []);
       _rssiBuffer[trackingKey]!.add(result.rssi);
-      if (_rssiBuffer[trackingKey]!.length > 5) _rssiBuffer[trackingKey]!.removeAt(0); // Keep last 5 samples
+      if (_rssiBuffer[trackingKey]!.length > 5)
+        _rssiBuffer[trackingKey]!.removeAt(0); // Keep last 5 samples
     }
 
     // ── Throttle the platform channel spam to prevent Android NativeAlloc OOM ──
     final int nowMs = now.millisecondsSinceEpoch;
-    final int lastUiUpdate = storage.read('last_ui_update_time') ?? 0;
-    final int lastPunchProcess = storage.read('last_punch_process_time') ?? 0;
-    
+
     // Update the UI quickly (every 500ms) so it doesn't feel laggy
-    if (nowMs - lastUiUpdate > 500) {
-      storage.write('last_ui_update_time', nowMs);
+    if (nowMs - _lastUiUpdate > 1000) {
+      _lastUiUpdate = nowMs;
       if (_detectedBeacons.isNotEmpty) {
         service.invoke('beaconUpdate', {
           'beacons': _detectedBeacons.values.toList(),
@@ -573,173 +722,230 @@ Future<void> onStart(ServiceInstance service) async {
     }
 
     // Run the heavier auto-punch logic less frequently (every 2.5 seconds) to save battery and memory
-    if (nowMs - lastPunchProcess > 2500) {
-      storage.write('last_punch_process_time', nowMs);
+    if (nowMs - _lastPunchProcess > 2500) {
+      _lastPunchProcess = nowMs;
       _processPunches(_detectedBeacons);
     }
   });
 
-
-
   // ── Grace period timer: check for Punch OUT ───────────────────────────────
-  Timer.periodic(const Duration(seconds: 10), (_) async {
-    final now = DateTime.now();
-    final expired = <String>[];
+  _outTimer = Timer.periodic(const Duration(seconds: 10), (_) async {
+    if (_outCheckInProgress ||
+        !_isBluetoothOn ||
+        _bluetoothAdapterJustTurnedOff)
+      return;
+    _outCheckInProgress = true;
+    try {
+      final now = DateTime.now();
 
-    for (final entry in _beaconLastSeen.entries) {
-      if (now.difference(entry.value) > gracePeriod) {
-        expired.add(entry.key);
-      }
-    }
-
-    if (expired.isNotEmpty) {
-      final deviceId = await _getDeviceId();
-      Position? position;
-      try {
-        position = await Geolocator.getCurrentPosition(
-          locationSettings: const LocationSettings(accuracy: LocationAccuracy.high, timeLimit: Duration(seconds: 10)),
+      // Android silently kills unfiltered background scans after ~30 mins.
+      // Detect this by checking if FlutterBluePlus thinks it is scanning BUT
+      // we haven't received any packets in over 90 seconds — the scan is dead.
+      final scanAppearsAlive = FlutterBluePlus.isScanningNow;
+      final noPacketsTooLong =
+          now.difference(_lastAnyScanResult) > const Duration(seconds: 90);
+      if (_isBluetoothOn && !_scanStartInProgress &&
+          (!scanAppearsAlive || noPacketsTooLong)) {
+        debugPrint(
+          '[BLE] Scan dead (isScanningNow=$scanAppearsAlive, noPackets=$noPacketsTooLong). Restarting...',
         );
-      } catch (_) {}
+        _lastAnyScanResult = now; // reset to prevent spamming
+        try {
+          await FlutterBluePlus.stopScan();
+          await Future.delayed(const Duration(milliseconds: 500));
+        } catch (_) {}
+        _runScan();
+        _outCheckInProgress = false;
+        return;
+      }
 
-      final repo = BluetoothAttendanceConfig.demoMode
-          ? MockBluetoothAttendanceRepository()
-          : ApiBluetoothAttendanceRepository();
+      final expired = <String>[];
 
-      for (final mac in expired) {
-        // Get the exact moment the beacon was last seen before it expired
-        final exactTimeLeft = _beaconLastSeen[mac] ?? DateTime.now().subtract(gracePeriod);
-
-        _beaconLastSeen.remove(mac);
-        _notifiedBeacons.remove(mac);
-        _rssiBuffer.remove(mac);
-        _detectedBeacons.remove(mac);
-        
-        // Remove the "New Beacon Detected" notification
-        flutterLocalNotificationsPlugin.cancel(mac.hashCode);
-
-        final currentPunchedIn = List<String>.from(storage.read('punched_in_beacons') ?? []);
-
-        if (currentPunchedIn.contains(mac)) {
-          final nowMs = DateTime.now().millisecondsSinceEpoch;
-          final lastPunch = storage.read('last_api_punch_$mac') ?? 0;
-          
-          // GLOBAL DEBOUNCE: strictly prevent ANY punch (IN or OUT) within 60 seconds of a previous one
-          if (nowMs - lastPunch < 60000) continue;
-          storage.write('last_api_punch_$mac', nowMs);
-
-          final employeeName = storage.read('employeeName') ?? 'Employee';
-          
-          final utcStr = DateFormat('MM/dd/yyyy HH:mm:ss').format(exactTimeLeft.toUtc());
-          final localStr = DateFormat('MM/dd/yyyy HH:mm:ss').format(exactTimeLeft);
-          final off = now.timeZoneOffset;
-          final tz = '${off.inHours >= 0 ? '+' : ''}${off.inHours.toString().padLeft(2, '0')}:${off.inMinutes.remainder(60).toString().padLeft(2, '0')}';
-          final deviceinfo = '$deviceId|Bluetooth Mobile|$utcStr|$localStr|$tz';
-          final lat = position?.latitude.toStringAsFixed(6) ?? '0.000000';
-          final lng = position?.longitude.toStringAsFixed(6) ?? '0.000000';
-          final locationinfo = '$lat|$lng| Address : $lat/$lng,';
-          final usrEmail = (storage.read('username') ?? storage.read('userEmail') ?? '').toString();
-          final instanceName = (storage.read('instanceName') ?? '').toString();
-
-          try {
-            final uri = Uri.parse(ApiEndpoints.markAttendancev2);
-            final request = http.MultipartRequest('POST', uri);
-            request.fields['usrEmail']     = usrEmail;
-            request.fields['instanceName'] = instanceName;
-            request.fields['checktype']    = '1'; // '1' = Punch OUT
-            request.fields['Devicename']   = 'Beacon: $mac';
-            request.fields['deviceinfo']   = deviceinfo;
-            request.fields['locationinfo'] = locationinfo;
-            request.fields['Lang']         = (storage.read('currentLangCode') ?? storage.read('langCode') ?? '1').toString();
-
-            final dummyImageOut = Uint8List.fromList([
-              0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00, 0x01, 0x01, 0x01, 0x00, 0x48,
-              0x00, 0x48, 0x00, 0x00, 0xFF, 0xDB, 0x00, 0x43, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-              0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-              0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-              0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-              0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xC0, 0x00, 0x0B, 0x08, 0x00, 0x01,
-              0x00, 0x01, 0x01, 0x01, 0x11, 0x00, 0xFF, 0xC4, 0x00, 0x14, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
-              0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x09, 0xFF, 0xDA, 0x00, 0x08,
-              0x01, 0x01, 0x00, 0x00, 0x3F, 0x00, 0x37, 0xFF, 0xD9
-            ]);
-            request.files.add(http.MultipartFile.fromBytes('punchimage', dummyImageOut, filename: 'bluetooth_punch_out.jpg'));
-
-            final ioClient = HttpClient()..badCertificateCallback = (_, __, ___) => true;
-            final client = io_client.IOClient(ioClient);
-            http.StreamedResponse? resp;
-            try {
-              resp = await client.send(request).timeout(const Duration(seconds: 30));
-            } finally {
-              client.close();
-            }
-
-            final body = await resp.stream.bytesToString();
-            final ok = resp.statusCode == 200 &&
-                (body.replaceAll('"', '').trim().toLowerCase().startsWith('true') ||
-                 body.toLowerCase().contains('success'));
-
-            if (ok) {
-              currentPunchedIn.remove(mac);
-              storage.write('punched_in_beacons', currentPunchedIn);
-              _punchedIn.remove(mac);
-
-          // Punch OUT notification
-          try {
-            final hasPerm = await Permission.notification.isGranted;
-            if (hasPerm) {
-              flutterLocalNotificationsPlugin.show(
-                890,
-                '🔴 Attendance: OUT — $employeeName',
-                'Left beacon range. API recorded check-out.',
-                const NotificationDetails(
-                  android: AndroidNotificationDetails(
-                    'bluetooth_attendance_channel',
-                    'Bluetooth Attendance Tracking',
-                    icon: '@mipmap/launcher_icon',
-                    importance: Importance.high,
-                    priority: Priority.high,
-                  ),
-                ),
-              );
-            }
-          } catch (e) {
-            debugPrint('[BLE Punch Out] Failed to show notification: $e');
-          }
-
-            // Notify Flutter UI of punch OUT
-            service.invoke('punchEvent', {
-              'type': 'PUNCH_OUT',
-              'beaconMac': mac,
-              'employeeName': employeeName,
-              'timestamp': DateTime.now().toIso8601String(),
-            });
-
-            // Store in common local history
-            final localRepo = MockLocalPunchRepository();
-            localRepo.savePunch(LocalPunchRecord(
-              id: DateTime.now().millisecondsSinceEpoch.toString(),
-              timestamp: DateTime.now(),
-              checkType: 'O',
-              location: 'Office (Left Beacon Range)',
-              shiftDetails: 'Morning Shift',
-              punchMethod: 'Bluetooth',
-              deviceId: mac,
-              employeeName: employeeName,
-            ));
-          } else {
-             print('API rejected check-out: $body');
-            }
-          } catch (e) {
-            debugPrint('[BLE Punch OUT Error] $e');
-          }
+      for (final entry in _beaconLastSeen.entries) {
+        if (now.difference(entry.value) > gracePeriod) {
+          expired.add(entry.key);
         }
       }
 
       if (expired.isNotEmpty) {
-        service.invoke('beaconUpdate', {
-          'beacons': _detectedBeacons.values.toList(),
-        });
+        final deviceId = await _getDeviceId();
+        Position? position;
+        try {
+          position = await Geolocator.getCurrentPosition(
+            locationSettings: const LocationSettings(
+              accuracy: LocationAccuracy.high,
+              timeLimit: Duration(seconds: 10),
+            ),
+          );
+        } catch (_) {}
+
+        for (final mac in expired) {
+          if (_pendingIn.contains(mac)) continue;
+          final lastSeen = _beaconLastSeen[mac];
+          if (!_isBluetoothOn ||
+              lastSeen == null ||
+              DateTime.now().difference(lastSeen) <= gracePeriod)
+            continue;
+          // Get the exact moment the beacon was last seen before it expired
+          final exactTimeLeft =
+              _beaconLastSeen[mac] ?? DateTime.now().subtract(gracePeriod);
+
+          // Keep lastSeen until OUT succeeds so cooldowns and failures retry.
+          _notifiedBeacons.remove(mac);
+          _rssiBuffer.remove(mac);
+          _detectedBeacons.remove(mac);
+
+          // Remove the "New Beacon Detected" notification
+          flutterLocalNotificationsPlugin.cancel(mac.hashCode);
+
+          final currentPunchedIn = List<String>.from(
+            storage.read('punched_in_beacons') ?? [],
+          );
+
+          if (currentPunchedIn.contains(mac)) {
+            final nowMs = DateTime.now().millisecondsSinceEpoch;
+            final lastPunch = storage.read('last_api_punch_$mac') ?? 0;
+
+            // GLOBAL DEBOUNCE: strictly prevent ANY punch (IN or OUT) within 60 seconds of a previous one
+            if (nowMs - lastPunch < 60000) continue;
+            storage.write('last_api_punch_$mac', nowMs);
+
+            final employeeName = storage.read('employeeName') ?? 'Employee';
+
+            final utcStr = DateFormat(
+              'MM/dd/yyyy HH:mm:ss',
+            ).format(exactTimeLeft.toUtc());
+            final localStr = DateFormat(
+              'MM/dd/yyyy HH:mm:ss',
+            ).format(exactTimeLeft);
+            final off = now.timeZoneOffset;
+            final tz =
+                '${off.inHours >= 0 ? '+' : ''}${off.inHours.toString().padLeft(2, '0')}:${off.inMinutes.remainder(60).toString().padLeft(2, '0')}';
+            final deviceinfo =
+                '$deviceId|Bluetooth Mobile|$utcStr|$localStr|$tz';
+            final lat = position?.latitude.toStringAsFixed(6) ?? '0.000000';
+            final lng = position?.longitude.toStringAsFixed(6) ?? '0.000000';
+            final locationinfo = '$lat|$lng| Address : BLE Beacon $mac,';
+            final userName2 = (storage.read('username') ?? '').toString();
+            final email2 = (storage.read('email') ?? '').toString();
+            final usrEmail = userName2.isNotEmpty ? userName2 : email2;
+            final instanceName = (storage.read('instanceName') ?? '')
+                .toString();
+            debugPrint(
+              '[BLE OUT] usrEmail=$usrEmail instanceName=$instanceName',
+            );
+
+            try {
+              final uri = Uri.parse(ApiEndpoints.markAttendancev2);
+              final request = http.MultipartRequest('POST', uri);
+              request.fields['usrEmail'] = usrEmail;
+              request.fields['instanceName'] = instanceName;
+              request.fields['checktype'] = '1'; // '1' = Punch OUT
+              request.fields['Devicename'] = 'Bluetooth Mobile';
+              request.fields['deviceinfo'] = deviceinfo;
+              request.fields['locationinfo'] = locationinfo;
+              request.fields['Lang'] =
+                  (storage.read('currentLangCode') ??
+                          storage.read('langCode') ??
+                          '1')
+                      .toString();
+              // punchimage intentionally omitted — same as fingerprint punch pattern
+
+              final ioClient = HttpClient()
+                ..badCertificateCallback = (_, __, ___) => true;
+              final client = io_client.IOClient(ioClient);
+              late http.Response resp;
+              try {
+                resp = await client
+                    .send(request)
+                    .then(http.Response.fromStream)
+                    .timeout(const Duration(seconds: 30));
+              } finally {
+                client.close();
+              }
+
+              final body = resp.body;
+              final ok = attendanceAccepted(resp.statusCode, body);
+
+              if (ok) {
+                final updatedPunchedIn = List<String>.from(
+                  storage.read('punched_in_beacons') ?? [],
+                );
+                updatedPunchedIn.remove(mac);
+                storage.write('punched_in_beacons', updatedPunchedIn);
+                _punchedIn.remove(mac);
+                if (_beaconLastSeen[mac] == exactTimeLeft) {
+                  _beaconLastSeen.remove(mac);
+                }
+
+                // Punch OUT notification — unique ID per event so each OUT shows separately
+                try {
+                  final hasPerm = await Permission.notification.isGranted;
+                  if (hasPerm) {
+                    final notifId =
+                        DateTime.now().millisecondsSinceEpoch % 100000;
+                    flutterLocalNotificationsPlugin.show(
+                      notifId,
+                      '🔴 Attendance: OUT — $employeeName',
+                      'Left beacon range. API recorded check-out.',
+                      const NotificationDetails(
+                        android: AndroidNotificationDetails(
+                          'bluetooth_attendance_channel',
+                          'Bluetooth Attendance Tracking',
+                          icon: '@mipmap/launcher_icon',
+                          importance: Importance.high,
+                          priority: Priority.high,
+                        ),
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  debugPrint('[BLE Punch Out] Failed to show notification: $e');
+                }
+
+                // Notify Flutter UI of punch OUT
+                service.invoke('punchEvent', {
+                  'type': 'PUNCH_OUT',
+                  'beaconMac': mac,
+                  'employeeName': employeeName,
+                  'timestamp': DateTime.now().toIso8601String(),
+                });
+
+                // Store in common local history
+                final localRepo = MockLocalPunchRepository();
+                localRepo.savePunch(
+                  LocalPunchRecord(
+                    id: DateTime.now().millisecondsSinceEpoch.toString(),
+                    timestamp: DateTime.now(),
+                    checkType: 'O',
+                    location: 'Office (Left Beacon Range)',
+                    shiftDetails: 'Morning Shift',
+                    punchMethod: 'Bluetooth',
+                    deviceId: mac,
+                    employeeName: employeeName,
+                  ),
+                );
+              } else {
+                print('API rejected check-out: $body');
+              }
+            } catch (e) {
+              debugPrint('[BLE Punch OUT Error] $e');
+            }
+          } else {
+            _beaconLastSeen.remove(mac);
+          }
+        }
+
+        if (expired.isNotEmpty) {
+          service.invoke('beaconUpdate', {
+            'beacons': _detectedBeacons.values.toList(),
+          });
+        }
       }
+    } catch (e) {
+      debugPrint('[BLE OUT] Check failed; will retry: $e');
+    } finally {
+      _outCheckInProgress = false;
     }
   });
 }

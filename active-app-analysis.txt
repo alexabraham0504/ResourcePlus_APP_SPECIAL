@@ -1,0 +1,289 @@
+Analyzing lib...
+
+warning - app\modules\auth\views\login_view.dart:71:11 - The value of the local variable 'theme' isn't used. Try removing the variable or using it. - unused_local_variable
+warning - app\modules\auth\views\login_view.dart:72:11 - The value of the local variable 'blue' isn't used. Try removing the variable or using it. - unused_local_variable
+warning - app\modules\auth\views\login_view.dart:73:11 - The value of the local variable 'green' isn't used. Try removing the variable or using it. - unused_local_variable
+warning - app\modules\auth\views\login_view.dart:74:11 - The value of the local variable 'orange' isn't used. Try removing the variable or using it. - unused_local_variable
+warning - app\modules\auth\views\privacy_consent_view.dart:18:8 - The value of the field '_hasAccepted' isn't used. Try removing the field, or using it. - unused_field
+warning - app\modules\auth\views\privacy_consent_view.dart:116:11 - The value of the local variable 'secondaryColor' isn't used. Try removing the variable or using it. - unused_local_variable
+warning - app\modules\bluetooth_attendance\config\bluetooth_attendance_config.dart:11:8 - Unused import: 'package:http/http.dart'. Try removing the import directive. - unused_import
+warning - app\modules\bluetooth_attendance\views\bluetooth_punch_view.dart:6:8 - Unused import: 'package:intl/intl.dart'. Try removing the import directive. - unused_import
+warning - app\modules\bluetooth_attendance\views\bluetooth_punch_view.dart:121:8 - The value of the field '_isRegistered' isn't used. Try removing the field, or using it. - unused_field
+warning - app\modules\face_attendance\controllers\face_attendance_controller.dart:21:8 - Unused import: 'package:image/image.dart'. Try removing the import directive. - unused_import
+warning - app\modules\face_attendance\controllers\face_attendance_controller.dart:22:8 - Unused import: 'package:flutter_image_compress/flutter_image_compress.dart'. Try removing the import directive. - unused_import
+warning - app\modules\face_attendance\controllers\face_attendance_controller.dart:36:8 - Duplicate import. Try removing all but one import of the library. - duplicate_import
+warning - app\modules\face_attendance\controllers\face_attendance_controller.dart:36:8 - Unused import: 'package:flutter_image_compress/flutter_image_compress.dart'. Try removing the import directive. - unused_import
+warning - app\modules\face_attendance\controllers\face_attendance_controller.dart:100:9 - The value of the field '_storage' isn't used. Try removing the field, or using it. - unused_field
+warning - app\modules\face_attendance\controllers\face_enrollment_controller.dart:25:8 - Duplicate import. Try removing all but one import of the library. - duplicate_import
+warning - app\modules\face_attendance\services\face_matching_service.dart:32:16 - The value of the field '_similarity' isn't used. Try removing the field, or using it. - unused_field
+warning - app\modules\face_attendance\services\face_preprocessing_service.dart:13:8 - Unused import: 'dart:io'. Try removing the import directive. - unused_import
+warning - app\modules\face_attendance\views\face_attendance_view.dart:291:13 - The value of the local variable 'punchColor' isn't used. Try removing the variable or using it. - unused_local_variable
+warning - app\modules\face_attendance\views\face_attendance_view.dart:292:13 - The value of the local variable 'punchText' isn't used. Try removing the variable or using it. - unused_local_variable
+warning - app\modules\home\controllers\home_controller.dart:133:10 - The value of the field '_notificationTimer' isn't used. Try removing the field, or using it. - unused_field
+warning - app\modules\home\controllers\home_controller.dart:901:27 - The left operand can't be null, so the right operand is never executed. Try removing the operator and the right operand. - dead_null_aware_expression
+warning - app\modules\home\controllers\home_controller.dart:1021:27 - The left operand can't be null, so the right operand is never executed. Try removing the operator and the right operand. - dead_null_aware_expression
+warning - app\modules\home\controllers\home_controller.dart:1113:16 - The declaration '_fetchNotificationDataSilently' isn't referenced. Try removing the declaration of '_fetchNotificationDataSilently'. - unused_element
+warning - app\modules\home\controllers\home_controller.dart:1121:27 - The left operand can't be null, so the right operand is never executed. Try removing the operator and the right operand. - dead_null_aware_expression
+warning - app\modules\home\controllers\hr_portal_controller.dart:58:10 - The declaration '_getPlatformName' isn't referenced. Try removing the declaration of '_getPlatformName'. - unused_element
+warning - app\modules\home\controllers\hr_portal_controller.dart:64:10 - The declaration '_getDeviceId' isn't referenced. Try removing the declaration of '_getDeviceId'. - unused_element
+warning - app\modules\home\controllers\hr_portal_controller.dart:860:14 - The value of the local variable 'isFrontCamera' isn't used. Try removing the variable or using it. - unused_local_variable
+warning - app\modules\home\views\fingerprint_punch_view.dart:29:8 - Duplicate import. Try removing all but one import of the library. - duplicate_import
+warning - app\modules\home\views\fingerprint_punch_view.dart:39:7 - The declaration '_FingerprintRingPainter' isn't referenced. Try removing the declaration of '_FingerprintRingPainter'. - unused_element
+warning - app\modules\home\views\fingerprint_punch_view.dart:402:26 - The value of the field '_bounceAnim' isn't used. Try removing the field, or using it. - unused_field
+warning - app\modules\home\views\fingerprint_punch_view.dart:449:11 - The value of the local variable 'cardBg' isn't used. Try removing the variable or using it. - unused_local_variable
+warning - app\modules\home\views\fingerprint_punch_view.dart:565:41 - Dead code. Try removing the code, or fixing the code before it so that it can be reached. - dead_code
+warning - app\modules\home\views\tabs\attendance_tab.dart:8:8 - Unused import: 'package:flutter_inappwebview/flutter_inappwebview.dart'. Try removing the import directive. - unused_import
+warning - app\modules\home\views\tabs\attendance_tab.dart:210:11 - The value of the local variable 'display' isn't used. Try removing the variable or using it. - unused_local_variable
+warning - app\modules\home\views\tabs\attendance_tab.dart:718:11 - The value of the local variable 'totalIn' isn't used. Try removing the variable or using it. - unused_local_variable
+warning - app\modules\home\views\tabs\attendance_tab.dart:719:11 - The value of the local variable 'totalOut' isn't used. Try removing the variable or using it. - unused_local_variable
+warning - app\modules\home\views\tabs\attendance_tab.dart:720:11 - The value of the local variable 'missingIn' isn't used. Try removing the variable or using it. - unused_local_variable
+warning - app\modules\home\views\tabs\attendance_tab.dart:721:11 - The value of the local variable 'missingOut' isn't used. Try removing the variable or using it. - unused_local_variable
+warning - app\modules\home\views\tabs\attendance_tab.dart:723:11 - The value of the local variable 'gsh' isn't used. Try removing the variable or using it. - unused_local_variable
+warning - app\modules\home\views\tabs\attendance_tab.dart:726:11 - The value of the local variable 'dih' isn't used. Try removing the variable or using it. - unused_local_variable
+warning - app\modules\home\views\tabs\attendance_tab.dart:727:11 - The value of the local variable 'eoh' isn't used. Try removing the variable or using it. - unused_local_variable
+warning - app\modules\home\views\tabs\attendance_tab.dart:730:11 - The value of the local variable 'esh' isn't used. Try removing the variable or using it. - unused_local_variable
+warning - app\modules\home\views\tabs\attendance_tab.dart:751:12 - The declaration 'tableRowDouble' isn't referenced. Try removing the declaration of 'tableRowDouble'. - unused_element
+warning - app\modules\home\views\tabs\attendance_tab.dart:776:12 - The declaration 'acronymItem' isn't referenced. Try removing the declaration of 'acronymItem'. - unused_element
+warning - app\modules\home\views\tabs\attendance_tab.dart:795:12 - The declaration 'hoursCol' isn't referenced. Try removing the declaration of 'hoursCol'. - unused_element
+warning - app\modules\home\views\tabs\attendance_tab.dart:887:11 - The value of the local variable 'homeController' isn't used. Try removing the variable or using it. - unused_local_variable
+warning - app\modules\home\views\tabs\attendance_tab.dart:1080:83 - The '!' will have no effect because the receiver can't be null. Try removing the '!' operator. - unnecessary_non_null_assertion
+warning - app\modules\home\views\tabs\attendance_tab.dart:1102:75 - The '!' will have no effect because the receiver can't be null. Try removing the '!' operator. - unnecessary_non_null_assertion
+warning - app\modules\home\views\tabs\attendance_tab.dart:1348:8 - The declaration '_showDateFilterDialog' isn't referenced. Try removing the declaration of '_showDateFilterDialog'. - unused_element
+warning - app\modules\home\views\tabs\attendance_tab.dart:1422:8 - The declaration '_calculateWorkedMinutes' isn't referenced. Try removing the declaration of '_calculateWorkedMinutes'. - unused_element
+warning - app\modules\home\views\tabs\home_tab.dart:1:8 - Unused import: 'dart:io'. Try removing the import directive. - unused_import
+warning - app\modules\home\views\tabs\home_tab.dart:355:60 - The '!' will have no effect because the receiver can't be null. Try removing the '!' operator. - unnecessary_non_null_assertion
+warning - app\modules\home\views\tabs\home_tab.dart:356:63 - The '!' will have no effect because the receiver can't be null. Try removing the '!' operator. - unnecessary_non_null_assertion
+warning - app\modules\home\views\tabs\notification_tab.dart:15:16 - The value of the field '_accent' isn't used. Try removing the field, or using it. - unused_field
+warning - app\modules\home\views\tabs\notification_tab.dart:16:16 - The value of the field '_accentLight' isn't used. Try removing the field, or using it. - unused_field
+warning - app\modules\home\views\tabs\settings_tab.dart:396:8 - The declaration '_showNotificationSettings' isn't referenced. Try removing the declaration of '_showNotificationSettings'. - unused_element
+warning - app\modules\home\views\tabs\settings_tab.dart:538:8 - The declaration '_showPrivacySettings' isn't referenced. Try removing the declaration of '_showPrivacySettings'. - unused_element
+warning - app\modules\home\views\webview_page.dart:28:14 - The value of the field '_hasShownPermissionDialog' isn't used. Try removing the field, or using it. - unused_field
+warning - app\modules\home\views\webview_page.dart:54:11 - The value of the local variable 'blue' isn't used. Try removing the variable or using it. - unused_local_variable
+warning - app\modules\home\views\widgets\attendance_history_view.dart:467:12 - The value of the local variable 'location' isn't used. Try removing the variable or using it. - unused_local_variable
+warning - app\modules\home\views\widgets\attendance_history_view.dart:704:8 - The declaration '_calculateWorkedMinutes' isn't referenced. Try removing the declaration of '_calculateWorkedMinutes'. - unused_element
+warning - app\modules\home\views\widgets\global_expandable_fab.dart:1:8 - Unused import: 'dart:math'. Try removing the import directive. - unused_import
+warning - app\modules\home\views\widgets\global_expandable_fab.dart:6:8 - Unused import: 'package:shared_preferences/shared_preferences.dart'. Try removing the import directive. - unused_import
+warning - app\modules\home\views\widgets\global_expandable_fab.dart:7:8 - Unused import: 'package:resourceplus_app/main.dart'. Try removing the import directive. - unused_import
+warning - app\modules\home\views\widgets\global_expandable_fab.dart:8:8 - Unused import: 'package:resourceplus_app/services/settings_service.dart'. Try removing the import directive. - unused_import
+warning - app\translations\app_translations.dart:163:7 - Two keys in a map literal shouldn't be equal. Change or remove the duplicate key. - equal_keys_in_map
+warning - app\translations\app_translations.dart:287:7 - Two keys in a map literal shouldn't be equal. Change or remove the duplicate key. - equal_keys_in_map
+warning - app\translations\app_translations.dart:297:7 - Two keys in a map literal shouldn't be equal. Change or remove the duplicate key. - equal_keys_in_map
+warning - app\translations\app_translations.dart:298:7 - Two keys in a map literal shouldn't be equal. Change or remove the duplicate key. - equal_keys_in_map
+warning - app\translations\app_translations.dart:303:7 - Two keys in a map literal shouldn't be equal. Change or remove the duplicate key. - equal_keys_in_map
+warning - app\translations\app_translations.dart:304:7 - Two keys in a map literal shouldn't be equal. Change or remove the duplicate key. - equal_keys_in_map
+warning - app\translations\app_translations.dart:340:7 - Two keys in a map literal shouldn't be equal. Change or remove the duplicate key. - equal_keys_in_map
+warning - app\translations\app_translations.dart:444:7 - Two keys in a map literal shouldn't be equal. Change or remove the duplicate key. - equal_keys_in_map
+warning - app\translations\app_translations.dart:608:7 - Two keys in a map literal shouldn't be equal. Change or remove the duplicate key. - equal_keys_in_map
+warning - app\translations\app_translations.dart:732:7 - Two keys in a map literal shouldn't be equal. Change or remove the duplicate key. - equal_keys_in_map
+warning - app\translations\app_translations.dart:742:7 - Two keys in a map literal shouldn't be equal. Change or remove the duplicate key. - equal_keys_in_map
+warning - app\translations\app_translations.dart:743:7 - Two keys in a map literal shouldn't be equal. Change or remove the duplicate key. - equal_keys_in_map
+warning - app\translations\app_translations.dart:748:7 - Two keys in a map literal shouldn't be equal. Change or remove the duplicate key. - equal_keys_in_map
+warning - app\translations\app_translations.dart:749:7 - Two keys in a map literal shouldn't be equal. Change or remove the duplicate key. - equal_keys_in_map
+warning - app\translations\app_translations.dart:785:7 - Two keys in a map literal shouldn't be equal. Change or remove the duplicate key. - equal_keys_in_map
+warning - app\translations\app_translations.dart:889:7 - Two keys in a map literal shouldn't be equal. Change or remove the duplicate key. - equal_keys_in_map
+   info - app\modules\auth\controllers\auth_controller.dart:61:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\controllers\auth_controller.dart:184:5 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\controllers\auth_controller.dart:186:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\controllers\auth_controller.dart:198:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\controllers\auth_controller.dart:205:11 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\controllers\auth_controller.dart:223:13 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\controllers\auth_controller.dart:224:13 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\controllers\auth_controller.dart:225:13 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\controllers\auth_controller.dart:237:15 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\controllers\auth_controller.dart:240:13 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\controllers\auth_controller.dart:254:11 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\controllers\auth_controller.dart:263:9 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\controllers\auth_controller.dart:272:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\controllers\auth_controller.dart:319:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\controllers\auth_controller.dart:320:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\controllers\auth_controller.dart:321:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\controllers\auth_controller.dart:331:13 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\controllers\auth_controller.dart:334:13 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\controllers\auth_controller.dart:344:11 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\controllers\auth_controller.dart:347:11 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\controllers\auth_controller.dart:363:11 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\controllers\auth_controller.dart:383:11 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\controllers\auth_controller.dart:454:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\controllers\auth_controller.dart:455:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\controllers\auth_controller.dart:459:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\controllers\auth_controller.dart:474:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\controllers\auth_controller.dart:477:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\controllers\auth_controller.dart:479:9 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\controllers\auth_controller.dart:484:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\controllers\auth_controller.dart:486:9 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\controllers\auth_controller.dart:490:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\controllers\auth_controller.dart:495:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\controllers\auth_controller.dart:507:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\controllers\auth_controller.dart:510:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\controllers\auth_controller.dart:511:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\controllers\auth_controller.dart:512:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\controllers\auth_controller.dart:516:9 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\controllers\auth_controller.dart:520:9 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\controllers\auth_controller.dart:522:9 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\controllers\auth_controller.dart:524:9 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\controllers\auth_controller.dart:619:5 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\controllers\auth_controller.dart:625:5 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\controllers\auth_controller.dart:627:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\controllers\auth_controller.dart:638:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\controllers\auth_controller.dart:650:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\controllers\auth_controller.dart:659:11 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\controllers\auth_controller.dart:685:11 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\controllers\auth_controller.dart:694:9 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\controllers\auth_controller.dart:703:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\views\biometric_link_view.dart:95:37 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\views\biometric_link_view.dart:101:37 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\views\biometric_link_view.dart:122:39 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\views\biometric_link_view.dart:125:39 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\views\biometric_link_view.dart:128:39 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\views\biometric_link_view.dart:155:37 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\views\biometric_link_view.dart:164:39 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\views\biometric_link_view.dart:217:39 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\views\biometric_link_view.dart:231:37 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\views\login_view.dart:177:37 - Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check. - use_build_context_synchronously
+   info - app\modules\auth\views\login_view.dart:221:37 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\views\login_view.dart:227:37 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\views\login_view.dart:257:39 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\views\login_view.dart:259:41 - Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check. - use_build_context_synchronously
+   info - app\modules\auth\views\password_view.dart:132:37 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\views\password_view.dart:137:37 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\views\password_view.dart:164:39 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\auth\views\password_view.dart:167:41 - Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check. - use_build_context_synchronously
+   info - app\modules\auth\views\permission_request_view.dart:48:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\bluetooth_attendance\services\background_tracking_service.dart:157:43 - The local variable '_detectedBeacons' starts with an underscore. Try renaming the variable to not start with an underscore. - no_leading_underscores_for_local_identifiers
+   info - app\modules\bluetooth_attendance\services\background_tracking_service.dart:190:9 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - app\modules\bluetooth_attendance\services\background_tracking_service.dart:193:9 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - app\modules\bluetooth_attendance\services\background_tracking_service.dart:207:31 - The local variable '_beaconLastSeen' starts with an underscore. Try renaming the variable to not start with an underscore. - no_leading_underscores_for_local_identifiers
+   info - app\modules\bluetooth_attendance\services\background_tracking_service.dart:208:21 - The local variable '_punchedIn' starts with an underscore. Try renaming the variable to not start with an underscore. - no_leading_underscores_for_local_identifiers
+   info - app\modules\bluetooth_attendance\services\background_tracking_service.dart:211:21 - The local variable '_notifiedBeacons' starts with an underscore. Try renaming the variable to not start with an underscore. - no_leading_underscores_for_local_identifiers
+   info - app\modules\bluetooth_attendance\services\background_tracking_service.dart:213:32 - The local variable '_rssiBuffer' starts with an underscore. Try renaming the variable to not start with an underscore. - no_leading_underscores_for_local_identifiers
+   info - app\modules\bluetooth_attendance\services\background_tracking_service.dart:214:8 - The local variable '_isBluetoothOn' starts with an underscore. Try renaming the variable to not start with an underscore. - no_leading_underscores_for_local_identifiers
+   info - app\modules\bluetooth_attendance\services\background_tracking_service.dart:215:8 - The local variable '_bluetoothAdapterJustTurnedOff' starts with an underscore. Try renaming the variable to not start with an underscore. - no_leading_underscores_for_local_identifiers
+   info - app\modules\bluetooth_attendance\services\background_tracking_service.dart:217:8 - The local variable '_scanStartInProgress' starts with an underscore. Try renaming the variable to not start with an underscore. - no_leading_underscores_for_local_identifiers
+   info - app\modules\bluetooth_attendance\services\background_tracking_service.dart:218:8 - The local variable '_outCheckInProgress' starts with an underscore. Try renaming the variable to not start with an underscore. - no_leading_underscores_for_local_identifiers
+   info - app\modules\bluetooth_attendance\services\background_tracking_service.dart:219:7 - The local variable '_lastUiUpdate' starts with an underscore. Try renaming the variable to not start with an underscore. - no_leading_underscores_for_local_identifiers
+   info - app\modules\bluetooth_attendance\services\background_tracking_service.dart:220:7 - The local variable '_lastPunchProcess' starts with an underscore. Try renaming the variable to not start with an underscore. - no_leading_underscores_for_local_identifiers
+   info - app\modules\bluetooth_attendance\services\background_tracking_service.dart:221:21 - The local variable '_pendingIn' starts with an underscore. Try renaming the variable to not start with an underscore. - no_leading_underscores_for_local_identifiers
+   info - app\modules\bluetooth_attendance\services\background_tracking_service.dart:222:23 - The local variable '_scanSub' starts with an underscore. Try renaming the variable to not start with an underscore. - no_leading_underscores_for_local_identifiers
+   info - app\modules\bluetooth_attendance\services\background_tracking_service.dart:223:23 - The local variable '_adapterSub' starts with an underscore. Try renaming the variable to not start with an underscore. - no_leading_underscores_for_local_identifiers
+   info - app\modules\bluetooth_attendance\services\background_tracking_service.dart:224:23 - The local variable '_rangingSub' starts with an underscore. Try renaming the variable to not start with an underscore. - no_leading_underscores_for_local_identifiers
+   info - app\modules\bluetooth_attendance\services\background_tracking_service.dart:225:10 - The local variable '_periodicScanTimer' starts with an underscore. Try renaming the variable to not start with an underscore. - no_leading_underscores_for_local_identifiers
+   info - app\modules\bluetooth_attendance\services\background_tracking_service.dart:226:10 - The local variable '_outTimer' starts with an underscore. Try renaming the variable to not start with an underscore. - no_leading_underscores_for_local_identifiers
+   info - app\modules\bluetooth_attendance\services\background_tracking_service.dart:247:11 - The local variable '_cachedDeviceId' starts with an underscore. Try renaming the variable to not start with an underscore. - no_leading_underscores_for_local_identifiers
+   info - app\modules\bluetooth_attendance\services\background_tracking_service.dart:248:18 - The local variable '_getDeviceId' starts with an underscore. Try renaming the variable to not start with an underscore. - no_leading_underscores_for_local_identifiers
+   info - app\modules\bluetooth_attendance\services\background_tracking_service.dart:263:8 - The local variable '_processPunches' starts with an underscore. Try renaming the variable to not start with an underscore. - no_leading_underscores_for_local_identifiers
+   info - app\modules\bluetooth_attendance\services\background_tracking_service.dart:277:9 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - app\modules\bluetooth_attendance\services\background_tracking_service.dart:457:8 - The local variable '_startIBeaconScan' starts with an underscore. Try renaming the variable to not start with an underscore. - no_leading_underscores_for_local_identifiers
+   info - app\modules\bluetooth_attendance\services\background_tracking_service.dart:489:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\bluetooth_attendance\services\background_tracking_service.dart:499:8 - The local variable '_runScan' starts with an underscore. Try renaming the variable to not start with an underscore. - no_leading_underscores_for_local_identifiers
+   info - app\modules\bluetooth_attendance\services\background_tracking_service.dart:503:7 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - app\modules\bluetooth_attendance\services\background_tracking_service.dart:614:9 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - app\modules\bluetooth_attendance\services\background_tracking_service.dart:658:9 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - app\modules\bluetooth_attendance\services\background_tracking_service.dart:673:9 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - app\modules\bluetooth_attendance\services\background_tracking_service.dart:701:7 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - app\modules\bluetooth_attendance\services\background_tracking_service.dart:731:13 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - app\modules\bluetooth_attendance\services\background_tracking_service.dart:872:17 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\face_attendance\models\face_enrollment_template_request.dart:24:41 - Angle brackets will be interpreted as HTML. Try using backticks around the content with angle brackets, or try replacing `<` with `&lt;` and `>` with `&gt;`. - unintended_html_in_doc_comment
+   info - app\modules\face_attendance\services\face_embedding_service.dart:66:35 - Angle brackets will be interpreted as HTML. Try using backticks around the content with angle brackets, or try replacing `<` with `&lt;` and `>` with `&gt;`. - unintended_html_in_doc_comment
+   info - app\modules\face_attendance\views\face_attendance_view.dart:15:12 - 'WillPopScope' is deprecated and shouldn't be used. Use PopScope instead. The Android predictive back feature will not work with WillPopScope. This feature was deprecated after v3.12.0-1.0.pre. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - app\modules\face_attendance\views\face_enrollment_view.dart:15:12 - 'WillPopScope' is deprecated and shouldn't be used. Use PopScope instead. The Android predictive back feature will not work with WillPopScope. This feature was deprecated after v3.12.0-1.0.pre. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - app\modules\home\controllers\home_controller.dart:255:104 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - app\modules\home\controllers\home_controller.dart:261:7 - Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check. - use_build_context_synchronously
+   info - app\modules\home\controllers\home_controller.dart:278:48 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - app\modules\home\controllers\home_controller.dart:279:55 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - app\modules\home\controllers\home_controller.dart:285:19 - Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check. - use_build_context_synchronously
+   info - app\modules\home\controllers\home_controller.dart:286:42 - Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check. - use_build_context_synchronously
+   info - app\modules\home\controllers\home_controller.dart:328:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\controllers\home_controller.dart:340:13 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\controllers\home_controller.dart:341:13 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\controllers\home_controller.dart:345:15 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\controllers\home_controller.dart:346:15 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\controllers\home_controller.dart:347:15 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\controllers\home_controller.dart:349:15 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\controllers\home_controller.dart:367:15 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\controllers\home_controller.dart:370:13 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\controllers\home_controller.dart:391:13 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\controllers\home_controller.dart:415:13 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\controllers\home_controller.dart:463:11 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\controllers\home_controller.dart:464:11 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\controllers\home_controller.dart:465:11 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\controllers\home_controller.dart:467:13 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\controllers\home_controller.dart:469:11 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\controllers\home_controller.dart:476:15 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\controllers\home_controller.dart:479:11 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\controllers\home_controller.dart:480:20 - Empty catch block. Try adding statements to the block, adding a comment to the block, or removing the 'catch' clause. - empty_catches
+   info - app\modules\home\controllers\home_controller.dart:487:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\controllers\home_controller.dart:491:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\controllers\home_controller.dart:527:11 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\controllers\home_controller.dart:528:11 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\controllers\home_controller.dart:530:13 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\controllers\home_controller.dart:532:13 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\controllers\home_controller.dart:534:11 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\controllers\home_controller.dart:535:20 - Empty catch block. Try adding statements to the block, adding a comment to the block, or removing the 'catch' clause. - empty_catches
+   info - app\modules\home\controllers\home_controller.dart:577:9 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\controllers\home_controller.dart:580:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\controllers\home_controller.dart:614:13 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\controllers\home_controller.dart:633:13 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\controllers\home_controller.dart:649:19 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\controllers\home_controller.dart:650:19 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\controllers\home_controller.dart:651:19 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\controllers\home_controller.dart:682:13 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\controllers\home_controller.dart:701:13 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\controllers\home_controller.dart:725:13 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\controllers\home_controller.dart:774:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\controllers\home_controller.dart:795:13 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\controllers\home_controller.dart:817:13 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\controllers\home_controller.dart:836:13 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\controllers\home_controller.dart:855:13 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\controllers\home_controller.dart:879:13 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\controllers\home_controller.dart:910:54 - The type of the right operand ('String') isn't a subtype or a supertype of the left operand ('int'). Try changing one or both of the operands. - unrelated_type_equality_checks
+   info - app\modules\home\controllers\home_controller.dart:924:13 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\controllers\home_controller.dart:928:9 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\controllers\home_controller.dart:948:13 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\controllers\home_controller.dart:973:13 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\controllers\home_controller.dart:994:13 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\controllers\home_controller.dart:1003:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\controllers\home_controller.dart:1038:9 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\controllers\home_controller.dart:1048:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\controllers\home_controller.dart:1080:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\controllers\home_controller.dart:1151:13 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\controllers\home_controller.dart:1173:13 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\controllers\home_controller.dart:1195:13 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\controllers\home_controller.dart:1200:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\controllers\home_controller.dart:1278:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\controllers\home_controller.dart:1305:13 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\controllers\home_controller.dart:1377:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\controllers\home_controller.dart:1493:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\views\fingerprint_punch_view.dart:132:8 - Unnecessary override. Try adding behavior in the overriding member or removing the override. - unnecessary_overrides
+   info - app\modules\home\views\tabs\attendance_tab.dart:2:8 - The import of 'dart:typed_data' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/foundation.dart'. Try removing the import directive. - unnecessary_import
+   info - app\modules\home\views\tabs\attendance_tab.dart:408:54 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - app\modules\home\views\tabs\attendance_tab.dart:409:61 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - app\modules\home\views\tabs\attendance_tab.dart:415:25 - Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check. - use_build_context_synchronously
+   info - app\modules\home\views\tabs\attendance_tab.dart:416:34 - Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check. - use_build_context_synchronously
+   info - app\modules\home\views\tabs\attendance_tab.dart:613:34 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - app\modules\home\views\tabs\attendance_tab.dart:614:37 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - app\modules\home\views\tabs\attendance_tab.dart:615:39 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - app\modules\home\views\tabs\attendance_tab.dart:616:61 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - app\modules\home\views\tabs\attendance_tab.dart:617:39 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - app\modules\home\views\tabs\attendance_tab.dart:618:36 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - app\modules\home\views\tabs\attendance_tab.dart:619:41 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - app\modules\home\views\tabs\attendance_tab.dart:687:50 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - app\modules\home\views\tabs\attendance_tab.dart:688:56 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - app\modules\home\views\tabs\attendance_tab.dart:891:5 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\views\tabs\attendance_tab.dart:933:50 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - app\modules\home\views\tabs\attendance_tab.dart:934:12 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - app\modules\home\views\tabs\attendance_tab.dart:1021:12 - The local variable '_buildClickableImage' starts with an underscore. Try renaming the variable to not start with an underscore. - no_leading_underscores_for_local_identifiers
+   info - app\modules\home\views\tabs\attendance_tab.dart:1139:39 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - app\modules\home\views\tabs\home_tab.dart:349:28 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - app\modules\home\views\tabs\home_tab.dart:350:38 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - app\modules\home\views\tabs\home_tab.dart:550:63 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - app\modules\home\views\tabs\home_tab.dart:551:39 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - app\modules\home\views\tabs\home_tab.dart:552:41 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - app\modules\home\views\widgets\app_drawer.dart:154:39 - Empty catch block. Try adding statements to the block, adding a comment to the block, or removing the 'catch' clause. - empty_catches
+   info - app\modules\home\views\widgets\attendance_history_view.dart:208:48 - Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check. - use_build_context_synchronously
+   info - app\modules\home\views\widgets\attendance_history_view.dart:209:46 - Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check. - use_build_context_synchronously
+   info - app\modules\home\views\widgets\attendance_history_view.dart:300:12 - The local variable '_find' starts with an underscore. Try renaming the variable to not start with an underscore. - no_leading_underscores_for_local_identifiers
+   info - app\modules\home\views\widgets\global_expandable_fab.dart:76:9 - Parameter 'key' could be a super parameter. Trying converting 'key' to a super parameter. - use_super_parameters
+   info - app\routes\app_routes.dart:27:16 - The constant name 'QR_ATTENDANCE' isn't a lowerCamelCase identifier. Try changing the name to follow the lowerCamelCase style. - constant_identifier_names
+   info - app\widgets\error_page_widget.dart:279:15 - 'scale' is deprecated and shouldn't be used. Use scaleByVector3, scaleByVector4, or scaleByDouble instead. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+
+285 issues found.

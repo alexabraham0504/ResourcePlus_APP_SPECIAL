@@ -42,7 +42,7 @@ class SettingsTab extends StatelessWidget {
           child: Column(
             children: [
               const Padding(
-                padding: EdgeInsets.fromLTRB(20, 16, 20, 16),
+                padding: EdgeInsets.fromLTRB(20, 0, 20, 16),
                 child: TabHeader(title: 'Settings'),
               ),
               Expanded(

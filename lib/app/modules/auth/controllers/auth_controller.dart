@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:get_storage/get_storage.dart';
 import 'dart:io';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import '../../../controllers/language_controller.dart';
@@ -601,6 +602,25 @@ class AuthController extends GetxController {
     await GetStorage().remove('hasBiometric');
     await GetStorage().remove('biometricEnabled');
     await GetStorage().remove('biometricSetupComplete');
+
+    // ── Clear Bluetooth punch state on logout ────────────────────────────────
+    // Without this, the BLE background service retains IN/OUT state from the
+    // previous user, causing rogue punches when the next user logs in.
+    await GetStorage().write('punched_in_beacons', <String>[]);
+    // Remove all per-beacon debounce timestamps
+    final storage = GetStorage();
+    try {
+      final keys = storage.getKeys<Iterable<String>>();
+      if (keys != null) {
+        for (final key in List<String>.from(keys)) {
+          if (key.startsWith('last_api_punch_')) storage.remove(key);
+        }
+      }
+    } catch (_) {}
+    // Tell the background isolate to reset its in-memory state too
+    try {
+      FlutterBackgroundService().invoke('resetPunchState');
+    } catch (_) {}
 
     // Reset controller values
     emailOrPhone.value = '';
