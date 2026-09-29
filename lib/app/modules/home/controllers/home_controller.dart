@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:dio/dio.dart';
@@ -141,6 +142,16 @@ class HomeController extends GetxController with GetSingleTickerProviderStateMix
 
   @override
   void onInit() {
+    final beaconStorage = GetStorage();
+    FlutterBackgroundService().invoke('updateCredentials', {
+      'username': beaconStorage.read('username') ?? '',
+      'email': beaconStorage.read('email') ?? '',
+      'instanceName': beaconStorage.read('instanceName') ?? '',
+    });
+    // ALWAYS force resume scan on startup in case the app crashed while a camera view (which pauses it) was open
+    try {
+      FlutterBackgroundService().invoke('resumeScan');
+    } catch (_) {}
     super.onInit();
     // Start all core data fetches concurrently in the background
     // This dramatically reduces perceived load time when navigating tabs

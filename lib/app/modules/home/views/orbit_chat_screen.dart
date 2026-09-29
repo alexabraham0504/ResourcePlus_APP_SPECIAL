@@ -130,9 +130,18 @@ class _OrbitChatPageState extends State<OrbitChatPage>
     if (content.isEmpty) return;
 
     final isUser = data['type'] == 'user' || data['user_text'] != null || data['transcript'] != null;
+    final confirmationId = data['confirmation_id']?.toString();
+    final List<String>? reasonOptions = data['reason_options'] != null
+        ? List<String>.from(data['reason_options'])
+        : null;
+
     final message = isUser
         ? ChatMessage.user(content: content)
-        : ChatMessage.assistant(content: content);
+        : ChatMessage.assistant(
+            content: content,
+            confirmationId: confirmationId,
+            reasonOptions: reasonOptions,
+          );
 
     context.read<ChatBloc>().add(AddMessageEvent(message));
   }
@@ -213,7 +222,12 @@ class _OrbitChatPageState extends State<OrbitChatPage>
       _voiceError = null;
     });
     try {
-      await _voiceService.startVoiceChat();
+      final chatBloc = context.read<ChatBloc>();
+      await _voiceService.startVoiceChat(
+        chatBloc.sessionId, 
+        chatBloc.email, 
+        chatBloc.instance
+      );
       if (mounted) {
         setState(() {
           _voice = true;
@@ -705,6 +719,36 @@ class _OrbitChatPageState extends State<OrbitChatPage>
                           height: 1.6,
                         ),
                       ),
+                ),
+              if (!message.isUser && !message.isTyping && message.reasonOptions != null && message.reasonOptions!.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: message.reasonOptions!.map((reason) => ActionChip(
+                      label: Text(reason, style: const TextStyle(fontSize: 12)),
+                      onPressed: () => context.read<ChatBloc>().add(SendMessageEvent(reason)),
+                    )).toList(),
+                  ),
+                ),
+              if (!message.isUser && !message.isTyping && message.confirmationId != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: Row(
+                    children: [
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(backgroundColor: _green, foregroundColor: Colors.white),
+                        onPressed: () => context.read<ChatBloc>().add(SendMessageEvent('Yes', confirmationId: message.confirmationId)),
+                        child: const Text('Confirm'),
+                      ),
+                      const SizedBox(width: 8),
+                      OutlinedButton(
+                        onPressed: () => context.read<ChatBloc>().add(SendMessageEvent('No', confirmationId: message.confirmationId)),
+                        child: const Text('Cancel'),
+                      ),
+                    ],
+                  ),
                 ),
               if (!message.isUser && !message.isTyping)
                 Align(
