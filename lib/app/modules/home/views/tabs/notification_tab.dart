@@ -62,19 +62,6 @@ class NotificationTab extends StatelessWidget {
                             color: isDark ? Colors.white : _primary,
                           ),
                         ),
-                        if (controller.notifications.isNotEmpty)
-                          TextButton.icon(
-                            onPressed: () => _markAllAsRead(controller),
-                            icon: const Icon(Icons.done_all_rounded, size: 18),
-                            label: Text(
-                              controller.notificationStaticContents['MarkAllText'] ?? 'mark_all_read'.tr,
-                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-                            ),
-                            style: TextButton.styleFrom(
-                              foregroundColor: isDark ? Colors.grey[300] : _primary,
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            ),
-                          ),
                       ],
                     ),
                   ],

@@ -724,7 +724,7 @@ class SettingsTab extends StatelessWidget {
       AppRoutes.webview,
       preventDuplicates: true,
       parameters: {
-        'url': 'https://resourceplusonline.com',
+        'url': 'https://portalug.resourceplusonline.com',
         'title': titleText,
       },
     );
