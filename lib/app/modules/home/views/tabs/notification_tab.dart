@@ -205,7 +205,7 @@ class NotificationTab extends StatelessWidget {
                             ),
                             const SizedBox(height: 6),
                             Text(
-                              notification['NotifcnBody'] ?? '',
+                              _stripHtmlIfNeeded(notification['NotifcnBody'] ?? ''),
                               style: TextStyle(
                                 fontSize: 13,
                                 color: isDark ? Colors.grey[400] : Colors.grey[600],
@@ -244,6 +244,28 @@ class NotificationTab extends StatelessWidget {
   // ═══════════════════════════════════════════════════════════
   //  STATE UI HELPERS
   // ═══════════════════════════════════════════════════════════
+  
+  String _stripHtmlIfNeeded(String text) {
+    if (text.isEmpty) return text;
+    // Fast check if it contains any HTML tags
+    if (!text.contains('<') || !text.contains('>')) return text;
+    
+    // Replace breaks and paragraphs/divs with newlines for readability
+    String stripped = text.replaceAll(RegExp(r'<br\s*/?>', caseSensitive: false), '\n');
+    stripped = stripped.replaceAll(RegExp(r'</(div|p|h[1-6])>', caseSensitive: false), '\n');
+    
+    // Remove all remaining HTML tags
+    stripped = stripped.replaceAll(RegExp(r'<[^>]*>'), '');
+    
+    // Decode common HTML entities
+    stripped = stripped.replaceAll('&nbsp;', ' ').replaceAll('&amp;', '&').replaceAll('&lt;', '<').replaceAll('&gt;', '>');
+    
+    // Clean up excessive newlines/spaces
+    stripped = stripped.replaceAll(RegExp(r'\n\s*\n+'), '\n').trim();
+    
+    return stripped;
+  }
+
   Widget _buildEmptyState(bool isDark) {
     return Center(
       child: TweenAnimationBuilder<double>(

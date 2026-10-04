@@ -6,6 +6,7 @@ import FlutterMacOS
 import Foundation
 
 import app_settings
+import audioplayers_darwin
 import device_info_plus
 import emoji_picker_flutter
 import file_picker
@@ -16,6 +17,7 @@ import flutter_image_compress_macos
 import flutter_inappwebview_macos
 import flutter_local_notifications
 import flutter_secure_storage_darwin
+import flutter_tts
 import geolocator_apple
 import local_auth_darwin
 import mobile_scanner
@@ -27,6 +29,7 @@ import url_launcher_macos
 
 func RegisterGeneratedPlugins(registry: FlutterPluginRegistry) {
   AppSettingsPlugin.register(with: registry.registrar(forPlugin: "AppSettingsPlugin"))
+  AudioplayersDarwinPlugin.register(with: registry.registrar(forPlugin: "AudioplayersDarwinPlugin"))
   DeviceInfoPlusMacosPlugin.register(with: registry.registrar(forPlugin: "DeviceInfoPlusMacosPlugin"))
   EmojiPickerFlutterPlugin.register(with: registry.registrar(forPlugin: "EmojiPickerFlutterPlugin"))
   FilePickerPlugin.register(with: registry.registrar(forPlugin: "FilePickerPlugin"))
@@ -37,6 +40,7 @@ func RegisterGeneratedPlugins(registry: FlutterPluginRegistry) {
   InAppWebViewFlutterPlugin.register(with: registry.registrar(forPlugin: "InAppWebViewFlutterPlugin"))
   FlutterLocalNotificationsPlugin.register(with: registry.registrar(forPlugin: "FlutterLocalNotificationsPlugin"))
   FlutterSecureStorageDarwinPlugin.register(with: registry.registrar(forPlugin: "FlutterSecureStorageDarwinPlugin"))
+  FlutterTtsPlugin.register(with: registry.registrar(forPlugin: "FlutterTtsPlugin"))
   GeolocatorPlugin.register(with: registry.registrar(forPlugin: "GeolocatorPlugin"))
   LocalAuthPlugin.register(with: registry.registrar(forPlugin: "LocalAuthPlugin"))
   MobileScannerPlugin.register(with: registry.registrar(forPlugin: "MobileScannerPlugin"))

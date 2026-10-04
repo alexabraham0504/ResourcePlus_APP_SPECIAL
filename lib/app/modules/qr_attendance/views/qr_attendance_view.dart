@@ -67,11 +67,7 @@ class QRAttendanceView extends GetView<QRAttendanceController> {
                 const SizedBox(height: 16),
                 Obx(() {
               final isSuccess = controller.statusMessage.value == 'Punch Successful!';
-              return ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                  child: Container(
+              return Container(
                     padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
                     decoration: BoxDecoration(
                       color: isSuccess 
@@ -105,11 +101,9 @@ class QRAttendanceView extends GetView<QRAttendanceController> {
                         ),
                       ],
                     ),
-                  ),
-                ),
-              );
-            }),
-            ],
+                  );
+                }),
+              ],
             ),
           ),
         ],

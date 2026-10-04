@@ -38,7 +38,8 @@ class HomeView extends GetView<HomeController> {
           }
         },
         child: GlobalExpandableFab(
-          isVisible: controller.currentIndex.value != 6 && controller.currentIndex.value != 7,
+          isVisible: controller.currentIndex.value != 6 && 
+                     controller.currentIndex.value != 7,
           child: Scaffold(
             key: controller.scaffoldKey,
             body: IndexedStack(

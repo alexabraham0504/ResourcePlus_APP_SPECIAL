@@ -1,9 +1,15 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:flutter_tts/flutter_tts.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:resourceplus_app/bloc/chat_bloc.dart';
 import 'package:resourceplus_app/bloc/chat_event.dart';
 import 'package:resourceplus_app/bloc/chat_state.dart';
@@ -98,6 +104,8 @@ class _OrbitChatPageState extends State<OrbitChatPage>
   final _draft = TextEditingController();
   final _scroll = ScrollController();
   final _voiceService = VoiceWebSocketService();
+  final FlutterTts _flutterTts = FlutterTts();
+  final AudioPlayer _audioPlayer = AudioPlayer();
   late final AnimationController _motion;
   bool _voice = false, _listening = false, _starting = false;
   bool _showPinnedDock = false;
@@ -112,38 +120,130 @@ class _OrbitChatPageState extends State<OrbitChatPage>
       vsync: this,
       duration: const Duration(seconds: 12),
     );
+    
+    _initTts();
+
     _voiceService.messageStream.listen((data) {
       if (!mounted) return;
       _handleVoiceMessage(data);
     });
   }
 
+  Future<void> _initTts() async {
+    await _flutterTts.setLanguage("en-US");
+    await _flutterTts.setSpeechRate(0.5);
+    await _flutterTts.setVolume(1.0);
+    await _flutterTts.setPitch(1.0);
+  }
+
   void _handleVoiceMessage(Map<String, dynamic> data) {
-    // Print to console for debugging
-    print('VoiceWS Data: $data');
+    // Debug log
+    print('VoiceWS Event: $data');
 
-    // Extract text from known keys
-    final text = data['text'] ?? data['user_text'] ?? data['ai_text'] ?? data['transcript'] ?? data['message'];
-    
-    // If no text found, just print the raw JSON into a chat bubble so we can see it!
-    final content = text?.toString() ?? data.toString();
-    if (content.isEmpty) return;
+    final type = data['type'] as String?;
 
-    final isUser = data['type'] == 'user' || data['user_text'] != null || data['transcript'] != null;
-    final confirmationId = data['confirmation_id']?.toString();
-    final List<String>? reasonOptions = data['reason_options'] != null
-        ? List<String>.from(data['reason_options'])
-        : null;
+    switch (type) {
 
-    final message = isUser
-        ? ChatMessage.user(content: content)
-        : ChatMessage.assistant(
-            content: content,
-            confirmationId: confirmationId,
-            reasonOptions: reasonOptions,
-          );
+      // ── READY: backend connected and listening. Never show as chat bubble. ──
+      case 'ready':
+        // Backend is ready. PCM streaming starts automatically after this.
+        // No UI bubble needed.
+        break;
 
-    context.read<ChatBloc>().add(AddMessageEvent(message));
+      // ── TRANSCRIPT_FINAL: what the user actually said (from STT) ──
+      case 'transcript_final':
+        final userText = data['transcript']?.toString() ?? data['text']?.toString() ?? '';
+        if (userText.isNotEmpty) {
+          context.read<ChatBloc>().add(AddMessageEvent(ChatMessage.user(content: userText)));
+        }
+        break;
+
+      // ── PROCESSING: backend is thinking. Show spinner, no bubble. ──
+      case 'listening': // Backend confirmed it is listening to our audio stream
+      case 'processing':
+        // No chat bubble needed for these control states.
+        break;
+
+      // ── ASSISTANT_TEXT: the AI's answer. Show immediately as a chat bubble. ──
+      case 'assistant_text':
+        final aiText = data['display_message']?.toString()
+            ?? data['message']?.toString()
+            ?? data['text']?.toString()
+            ?? '';
+        if (aiText.isNotEmpty) {
+          final confirmationId = data['confirmation_id']?.toString();
+          final List<String>? reasonOptions = data['reason_options'] != null
+              ? List<String>.from(data['reason_options'])
+              : null;
+          context.read<ChatBloc>().add(AddMessageEvent(
+            ChatMessage.assistant(
+              content: aiText,
+              confirmationId: confirmationId,
+              reasonOptions: reasonOptions,
+            ),
+          ));
+          // Backend will send {type: 'final', audio_base64: '...'} with the Azure TTS audio.
+          // Do NOT read with Flutter TTS — wait for the backend audio in the 'final' event.
+        }
+        break;
+
+      // ── FINAL: turn is complete. Play the backend Azure TTS audio. ──
+      case 'final':
+        // Do NOT add another assistant_text bubble — it was already added above.
+        // Play the backend-generated Azure TTS audio (voice-optimized, short form)
+        final audioBase64 = data['audio_base64'] as String?;
+        if (audioBase64 != null && audioBase64.isNotEmpty) {
+          _playBackendAudio(audioBase64).then((_) {
+            // Dismiss overlay after audio finishes
+            _stopListening();
+            if (mounted) setState(() => _voice = false);
+          });
+        } else {
+          // No audio from backend — just dismiss overlay
+          _stopListening();
+          if (mounted) setState(() => _voice = false);
+        }
+        break;
+
+      // ── ERROR: something went wrong. Show a friendly message. ──
+      case 'error':
+        final errMsg = data['message']?.toString() ?? 'Voice is temporarily unavailable.';
+        if (mounted) {
+          setState(() {
+            _voiceError = errMsg;
+            _voice = false;
+          });
+        }
+        _stopListening();
+        break;
+
+      // ── _WS_CLOSED: internal event we emit when the WebSocket closes ──
+      case '_ws_closed':
+        _stopListening();
+        if (mounted) setState(() => _voice = false);
+        break;
+
+      // ── Unknown event types: log only, never show as a chat bubble ──
+      default:
+        print('VoiceWS: Unhandled event type "$type" — data: $data');
+        break;
+    }
+  }
+
+  /// Decodes the Azure TTS audio_base64 from the backend 'final' event
+  /// and plays it. The backend sends a short, voice-optimized response —
+  /// NOT the full markdown text shown in the chat bubble.
+  Future<void> _playBackendAudio(String base64Audio) async {
+    try {
+      final bytes = base64Decode(base64Audio);
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/backend_tts.mp3');
+      await file.writeAsBytes(bytes);
+      await _audioPlayer.stop();
+      await _audioPlayer.play(DeviceFileSource(file.path));
+    } catch (e) {
+      print('Error playing backend TTS audio: $e');
+    }
   }
 
   void _onScroll() {
@@ -203,15 +303,19 @@ class _OrbitChatPageState extends State<OrbitChatPage>
     if (state != AppLifecycleState.resumed) _stopListening();
   }
 
-  Future<void> _stopListening() async {
+  Future<void> _stopListening({bool cancel = false}) async {
     if (_listening) {
-      await _voiceService.stopVoiceChat();
+      await _voiceService.stopVoiceChat(cancel: cancel);
       if (mounted) setState(() => _listening = false);
     }
   }
 
   Future<void> _toggleMic() async {
     if (widget.busy || _starting) return;
+    
+    // Stop any ongoing AI speech when user taps microphone
+    await _audioPlayer.stop();
+
     if (_listening) {
       await _stopListening();
       setState(() => _voice = false);
@@ -320,7 +424,11 @@ class _OrbitChatPageState extends State<OrbitChatPage>
                                   motion: _motion,
                                   listening: _listening,
                                   onCancel: () {
-                                    _stopListening();
+                                    _stopListening(cancel: true);
+                                    setState(() => _voice = false);
+                                  },
+                                  onDone: () {
+                                    _stopListening(cancel: false);
                                     setState(() => _voice = false);
                                   },
                                 ),
@@ -1066,11 +1174,12 @@ class _IntelligencePainter extends CustomPainter {
 
     for (var i = 0; i < 14; i++) {
       final t = i / 14;
-      final ringOpacity = listening ? (0.3 + 0.4 * math.sin(phase * math.pi * 2 + t * math.pi)) : 0.4;
+      final rawOpacity = listening ? (0.3 + 0.4 * math.sin(phase * math.pi * 2 + t * math.pi)) : 0.4;
+      final ringOpacity = rawOpacity.clamp(0.0, 1.0);
       strokePaint.shader = LinearGradient(
         colors: [
           Color.lerp(const Color(0xFF00E5FF), const Color(0xFF7B2FBE), t)!.withOpacity(ringOpacity),
-          Color.lerp(const Color(0xFF7B2FBE), const Color(0xFF00E5FF), t)!.withOpacity(ringOpacity * 0.3),
+          Color.lerp(const Color(0xFF7B2FBE), const Color(0xFF00E5FF), t)!.withOpacity((ringOpacity * 0.3).clamp(0.0, 1.0)),
         ],
       ).createShader(Rect.fromCircle(center: Offset.zero, radius: radius));
       canvas.save();
@@ -1108,10 +1217,12 @@ class _AiVoiceOverlay extends StatefulWidget {
     required this.motion,
     required this.listening,
     required this.onCancel,
+    required this.onDone,
   });
   final Animation<double> motion;
   final bool listening;
   final VoidCallback onCancel;
+  final VoidCallback onDone;
 
   @override
   State<_AiVoiceOverlay> createState() => _AiVoiceOverlayState();
@@ -1163,204 +1274,110 @@ class _AiVoiceOverlayState extends State<_AiVoiceOverlay>
   Widget build(BuildContext context) {
     return Positioned.fill(
       child: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF060818),
-              Color(0xFF0D1B3E),
-              Color(0xFF0A0F2E),
-            ],
-          ),
-        ),
+        color: Colors.white.withOpacity(0.95), // Clean white background
         child: SafeArea(
-          child: Column(
-            children: [
-              // Top label
-              const SizedBox(height: 30),
-              Row(
+          child: Center(
+            child: SingleChildScrollView(
+              child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF00E5FF),
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    widget.listening ? 'LISTENING' : 'CONNECTING',
-                    style: const TextStyle(
-                      color: Color(0xFF00E5FF),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 3.5,
-                    ),
-                  ),
-                ],
-              ),
-
-              // Central orb
-              Expanded(
-                child: Center(
-                  child: RepaintBoundary(
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        // Outer ambient glow rings
-                        AnimatedBuilder(
-                          animation: widget.motion,
-                          builder: (_, _) {
-                            final scale = widget.listening
-                                ? 1.0 + 0.08 * math.sin(widget.motion.value * math.pi * 2)
-                                : 1.0;
-                            return Transform.scale(
-                              scale: scale,
-                              child: Container(
-                                width: 260,
-                                height: 260,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  gradient: RadialGradient(
-                                    colors: [
-                                      const Color(0xFF00E5FF).withOpacity(0.0),
-                                      const Color(0xFF00E5FF).withOpacity(0.0),
-                                      const Color(0xFF00E5FF).withOpacity(0.06),
-                                      const Color(0xFF7B2FBE).withOpacity(0.12),
-                                      Colors.transparent,
-                                    ],
-                                    stops: const [0.0, 0.4, 0.65, 0.8, 1.0],
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                        // Main orb painter
-                        SizedBox(
-                          width: 210,
-                          height: 210,
-                          child: AnimatedBuilder(
-                            animation: widget.motion,
-                            builder: (_, _) => CustomPaint(
-                              painter: _IntelligencePainter(
-                                widget.motion.value,
-                                widget.listening,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-
-              // Animated waveform bars
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 40),
-                child: SizedBox(
-                  height: 56,
-                  child: AnimatedBuilder(
-                    animation: widget.motion,
-                    builder: (_, _) {
-                      return Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: List.generate(_barCount, (i) {
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 3.5),
-                            child: AnimatedBuilder(
-                              animation: _bars[i],
-                              builder: (_, _) {
-                                final h = widget.listening
-                                    ? 10.0 + 46.0 * _bars[i].value
-                                    : 10.0 + 10.0 * _bars[i].value;
-                                return AnimatedContainer(
-                                  duration: const Duration(milliseconds: 80),
-                                  width: 4,
-                                  height: h,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(4),
-                                    gradient: LinearGradient(
-                                      begin: Alignment.bottomCenter,
-                                      end: Alignment.topCenter,
-                                      colors: [
-                                        _barColors[i].withOpacity(0.9),
-                                        _barColors[i].withOpacity(0.3),
-                                      ],
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                          );
-                        }),
-                      );
-                    },
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // Subtitle text
+              // Title
               Text(
-                widget.listening
-                    ? 'Speak now...'
-                    : 'Connecting to ResourcePlus AI',
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.55),
-                  fontSize: 14,
-                  fontWeight: FontWeight.w400,
-                  letterSpacing: 0.3,
-                ),
-              ),
-
-              const SizedBox(height: 48),
-
-              // Cancel button — glowing circle
-              GestureDetector(
-                onTap: widget.onCancel,
-                child: Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white.withOpacity(0.07),
-                    border: Border.all(
-                      color: Colors.white.withOpacity(0.18),
-                      width: 1.5,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF00E5FF).withOpacity(0.15),
-                        blurRadius: 20,
-                        spreadRadius: 2,
-                      ),
-                    ],
-                  ),
-                  child: const Icon(
-                    Icons.close_rounded,
-                    color: Colors.white,
-                    size: 26,
-                  ),
+                widget.listening ? 'Listening...' : 'Processing...',
+                style: const TextStyle(
+                  color: Color(0xFF1E293B), // Dark text for contrast
+                  fontSize: 24,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.5,
                 ),
               ),
               const SizedBox(height: 12),
               Text(
-                'Cancel',
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.4),
-                  fontSize: 12,
-                  letterSpacing: 1,
+                widget.listening 
+                  ? 'Speak clearly into your microphone' 
+                  : 'Preparing AI Assistant...',
+                style: const TextStyle(
+                  color: Color(0xFF64748B),
+                  fontSize: 15,
                 ),
               ),
+              const SizedBox(height: 80),
+
+              // Simple Pulsing Microphone - Tap to send
+              AnimatedBuilder(
+                animation: widget.motion,
+                builder: (_, child) {
+                  final scale = widget.listening ? (1.0 + 0.15 * math.sin(widget.motion.value * math.pi * 4)) : 1.0;
+                  return GestureDetector(
+                    onTap: widget.onDone, // Tapping mic finishes recording
+                    child: Transform.scale(
+                      scale: scale,
+                      child: Container(
+                        width: 140,
+                        height: 140,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEFF6FF), // Light blue circle
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            if (widget.listening)
+                              BoxShadow(
+                                color: const Color(0xFF3B82F6).withOpacity(0.3),
+                                blurRadius: 30 * scale,
+                                spreadRadius: 10 * scale,
+                              ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.mic_rounded,
+                          size: 60,
+                          color: Color(0xFF3B82F6),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+              
               const SizedBox(height: 40),
+              
+              TextButton(
+                onPressed: widget.onDone,
+                child: const Text('Tap microphone to finish', style: TextStyle(color: Color(0xFF94A3B8))),
+              ),
+
+              const SizedBox(height: 30),
+
+              // Cancel button
+              InkWell(
+                onTap: widget.onCancel,
+                borderRadius: BorderRadius.circular(30),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(30),
+                    border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(
+                      color: Color(0xFF64748B),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
             ],
+              ),
+            ),
           ),
         ),
       ),

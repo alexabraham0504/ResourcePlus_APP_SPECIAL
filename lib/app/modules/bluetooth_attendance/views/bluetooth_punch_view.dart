@@ -13,6 +13,7 @@ import 'package:device_info_plus/device_info_plus.dart';
 
 import '../services/background_tracking_service.dart';
 import '../config/bluetooth_attendance_config.dart';
+import '../utils/ble_compatibility_check.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import '../../home/views/widgets/shift_location_block.dart';
@@ -120,6 +121,7 @@ class _BluetoothPunchViewState extends State<BluetoothPunchView>
   bool _isBluetoothOn = true; // Assume true until checked
   bool _isLocationOn = true;
   bool _isRegistered = false;
+  bool _disposed = false; // stops recursive _checkServiceStatus on page close
   
   final Map<String, String> _lastRangeState = {};
 
@@ -136,11 +138,21 @@ class _BluetoothPunchViewState extends State<BluetoothPunchView>
     // CRITICAL: Push credentials to background service isolate.
     // The background isolate has its own Dart VM and cannot read the main app's GetStorage.
     // We must explicitly send credentials every time the app opens.
-    _pushCredentialsToBackgroundService();
-
+    // Push credentials AFTER service starts to avoid race condition where
+    // the background isolate hasn't registered updateCredentials listener yet.
     _checkServiceStatus();
+    Future.delayed(const Duration(milliseconds: 700), () {
+      if (mounted) _pushCredentialsToBackgroundService();
+    });
     _listenToBackgroundService();
     _listenToHardwareStates();
+
+    // Run compatibility check after first frame. Requests battery
+    // optimization exemption on Samsung/Xiaomi/Oppo/Vivo/OnePlus so the
+    // background scanner is never killed by aggressive manufacturer Doze.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) BleCompatibilityCheck.run(context);
+    });
   }
 
   void _pushCredentialsToBackgroundService() {
@@ -189,39 +201,43 @@ class _BluetoothPunchViewState extends State<BluetoothPunchView>
     if (lastAttempt != null && now.difference(lastAttempt).inSeconds < 30) return;
     _registrationAttempts[mac] = now;
     _checkingBeacons.add(mac);
+    bool isReg = false;
     try {
       final deviceId = await _getDeviceId();
-
-      final isReg = await BluetoothAttendanceConfig.checkRegistration(deviceId, beaconId: beaconId);
-      _checkedBeacons.add(mac);
-      
-      final storage = GetStorage();
-      List<String> registered = List<String>.from(storage.read('registered_beacons') ?? []);
-      bool updated = false;
-      if (isReg && !registered.contains(beaconId)) {
-        registered.add(beaconId);
-        updated = true;
-      } else if (!isReg && registered.contains(beaconId)) {
-        registered.remove(beaconId);
-        updated = true;
-      }
-      
-      if (updated) {
-        storage.write('registered_beacons', registered);
-        FlutterBackgroundService().invoke('updateRegisteredBeacons', {'beacons': registered});
-      }
-      
-      if (mounted) {
-        setState(() {
-          if (_beacons.containsKey(mac)) {
-            _beacons[mac]!.isRegistered = isReg;
-          }
-        });
-      }
+      isReg = await BluetoothAttendanceConfig.checkRegistration(deviceId, beaconId: beaconId);
     } catch (e) {
       debugPrint('Registration check error for $beaconId: $e');
+      // On API failure (timeout / network error), fall back to local cache.
+      // This prevents the "Checking registration..." spinner from freezing forever
+      // for users on slow networks (e.g., Riyadh, remote India).
+      isReg = _isRegisteredLocally(beaconId) ?? false;
     } finally {
       _checkingBeacons.remove(mac);
+      _checkedBeacons.add(mac); // CRITICAL: always clears the spinner
+    }
+
+    final storage = GetStorage();
+    List<String> registered = List<String>.from(storage.read('registered_beacons') ?? []);
+    bool updated = false;
+    if (isReg && !registered.contains(beaconId)) {
+      registered.add(beaconId);
+      updated = true;
+    } else if (!isReg && registered.contains(beaconId)) {
+      registered.remove(beaconId);
+      updated = true;
+    }
+
+    if (updated) {
+      storage.write('registered_beacons', registered);
+      FlutterBackgroundService().invoke('updateRegisteredBeacons', {'beacons': registered});
+    }
+
+    if (mounted) {
+      setState(() {
+        if (_beacons.containsKey(mac)) {
+          _beacons[mac]!.isRegistered = isReg;
+        }
+      });
     }
   }
 
@@ -289,8 +305,10 @@ class _BluetoothPunchViewState extends State<BluetoothPunchView>
 
 
   Future<void> _checkServiceStatus() async {
+    if (_disposed || !mounted) return;
     final running = await _bgService.isRunning();
-    if (mounted) setState(() => _serviceRunning = running);
+    if (_disposed || !mounted) return;
+    setState(() => _serviceRunning = running);
     // Keep checking every 3 seconds
     Future.delayed(const Duration(seconds: 3), _checkServiceStatus);
   }
@@ -301,6 +319,8 @@ class _BluetoothPunchViewState extends State<BluetoothPunchView>
       if (data == null || !mounted) return;
       final beaconList = data['beacons'] as List<dynamic>? ?? [];
       setState(() {
+        final activeKeys = beaconList.map((b) => b['macAddress'] as String? ?? '').toSet();
+        _beacons.removeWhere((key, _) => !activeKeys.contains(key));
         for (final b in beaconList) {
           final map = b as Map<String, dynamic>;
           final mac = (map['macAddress'] ?? '') as String;
@@ -370,6 +390,7 @@ class _BluetoothPunchViewState extends State<BluetoothPunchView>
 
   @override
   void dispose() {
+    _disposed = true;
     _radarController.dispose();
     _beaconSub?.cancel();
     _punchSub?.cancel();

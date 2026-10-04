@@ -70,7 +70,7 @@ class HomeTab extends GetView<HomeController> {
                           Icon(Icons.flash_on_rounded, size: 16, color: corporateBlue),
                           const SizedBox(width: 6),
                           Text(
-                            'Quick Actions',
+                            'quick_actions'.tr,
                             style: GoogleFonts.outfit(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -85,7 +85,7 @@ class HomeTab extends GetView<HomeController> {
                       _buildStatsRow(context, isDark),
                       const SizedBox(height: 12),
                       _buildPunchReminderBanner(isDark),
-                      // Removed large spacing to prevent scrolling
+                      const SizedBox(height: 100), // padding for FAB
                     ],
                   ),
                 ),
@@ -363,10 +363,18 @@ class HomeTab extends GetView<HomeController> {
       }
 
       final now     = DateTime.now();
-      final weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      final languageController = Get.find<LanguageController>();
+      final isAr = languageController.currentLanguage.value == 'ar';
+      
+      final weekdaysEn = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      final weekdaysAr = ['الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت', 'الأحد'];
+      final monthsAr = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+      
       final dayStr  = now.day.toString().padLeft(2, '0');
-      final wdStr   = weekdays[now.weekday - 1];
-      final monthStr = DateFormat('MMM yyyy').format(now);
+      final wdStr   = isAr ? weekdaysAr[now.weekday - 1] : weekdaysEn[now.weekday - 1];
+      final monthStr = isAr 
+          ? '${monthsAr[now.month - 1]} ${now.year}'
+          : DateFormat('MMM yyyy').format(now);
       final sc      = _statusColor(status);
       final checkedIn  = checkIn  != '--:--';
       final checkedOut = checkOut != '--:--';
@@ -511,7 +519,7 @@ class HomeTab extends GetView<HomeController> {
         Expanded(
           child: _QuickActionCard(
             icon: Icons.how_to_reg_rounded,
-            label: 'Selfie Punch',
+            label: 'selfie_punch'.tr,
             gradient: const [Color(0xFFFFB74D), Color(0xFFFFA726)], // Softer Orange
             onTap: () => Get.toNamed(AppRoutes.hrPortal),
             isDark: isDark,
@@ -521,7 +529,7 @@ class HomeTab extends GetView<HomeController> {
         Expanded(
           child: _QuickActionCard(
             icon: Icons.person_add_alt_1_rounded,
-            label: 'Face Punch', // Changed label to reflect the smart action
+            label: 'face_punch'.tr,
             gradient: const [Color(0xFF81C784), Color(0xFF66BB6A)], // Softer Green
             onTap: () async {
               bool isEnrolled = false;

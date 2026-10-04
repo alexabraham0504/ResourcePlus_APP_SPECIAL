@@ -55,6 +55,7 @@ dependencies:
   file_picker: ^8.0.3
   emoji_picker_flutter: ^3.0.0
   app_settings: ^5.1.1
+  flutter_tts: ^4.0.2
   resourceplus_app:
     path: ./Resourceplus_AICHAT
   resource_plus_ai_workforce:
@@ -72,6 +73,7 @@ dependencies:
   flutter_background_service: ^5.1.0
 
   http_parser: any
+  audioplayers: ^6.0.0          # Play backend Azure TTS audio_base64 from voice final event
 dev_dependencies:
   flutter_test:
     sdk: flutter

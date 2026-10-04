@@ -40,8 +40,10 @@ class BluetoothAttendanceConfig {
     final instanceName = storage.read('instanceName') ?? '';
     final usrEmail = (storage.read('username') ?? storage.read('userEmail') ?? '').toString();
 
-    if (instanceName.isEmpty || usrEmail.isEmpty) {
-      debugPrint('[BLE Beacons] Missing credentials — using fallback beacons');
+    // Only instanceName is required by this API (Postman confirmed usrEmail is optional).
+    // On fresh install / cleared data, usrEmail may not be in the background isolate yet.
+    if (instanceName.isEmpty) {
+      debugPrint('[BLE Beacons] No instanceName — using fallback beacons');
       return;
     }
 
@@ -139,7 +141,7 @@ class BluetoothAttendanceConfig {
       );
 
       debugPrint('[BLE Check] Checking registration: $uri');
-      final response = await client.get(uri).timeout(const Duration(seconds: 15));
+      final response = await client.get(uri).timeout(const Duration(seconds: 8));
       debugPrint('[BLE Check] Response ${response.statusCode}: ${response.body}');
 
       if (response.statusCode == 200) {

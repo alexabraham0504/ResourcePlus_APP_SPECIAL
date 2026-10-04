@@ -9,6 +9,7 @@ import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import '../../controllers/home_controller.dart';
 import '../widgets/tab_header.dart';
 import '../../../../routes/app_routes.dart';
+import '../../../../controllers/language_controller.dart';
 
 Uint8List? decodeBase64Background(String base64Str) {
   try {
@@ -55,20 +56,20 @@ class AttendanceTab extends GetView<HomeController> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Hour Acronyms', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
+              Text('hour_acronyms'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
               const SizedBox(height: 16),
-              acronymItem('GSH', 'Gross Hours', Colors.blue, isDark),
-              acronymItem('NTH', 'Net Hours', Colors.lightBlue, isDark),
-              acronymItem('DIH', 'Difference Hours', Colors.orange, isDark),
-              acronymItem('EOH', 'Extra Out Hours', Colors.deepOrange, isDark),
-              acronymItem('LSH', 'Less Hours', Colors.red, isDark),
-              acronymItem('ESH', 'Extra Shift Hours', Colors.green, isDark),
+              acronymItem('GSH', 'gsh_desc'.tr, Colors.blue, isDark),
+              acronymItem('NTH', 'nth_desc'.tr, Colors.lightBlue, isDark),
+              acronymItem('DIH', 'dih_desc'.tr, Colors.orange, isDark),
+              acronymItem('EOH', 'eoh_desc'.tr, Colors.deepOrange, isDark),
+              acronymItem('LSH', 'lsh_desc'.tr, Colors.red, isDark),
+              acronymItem('ESH', 'esh_desc'.tr, Colors.green, isDark),
               const SizedBox(height: 16),
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
                   onPressed: () => Navigator.pop(bCtx),
-                  child: Text('Close', style: TextStyle(color: Colors.blue[600], fontWeight: FontWeight.bold)),
+                  child: Text('close'.tr, style: TextStyle(color: Colors.blue[600], fontWeight: FontWeight.bold)),
                 ),
               )
             ],
@@ -389,36 +390,36 @@ class AttendanceTab extends GetView<HomeController> {
     String monthStr = '---';
     String yearStr = '';
     try {
+      final isAr = Get.find<LanguageController>().currentLanguage.value == 'ar';
+      final weekdaysAr = ['الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت', 'الأحد'];
+      final monthsAr = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+
+      void formatDates(DateTime d) {
+         dayStr = DateFormat('dd').format(d);
+         yearStr = DateFormat('yyyy').format(d);
+         if (isAr) {
+           weekdayStr = weekdaysAr[d.weekday - 1];
+           monthStr = monthsAr[d.month - 1];
+         } else {
+           weekdayStr = DateFormat('EEE').format(d);
+           monthStr = DateFormat('MMMM').format(d);
+         }
+      }
+
       final parts = date.split('/');
       if (parts.length == 3) {
         int day = int.parse(parts[0]);
         int month = int.parse(parts[1]);
         int year = int.parse(parts[2]);
         if (day > 12 && month <= 12) {
-          final d = DateTime(year, month, day);
-          dayStr = DateFormat('dd').format(d);
-          weekdayStr = DateFormat('EEE').format(d);
-          monthStr = DateFormat('MMMM').format(d);
-          yearStr = DateFormat('yyyy').format(d);
+          formatDates(DateTime(year, month, day));
         } else if (month > 12 && day <= 12) {
-          final d = DateTime(year, day, month);
-          dayStr = DateFormat('dd').format(d);
-          weekdayStr = DateFormat('EEE').format(d);
-          monthStr = DateFormat('MMMM').format(d);
-          yearStr = DateFormat('yyyy').format(d);
+          formatDates(DateTime(year, day, month));
         } else {
-          final d = DateTime(year, month, day);
-          dayStr = DateFormat('dd').format(d);
-          weekdayStr = DateFormat('EEE').format(d);
-          monthStr = DateFormat('MMMM').format(d);
-          yearStr = DateFormat('yyyy').format(d);
+          formatDates(DateTime(year, month, day));
         }
       } else {
-        final d = DateFormat('yyyy-MM-dd').parse(date);
-        dayStr = DateFormat('dd').format(d);
-        weekdayStr = DateFormat('EEE').format(d);
-        monthStr = DateFormat('MMMM').format(d);
-        yearStr = DateFormat('yyyy').format(d);
+        formatDates(DateFormat('yyyy-MM-dd').parse(date));
       }
     } catch (_) {}
 
@@ -620,7 +621,7 @@ class AttendanceTab extends GetView<HomeController> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Punch Details', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: isDark ? Colors.white : _primary)),
+        Text('punch_details'.tr, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: isDark ? Colors.white : _primary)),
         const SizedBox(height: 16),
         Wrap(
           spacing: 12,
@@ -629,7 +630,34 @@ class AttendanceTab extends GetView<HomeController> {
             final punch = sortedPunches[index];
             final timeVal = (punch['time'] ?? punch['PunchTime'] ?? '').toString();
             final punchType = ((punch['type'] ?? punch['PunchType'] ?? 'IN') as String).toUpperCase();
-            final device = (punch['device'] ?? punch['DeviceName'] ?? '').toString();
+            String device = (punch['device'] ?? punch['DeviceName'] ?? '').toString();
+            
+            // Only mark as Selfie if backend sent actual image URL/bytes.
+            // Fingerprint/BLE punches also have PunchImage keys — must NOT mark those as Selfie.
+            if (!device.toLowerCase().contains('face') &&
+                !device.toLowerCase().contains('selfie') &&
+                !device.toLowerCase().contains('finger') &&
+                !device.toLowerCase().contains('bluetooth') &&
+                !device.toLowerCase().contains('ble') &&
+                !device.toLowerCase().contains('qr')) {
+              bool hasRealImage = false;
+              final recordObj = punch['record'] ?? punch;
+              if (recordObj is Map) {
+                for (final k in recordObj.keys) {
+                  final lowerK = k.toString().toLowerCase();
+                  // Only SelfieUrl and PunchImageByte are exclusive to selfie punches
+                  if (lowerK == 'selfieurl' || lowerK == 'punchimagebyte' || lowerK == 'punch_image_byte') {
+                    final v = recordObj[k]?.toString().trim();
+                    if (v != null && v.isNotEmpty && v != 'null' && v.length > 10) {
+                      hasRealImage = true;
+                      break;
+                    }
+                  }
+                }
+              }
+              if (hasRealImage) device = 'Selfie ($device)';
+            }
+            
             final record = punch['record'] ?? punch;
             
             final isOut = punchType == 'OUT';
@@ -664,7 +692,7 @@ class AttendanceTab extends GetView<HomeController> {
                     Text(timeVal, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isDark ? Colors.grey[200] : Colors.grey[800])),
                     if (device.isNotEmpty) ...[
                       const SizedBox(height: 4),
-                      Text(device, maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: TextStyle(fontSize: 9, color: isDark ? Colors.grey[400] : Colors.grey[600])),
+                      Text(_translateDevice(device), maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: TextStyle(fontSize: 9, color: isDark ? Colors.grey[400] : Colors.grey[600])),
                     ]
                   ],
                 ),
@@ -676,12 +704,22 @@ class AttendanceTab extends GetView<HomeController> {
     );
   }
 
+  static String _translateDevice(String deviceName) {
+    final dLow = deviceName.toLowerCase();
+    if (dLow.contains('finger')) return 'fingerprint'.tr;
+    if (dLow.contains('face')) return 'face_punch'.tr;
+    if (dLow.contains('selfie')) return 'selfie_punch'.tr;
+    if (dLow.contains('blue') || dLow.contains('ble')) return 'bluetooth'.tr;
+    if (dLow.contains('qr')) return 'qr_scan'.tr;
+    return deviceName; // return as is if no match
+  }
+
   static Widget _buildDeviceIconStatic(String deviceName, bool isDarkMode) {
     IconData deviceIcon = Icons.person_outline;
     final dLow = deviceName.toLowerCase();
     if (dLow.contains('finger')) deviceIcon = Icons.fingerprint;
     else if (dLow.contains('face')) deviceIcon = Icons.face;
-    else if (dLow.contains('selfie')) deviceIcon = Icons.camera_front;
+    else if (dLow.contains('selfie')) deviceIcon = Icons.camera_alt_rounded;
     else if (dLow.contains('blue') || dLow.contains('ble')) deviceIcon = Icons.bluetooth;
     else if (dLow.contains('mobile')) deviceIcon = Icons.phone_android;
     else if (dLow.contains('web')) deviceIcon = Icons.language;
@@ -718,7 +756,13 @@ class AttendanceTab extends GetView<HomeController> {
     final empNo = homeController.profileEmpNumber.value;
     final type = (firstRecord['DayType'] ?? 'Regular').toString();
     final date = (firstRecord['AttDate'] ?? '').toString();
-    final shift = find(['Shift', 'ShiftName']);
+    String shift = find(['Shift', 'ShiftName']);
+    final shiftIn = find(['ShiftInTime', 'ShiftIn', 'StartTime', 'ExpectedIn', 'ShiftStartTime']);
+    final shiftOut = find(['ShiftOutTime', 'ShiftOut', 'EndTime', 'ExpectedOut', 'ShiftEndTime']);
+    if (shiftIn.isNotEmpty && shiftOut.isNotEmpty) {
+      shift = '$shift ($shiftIn - $shiftOut)'.trim();
+    }
+    
     final expectedHrs = find(['ExpectedHours', 'ExpectedHrs']);
     
     String firstIn = '';
@@ -758,14 +802,6 @@ class AttendanceTab extends GetView<HomeController> {
         }
         
         if (time.isNotEmpty) {
-          if (summaryRecords.isNotEmpty) {
-            final summary = summaryRecords.first;
-            if (!p.containsKey('PunchImageByte') && summary.containsKey('PunchImageByte')) p['PunchImageByte'] = summary['PunchImageByte'];
-            if (!p.containsKey('punch_image_byte') && summary.containsKey('punch_image_byte')) p['punch_image_byte'] = summary['punch_image_byte'];
-            if (!p.containsKey('punch_image') && summary.containsKey('punch_image')) p['punch_image'] = summary['punch_image'];
-            if (!p.containsKey('punch_folder') && summary.containsKey('punch_folder')) p['punch_folder'] = summary['punch_folder'];
-          }
-
           parsedPunches.add({
             'time': time,
             'type': type,
@@ -790,13 +826,13 @@ class AttendanceTab extends GetView<HomeController> {
     final missingOut = find(['MissingOUT', 'MissingOutCount']).isNotEmpty ? find(['MissingOUT', 'MissingOutCount']) : '0';
 
     final gsh = find(['GSH', 'GrossHrs']).isNotEmpty ? find(['GSH', 'GrossHrs']) : '00:00';
-    String nth = find(['NetHrs', 'NetHr', 'NetHours']);
+    String nth = find(['NTH', 'NetHrs', 'NetHr', 'NetHours']);
     if (nth.isEmpty) nth = '00:00';
-    final dih = find(['DIH']).isNotEmpty ? find(['DIH']) : '00:00';
-    final eoh = find(['EOH', 'ExtraHrs']).isNotEmpty ? find(['EOH', 'ExtraHrs']) : '00:00';
-    String lsh = find(['LessHrs', 'LessHr', 'LessHours']);
+    final dih = find(['DIH', 'LateHrs', 'LateHours', 'LateIn', 'DelayIn']).isNotEmpty ? find(['DIH', 'LateHrs', 'LateHours', 'LateIn', 'DelayIn']) : '00:00';
+    final eoh = find(['EOH', 'EarlyHrs', 'EarlyHours', 'EarlyOut']).isNotEmpty ? find(['EOH', 'EarlyHrs', 'EarlyHours', 'EarlyOut']) : '00:00';
+    String lsh = find(['LSH', 'LessHrs', 'LessHr', 'LessHours']);
     if (lsh.isEmpty) lsh = '00:00';
-    final esh = find(['ESH']).isNotEmpty ? find(['ESH']) : '00:00';
+    final esh = find(['ESH', 'ExtraHrs', 'ExtraHours', 'Overtime', 'ExcessHrs']).isNotEmpty ? find(['ESH', 'ExtraHrs', 'ExtraHours', 'Overtime', 'ExcessHrs']) : '00:00';
 
     Widget tableRowSingle(String label, Widget val) {
       return Container(
@@ -896,7 +932,7 @@ class AttendanceTab extends GetView<HomeController> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Employee Attendance Details', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
+                    Text('employee_attendance_details'.tr, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
                     InkWell(
                       onTap: () => Navigator.pop(ctx),
                       child: Icon(Icons.close, color: isDark ? Colors.grey[400] : Colors.grey[600]),
@@ -920,7 +956,7 @@ class AttendanceTab extends GetView<HomeController> {
                         ),
                         child: Column(
                           children: [
-                            tableRowSingle('Employee:', Row(
+                            tableRowSingle('${'employee'.tr}:', Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Padding(
@@ -931,10 +967,10 @@ class AttendanceTab extends GetView<HomeController> {
                                 Expanded(child: Text('$empNo : $empName', style: TextStyle(fontSize: 13, color: isDark ? Colors.grey[300] : Colors.grey[700]))),
                               ],
                             )),
-                            tableRowSingle('Shift:', valText(shift.isNotEmpty ? shift : 'General Shift', Colors.blue[600]!)),
-                            tableRowSingle('Date:', valText(date, Colors.blue[600]!)),
-                            tableRowSingle('Expected Hours:', valText(expectedHrs.isNotEmpty ? expectedHrs : '08:00', Colors.blue[600]!)),
-                            tableRowSingle('Type:', valText(type, Colors.blue[600]!)),
+                            tableRowSingle('${'shift'.tr}:', valText(shift.isNotEmpty ? shift : 'general_shift'.tr, Colors.blue[600]!)),
+                            tableRowSingle('${'date'.tr}:', valText(date, Colors.blue[600]!)),
+                            tableRowSingle('${'expected_hours'.tr}:', valText(expectedHrs.isNotEmpty ? expectedHrs : '08:00', Colors.blue[600]!)),
+                            tableRowSingle('${'type'.tr}:', valText(_label(type), Colors.blue[600]!)),
                           ],
                         ),
                       ),
@@ -1001,18 +1037,30 @@ class AttendanceTab extends GetView<HomeController> {
     String date = parsedDate;
     try {
       if (date.isNotEmpty) {
+        DateTime? dt;
         if (date.contains('/')) {
           final parts = date.split('/');
           if (parts.length == 3) {
             int p1 = int.parse(parts[0]);
             int p2 = int.parse(parts[1]);
             int p3 = int.parse(parts[2]);
-            if (p1 > 12) date = DateFormat('dd MMM yyyy').format(DateTime(p3, p2, p1));
-            else if (p2 > 12) date = DateFormat('dd MMM yyyy').format(DateTime(p3, p1, p2));
-            else date = DateFormat('dd MMM yyyy').format(DateTime(p3, p2, p1));
+            if (p1 > 12) dt = DateTime(p3, p2, p1);
+            else if (p2 > 12) dt = DateTime(p3, p1, p2);
+            else dt = DateTime(p3, p2, p1);
           }
         } else {
-          date = DateFormat('dd MMM yyyy').format(DateTime.parse(date));
+          dt = DateTime.parse(date);
+        }
+        
+        if (dt != null) {
+          final lc = Get.find<LanguageController>();
+          final isAr = lc.currentLanguage.value == 'ar';
+          if (isAr) {
+            final monthsAr = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+            date = '${dt.day.toString().padLeft(2, '0')} ${monthsAr[dt.month - 1]} ${dt.year}';
+          } else {
+            date = DateFormat('dd MMM yyyy').format(dt);
+          }
         }
       }
     } catch (_) {}
@@ -1022,22 +1070,102 @@ class AttendanceTab extends GetView<HomeController> {
     
     final type = findValue(['DayType', 'Type']);
     
-    // Extract location intelligently from multiple possible fields
-    String location = 'Location data unavailable';
-    final checkInAddr = findValue(['CheckINAddr', 'checkin_location']);
-    final checkOutAddr = findValue(['CheckoutAddr', 'checkout_location']);
-    
-    if (checkInAddr.isNotEmpty && checkInAddr != '0.000000,0.000000') {
-      location = checkInAddr.replaceAll('Address :', '').trim();
-    } else if (checkOutAddr.isNotEmpty && checkOutAddr != '0.000000,0.000000') {
-      location = checkOutAddr.replaceAll('Address :', '').trim();
-    } else {
-      final fallbackLoc = findValue(['Location', 'locationinfo']);
-      if (fallbackLoc.isNotEmpty) location = fallbackLoc;
-    }
-
+    // ── Device ID ────────────────────────────────────────────────────
     String deviceId = findValue(['DeviceID', 'deviceinfo', 'device', 'device_id', 'macaddress', 'mac_address', 'DeviceName']);
     if (deviceId.isEmpty) deviceId = 'Device info unavailable';
+
+    // ── Location extraction ──────────────────────────────────────────
+    // The app sends location to backend as: "lat|lng| Address : <text>,"
+    // The backend returns it in multiple possible fields.
+    // We must parse ALL formats and show location for EVERY punch type.
+    
+    String location = '';
+    String? mapLat, mapLng;
+
+    // Helper: parse "lat|lng|..." or "lat,lng,..." or "lat/lng..." format
+    // Returns [lat, lng] or null
+    List<String>? _parseCoords(String raw) {
+      // Try pipe separator first (our app format)
+      final pipeMatch = RegExp(r'(-?\d+\.?\d*)\|(-?\d+\.?\d*)').firstMatch(raw);
+      if (pipeMatch != null) {
+        final lat = double.tryParse(pipeMatch.group(1)!);
+        final lng = double.tryParse(pipeMatch.group(2)!);
+        if (lat != null && lng != null && (lat.abs() > 0.001 || lng.abs() > 0.001)) {
+          return [pipeMatch.group(1)!, pipeMatch.group(2)!];
+        }
+      }
+      // Try comma/slash separator
+      final commaMatch = RegExp(r'(-?\d+\.?\d*)[,/](-?\d+\.?\d*)').firstMatch(raw);
+      if (commaMatch != null) {
+        final lat = double.tryParse(commaMatch.group(1)!);
+        final lng = double.tryParse(commaMatch.group(2)!);
+        if (lat != null && lng != null && (lat.abs() > 0.001 || lng.abs() > 0.001)) {
+          return [commaMatch.group(1)!, commaMatch.group(2)!];
+        }
+      }
+      return null;
+    }
+
+    // Helper: extract human-readable address from locationinfo string
+    String _extractAddress(String raw) {
+      // Format: "lat|lng| Address : BLE Beacon DEMO-001,"
+      final addrIdx = raw.toLowerCase().indexOf('address');
+      if (addrIdx >= 0) {
+        return raw.substring(addrIdx).replaceAll(RegExp(r'^[Aa]ddress\s*:\s*'), '').replaceAll('Address :', '').trim().replaceAll(RegExp(r',\s*$'), '').trim();
+      }
+      // If no "Address" keyword, return raw value stripped of coordinates
+      return raw.replaceAll(RegExp(r'-?\d+\.?\d*[|,/]-?\d+\.?\d*[|,/]?'), '').replaceAll('|', '').trim();
+    }
+
+    // Search ALL possible location fields from both daily summary AND per-punch API
+    final locationFields = [
+      'locationinfo', 'LocationInfo', 'location_info',
+      'CheckINAddr', 'checkin_location', 'CheckoutAddr', 'checkout_location',
+      'Location', 'Addr', 'Address', 'GpsLocation', 'AttAddr', 'PunchAddr',
+    ];
+    
+    for (final fieldKey in locationFields) {
+      final raw = findValue([fieldKey]);
+      if (raw.isEmpty || raw == '0.000000,0.000000' || raw == '0|0' || raw == 'null') continue;
+      
+      // Try to extract GPS coordinates
+      if (mapLat == null) {
+        final coords = _parseCoords(raw);
+        if (coords != null) {
+          mapLat = coords[0];
+          mapLng = coords[1];
+        }
+      }
+      
+      // Extract human-readable address
+      if (location.isEmpty) {
+        final addr = _extractAddress(raw);
+        if (addr.isNotEmpty && addr.length > 2) {
+          location = addr;
+        }
+      }
+      
+      if (mapLat != null && location.isNotEmpty) break;
+    }
+    
+    // Also try explicit lat/lng fields
+    if (mapLat == null) {
+      final rawLat = findValue(['Latitude', 'lat', 'Lat']);
+      final rawLng = findValue(['Longitude', 'lng', 'long', 'Lng']);
+      if (rawLat.isNotEmpty && rawLng.isNotEmpty) {
+        final lat = double.tryParse(rawLat);
+        final lng = double.tryParse(rawLng);
+        if (lat != null && lng != null && (lat.abs() > 0.001 || lng.abs() > 0.001)) {
+          mapLat = rawLat;
+          mapLng = rawLng;
+        }
+      }
+    }
+
+    // If we have coords but no readable address, show coords as fallback
+    if (location.isEmpty && mapLat != null && mapLng != null) {
+      location = '$mapLat, $mapLng';
+    }
     
     String connection = findValue(['ConnectionName']);
     if (connection.isNotEmpty) {
@@ -1068,7 +1196,7 @@ class AttendanceTab extends GetView<HomeController> {
       }
       
       // Only look for base64 data (very long strings) or filenames — NOT http URLs (those are SelfieUrl)
-      if (lowerKey == 'punchimage' || lowerKey == 'profpicture' || lowerKey == 'punch_image') {
+      if (lowerKey == 'punchimage' || lowerKey == 'punch_image') {
         if (val.isNotEmpty && !val.startsWith('http')) {
           if ((val.endsWith('.jpg') || val.endsWith('.png') || val.endsWith('.jpeg')) && pImageFilename.isEmpty) {
             pImageFilename = val;
@@ -1083,6 +1211,17 @@ class AttendanceTab extends GetView<HomeController> {
     String? dialogBase64ToDecode;
     String? dialogImgUrl;
     
+    String base = 'https://app.resourceplus.app';
+    try {
+      if (Get.isRegistered<HomeController>()) {
+        final dynBase = Get.find<HomeController>().commonContents['BaseUrl'];
+        if (dynBase != null && dynBase.toString().isNotEmpty) {
+           base = dynBase.toString().trim();
+           if (base.endsWith('/')) base = base.substring(0, base.length - 1);
+        }
+      }
+    } catch (e) {}
+
     if (punchImageByteStr.isNotEmpty && punchImageByteStr.length > 100) {
       int idx = punchImageByteStr.indexOf(',');
       dialogBase64ToDecode = idx != -1 ? punchImageByteStr.substring(idx + 1) : punchImageByteStr;
@@ -1090,12 +1229,12 @@ class AttendanceTab extends GetView<HomeController> {
       int idx = pBase64Data.indexOf(',');
       dialogBase64ToDecode = idx != -1 ? pBase64Data.substring(idx + 1) : pBase64Data;
     } else if (directSelfieUrl.isNotEmpty && directSelfieUrl.startsWith('http')) {
-      dialogImgUrl = directSelfieUrl;
+      // Replace hardcoded domains with the dynamic base URL from API if needed
+      dialogImgUrl = directSelfieUrl.replaceFirst(RegExp(r'https?://[a-zA-Z0-9.-]+'), base);
     }
 
     List<String> possibleUrls = [];
     if (dialogBase64ToDecode == null && dialogImgUrl == null && pImageFilename.isNotEmpty) {
-      final base = 'https://app.resourceplus.app';
       final folder = pFolder.isNotEmpty && !pFolder.endsWith('/') ? '$pFolder/' : pFolder;
       possibleUrls = [
         '$base/Mobile/Uploads/Client/PunchImage/$folder$pImageFilename',
@@ -1108,25 +1247,22 @@ class AttendanceTab extends GetView<HomeController> {
         '$base/Uploads/Client/$pImageFilename',
       ];
     }
-
-    // Extract raw GPS coordinates from CheckINAddr or CheckoutAddr
-    // Format expected: "9.924514000,76.357799000" or "9.974378/76.388212,"
-    String? mapLat, mapLng;
-    final coordRegex = RegExp(r'(-?\d+\.\d+)[,/](-?\d+\.\d+)');
-    for (final addr in [checkInAddr, checkOutAddr]) {
-      final match = coordRegex.firstMatch(addr);
-      if (match != null) {
-        final lat = double.tryParse(match.group(1)!);
-        final lng = double.tryParse(match.group(2)!);
-        // Ignore 0,0 (no GPS)
-        if (lat != null && lng != null && (lat != 0 || lng != 0)) {
-          mapLat = match.group(1);
-          mapLng = match.group(2);
-          break;
-        }
-      }
+    
+    // Only label as Selfie if backend actually sent a selfie image URL or bytes.
+    // Do NOT use possibleUrls (filename guessing) as that fires for Fingerprint/BLE too.
+    final hasRealSelfieImage = (dialogBase64ToDecode != null && dialogBase64ToDecode!.length > 100) ||
+        (dialogImgUrl != null && dialogImgUrl!.isNotEmpty);
+    if (!deviceId.toLowerCase().contains('face') &&
+        !deviceId.toLowerCase().contains('selfie') &&
+        !deviceId.toLowerCase().contains('finger') &&
+        !deviceId.toLowerCase().contains('bluetooth') &&
+        !deviceId.toLowerCase().contains('ble') &&
+        !deviceId.toLowerCase().contains('qr') &&
+        hasRealSelfieImage) {
+      deviceId = 'Selfie ($deviceId)';
     }
-    final hasCoords = mapLat != null && mapLng != null;
+
+    final hasCoords = mapLat != null && mapLng != null && mapLat != '0.000000' && mapLng != '0.000000';
     final googleMapsUrl = hasCoords ? 'https://maps.google.com/?q=$mapLat,$mapLng' : null;
 
     Widget _buildClickableImage(Widget imageWidget) {
@@ -1175,7 +1311,7 @@ class AttendanceTab extends GetView<HomeController> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Punch Details', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF0F172A))),
+              Text('punch_details'.tr, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF0F172A))),
               const SizedBox(height: 20),
               
               if (dialogBase64ToDecode != null)
@@ -1274,8 +1410,8 @@ class AttendanceTab extends GetView<HomeController> {
                 ),
               const SizedBox(height: 24),
               
-              _detailRow('Date', date, isDark),
-              _detailRow('Status', _label(type), isDark),
+              _detailRow('date'.tr, date, isDark),
+              _detailRow('status'.tr, _label(type), isDark),
               _punchMethodBadge(deviceId, isDark),
               const SizedBox(height: 16),
               
@@ -1290,26 +1426,25 @@ class AttendanceTab extends GetView<HomeController> {
                 child: Column(
                   children: [
                     if (rawTime.isNotEmpty && checkIn.isEmpty && checkOut.isEmpty)
-                      _detailRow('Punch Time', rawTime, isDark)
+                      _detailRow('punch_time'.tr, rawTime, isDark)
                     else ...[
-                      _detailRow('Check In', checkIn.isEmpty ? '--:--' : checkIn, isDark),
-                      _detailRow('Check Out', checkOut.isEmpty ? '--:--' : checkOut, isDark),
+                      _detailRow('check_in'.tr, checkIn.isEmpty ? '--:--' : checkIn, isDark),
+                      _detailRow('check_out'.tr, checkOut.isEmpty ? '--:--' : checkOut, isDark),
                     ]
                   ],
                 ),
               ),
               const SizedBox(height: 16),
               
-              _detailRow('Device', deviceId, isDark),
+              _detailRow('device'.tr, deviceId, isDark),
               
-              // Only show location row if it contains real words (not just raw coordinates)
-              if (location != 'Location data unavailable' && location.isNotEmpty && !RegExp(r'^[\d\.,\-\/]+$').hasMatch(location.replaceAll(' ', '')))
-                _detailRow('Location', location, isDark),
+              // Always show location - show whatever the backend sent
+              _detailRow('location'.tr, location.isNotEmpty ? location : 'location_not_available'.tr, isDark),
               
               // Google Maps preview (using InAppWebView to render iframe like web without APIs)
               if (hasCoords) ...[  
                 const SizedBox(height: 12),
-                const Text('Location Map', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF64748B))),
+                Text('location_map'.tr, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF64748B))),
                 const SizedBox(height: 8),
                 InkWell(
                   onTap: () async {
@@ -1333,7 +1468,7 @@ class AttendanceTab extends GetView<HomeController> {
                       children: [
                         const Icon(Icons.map_outlined, color: Color(0xFF0EA5E9), size: 20),
                         const SizedBox(width: 8),
-                        Text('Open in Google Maps', style: TextStyle(
+                        Text('open_in_google_maps'.tr, style: TextStyle(
                           fontSize: 14, fontWeight: FontWeight.w600, color: isDark ? Colors.white : const Color(0xFF0F172A)
                         )),
                       ],
@@ -1350,7 +1485,7 @@ class AttendanceTab extends GetView<HomeController> {
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: const Text('Close', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+                  child: Text('close'.tr, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
                 ),
               ),
             ],
@@ -1387,15 +1522,17 @@ class AttendanceTab extends GetView<HomeController> {
 
     final d = deviceId.toLowerCase();
     if (d.contains('fingerprint')) {
-      icon = Icons.fingerprint_rounded; color = const Color(0xFF10B981); label = 'Fingerprint';
-    } else if (d.contains('face detection') || d.contains('face punch')) {
-      icon = Icons.face_retouching_natural_rounded; color = const Color(0xFF3B82F6); label = 'Face';
+      icon = Icons.fingerprint_rounded; color = const Color(0xFF10B981); label = 'fingerprint'.tr;
+    } else if (d.contains('face detection') || d.contains('face punch') || d.contains('face')) {
+      icon = Icons.face_retouching_natural_rounded; color = const Color(0xFF3B82F6); label = 'face_punch'.tr;
     } else if (d.contains('bluetooth')) {
-      icon = Icons.bluetooth_rounded; color = const Color(0xFFF59E0B); label = 'Bluetooth';
+      icon = Icons.bluetooth_rounded; color = const Color(0xFFF59E0B); label = 'bluetooth'.tr;
     } else if (d.contains('qr') || d.contains('scan')) {
-      icon = Icons.qr_code_scanner_rounded; color = const Color(0xFF8B5CF6); label = 'QR Scan';
+      icon = Icons.qr_code_scanner_rounded; color = const Color(0xFF8B5CF6); label = 'qr_scan'.tr;
+    } else if (d.contains('selfie')) {
+      icon = Icons.camera_alt_rounded; color = const Color(0xFF004A77); label = 'selfie_punch'.tr;
     } else {
-      icon = Icons.camera_alt_rounded; color = const Color(0xFF004A77); label = 'Selfie';
+      icon = Icons.devices_other_rounded; color = const Color(0xFF64748B); label = deviceId.isNotEmpty ? deviceId : 'unknown'.tr;
     }
 
     return Padding(
@@ -1404,22 +1541,27 @@ class AttendanceTab extends GetView<HomeController> {
         children: [
           SizedBox(
             width: 90,
-            child: Text('Method', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? Colors.grey[400] : Colors.grey[500])),
+            child: Text('method'.tr, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? Colors.grey[400] : Colors.grey[500])),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: color.withValues(alpha: 0.3)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(icon, size: 14, color: color),
-                const SizedBox(width: 5),
-                Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: color)),
-              ],
+          Expanded(
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: color.withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(icon, size: 14, color: color),
+                    const SizedBox(width: 5),
+                    Flexible(child: Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: color), overflow: TextOverflow.visible)),
+                  ],
+                ),
+              ),
             ),
           ),
         ],

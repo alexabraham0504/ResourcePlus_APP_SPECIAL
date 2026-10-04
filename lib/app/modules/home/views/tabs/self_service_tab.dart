@@ -39,7 +39,7 @@ class _SelfServiceTabState extends State<SelfServiceTab> {
       
       _wasActive = isActive;
 
-      if (_activationCount == 0) {
+      if (!isActive || _activationCount == 0) {
         return const SizedBox.shrink();
       }
 

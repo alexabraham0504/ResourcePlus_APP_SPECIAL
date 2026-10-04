@@ -276,6 +276,18 @@ class _PrivacyConsentViewState extends State<PrivacyConsentView> {
                             ),
                             TextSpan(text: 'consent_statement_3'.tr),
                             TextSpan(
+                              text: '[View Privacy Policy]\n\n',
+                              style: TextStyle(
+                                color: primaryColor,
+                                fontWeight: FontWeight.bold,
+                                decoration: TextDecoration.underline,
+                              ),
+                              recognizer: TapGestureRecognizer()
+                                ..onTap = () {
+                                  Get.toNamed(AppRoutes.privacyTermsDetail, arguments: 'privacy');
+                                },
+                            ),
+                            TextSpan(
                               text: 'do_you_agree'.tr,
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,

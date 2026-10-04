@@ -179,11 +179,11 @@ class SettingsTab extends StatelessWidget {
                               if (snapshot.hasData) {
                                 final version = snapshot.data!.version;
                                 return Text(
-                                  '${'version'.tr} $version',
+                                  'ResourcePlus™ • Demo Version $version',
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color: Colors.grey[400],
-                                    fontWeight: FontWeight.w500,
+                                    color: Colors.grey[500],
+                                    fontWeight: FontWeight.w600,
                                     letterSpacing: 1.1,
                                   ),
                                 );

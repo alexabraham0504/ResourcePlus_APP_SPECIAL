@@ -26,7 +26,7 @@ class _FabAction {
 
 List<_FabAction> get _actions => <_FabAction>[
   _FabAction(
-    label: 'AI Workforce',
+    label: 'ai_workforce'.tr,
     icon: Icons.dashboard_customize_rounded,
     color: const Color(0xFF8B5CF6), // Purple color
     route: 'ai_workforce',
@@ -44,25 +44,25 @@ List<_FabAction> get _actions => <_FabAction>[
     route: AppRoutes.faceDetectionPunch,
   ),
   _FabAction(
-    label: 'Fingerprint Punch',
+    label: 'fingerprint'.tr,
     icon: Icons.fingerprint_rounded,
     color: const Color(0xFF10B981),
     route: AppRoutes.fingerprintPunch,
   ),
   _FabAction(
-    label: 'Bluetooth Punch',
+    label: 'bluetooth'.tr,
     icon: Icons.bluetooth_rounded,
     color: const Color(0xFFF59E0B),
     route: AppRoutes.bluetoothPunch,
   ),
   _FabAction(
-    label: 'QR Scan Punch',
+    label: 'qr_scan'.tr,
     icon: Icons.qr_code_scanner_rounded,
     color: const Color(0xFF8B5CF6),
     route: AppRoutes.QR_ATTENDANCE,
   ),
   _FabAction(
-    label: 'Selfie Punch',
+    label: 'selfie_punch'.tr,
     icon: Icons.touch_app_rounded,
     color: const Color(0xFFEC4899), // Pink color
     route: AppRoutes.hrPortal,
@@ -153,7 +153,7 @@ class _GlobalExpandableFabState extends State<GlobalExpandableFab>
           Positioned.directional(
           textDirection: Directionality.of(context),
           end: 18,
-          bottom: 80,
+          bottom: MediaQuery.of(context).padding.bottom + 80, // Moved to a more suitable position
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.end,
@@ -328,6 +328,25 @@ class _SpeedDialRowState extends State<_SpeedDialRow> {
                           : const Color(0xFF0F172A),
                     ),
                   ),
+                  if (widget.action.route == AppRoutes.QR_ATTENDANCE || widget.action.route == 'ai_workforce') ...[
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.redAccent.withValues(alpha: 0.9),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Text(
+                        'BETA',
+                        style: TextStyle(
+                          fontSize: 8.5,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -422,7 +441,7 @@ class _MainFabState extends State<_MainFab> {
                   child: FadeTransition(opacity: anim, child: child),
                 ),
                 child: Icon(
-                  widget.open ? Icons.close_rounded : Icons.touch_app_rounded,
+                  widget.open ? Icons.close_rounded : Icons.bolt_rounded,
                   key: ValueKey<bool>(widget.open),
                   color: Colors.white,
                   size: 28,

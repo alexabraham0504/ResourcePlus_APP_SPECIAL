@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'attendance_response.dart';
+import 'beacon_scan_guard.dart';
 import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/widgets.dart';
@@ -184,7 +185,7 @@ Future<void> onStart(ServiceInstance service) async {
 
   // The background isolate has a separate Dart VM — GetStorage is NOT synced with the main app.
   // The main app pushes credentials here so the background punch always has the correct values.
-  service.on('updateCredentials').listen((event) {
+  service.on('updateCredentials').listen((event) async {
     if (event != null) {
       if (event['username'] != null)
         GetStorage().write('username', event['username']);
@@ -194,9 +195,9 @@ Future<void> onStart(ServiceInstance service) async {
       debugPrint(
         '[BLE Service] Credentials updated: username=${event['username']} instanceName=${event['instanceName']}',
       );
+      await BluetoothAttendanceConfig.refreshBeaconsFromApi();
     }
   });
-
 
   // ── Fetch authorized beacons from the real API ──────────────────────────
   await BluetoothAttendanceConfig.refreshBeaconsFromApi();
@@ -221,12 +222,27 @@ Future<void> onStart(ServiceInstance service) async {
   int _lastUiUpdate = 0;
   int _lastPunchProcess = 0;
   final Set<String> _pendingIn = {};
+  final Map<String, DateTime> registrationChecks = {};
+  final Set<String> loggedBeaconPackets = {};
+  DateTime? lastScanDiagnostic;
   StreamSubscription? _scanSub;
   StreamSubscription? _adapterSub;
   StreamSubscription? _rangingSub;
   Timer? _periodicScanTimer;
-  DateTime _lastAnyScanResult = DateTime.now();
+  final scanGuard = BeaconScanGuard();
   Timer? _outTimer;
+  final uiExpiryTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+    final before = _detectedBeacons.length;
+    _detectedBeacons.removeWhere((key, value) {
+      final seen = DateTime.tryParse(value['lastSeen'] as String? ?? '');
+      return seen == null || DateTime.now().difference(seen).inSeconds > 10;
+    });
+    if (before != _detectedBeacons.length) {
+      service.invoke('beaconUpdate', {
+        'beacons': _detectedBeacons.values.toList(),
+      });
+    }
+  });
 
   // ── Reset punch state on logout ─────────────────────────────────────────
   // When user logs out, the service keeps running but we must wipe all
@@ -256,6 +272,7 @@ Future<void> onStart(ServiceInstance service) async {
     _isBluetoothOn = false;
     _periodicScanTimer?.cancel();
     _outTimer?.cancel();
+    uiExpiryTimer.cancel();
     await _scanSub?.cancel();
     await _adapterSub?.cancel();
     await _rangingSub?.cancel();
@@ -334,7 +351,36 @@ Future<void> onStart(ServiceInstance service) async {
       final registeredBeacons = List<String>.from(
         storage.read('registered_beacons') ?? [],
       );
+      if (isAuthorized && !registeredBeacons.contains(beaconName)) {
+        final previous = registrationChecks[beaconName];
+        if (previous == null ||
+            DateTime.now().difference(previous).inSeconds >= 60) {
+          registrationChecks[beaconName] = DateTime.now();
+          try {
+            if (await BluetoothAttendanceConfig.checkRegistration(
+              await _getDeviceId(),
+              beaconId: beaconName,
+            )) {
+              final latest = List<String>.from(
+                storage.read('registered_beacons') ?? [],
+              );
+              if (!latest.contains(beaconName)) latest.add(beaconName);
+              await storage.write('registered_beacons', latest);
+              registeredBeacons.add(beaconName);
+            }
+          } catch (e) {
+            debugPrint(
+              '[BLE] Registration lookup unavailable; retrying later: $e',
+            );
+          }
+        }
+      }
       final isRegisteredLocally = registeredBeacons.contains(beaconName);
+      if (!_isBluetoothOn ||
+          _isScanPausedByUi ||
+          DateTime.now().difference(_beaconLastSeen[mac] ?? seenAt) >
+              const Duration(seconds: 10))
+        continue;
 
       // Read the true global state to prevent zombie isolates from duplicate punching
       final currentPunchedIn = List<String>.from(
@@ -426,26 +472,21 @@ Future<void> onStart(ServiceInstance service) async {
             _punchedIn.add(mac);
             await storage.write('punched_in_beacons', _punchedIn.toList());
             try {
-              final hasPerm = await Permission.notification.isGranted;
-              if (hasPerm) {
-                // Use unique notification ID per event (timestamp-based) so each punch
-                // shows as a separate notification instead of overwriting the previous one
-                final notifId = DateTime.now().millisecondsSinceEpoch % 100000;
-                flutterLocalNotificationsPlugin.show(
-                  notifId,
-                  '✅ Attendance: IN — $employeeName',
-                  'Beacon "$beaconName" verified.',
-                  const NotificationDetails(
-                    android: AndroidNotificationDetails(
-                      'bluetooth_attendance_channel',
-                      'Bluetooth Attendance Tracking',
-                      icon: '@mipmap/launcher_icon',
-                      importance: Importance.high,
-                      priority: Priority.high,
-                    ),
+              final notifId = DateTime.now().millisecondsSinceEpoch % 100000;
+              flutterLocalNotificationsPlugin.show(
+                notifId,
+                '✅ Attendance: IN — $employeeName',
+                'Beacon "$beaconName" verified.',
+                const NotificationDetails(
+                  android: AndroidNotificationDetails(
+                    'bluetooth_attendance_channel',
+                    'Bluetooth Attendance Tracking',
+                    icon: '@mipmap/launcher_icon',
+                    importance: Importance.high,
+                    priority: Priority.high,
                   ),
-                );
-              }
+                ),
+              );
             } catch (e) {
               debugPrint('[BLE Punch] Failed to show notification: $e');
             }
@@ -524,24 +565,28 @@ Future<void> onStart(ServiceInstance service) async {
 
   // ── Generic BLE Scan (Android fallback) ──────────────────────────────────
 
-  void _runScan() async {
+  Future<bool> _runScan() async {
     if (!_isBluetoothOn ||
         _scanStartInProgress ||
         _isScanPausedByUi ||
         FlutterBluePlus.isScanningNow)
-      return;
+      return false;
 
     _scanStartInProgress = true;
     try {
+      // Do NOT add Permission.isGranted checks here.
+      // This runs in the background isolate where Permission context is
+      // unreliable — it can return false even when granted, silently
+      // blocking ALL scanning. Permissions are handled in the main isolate
+      // by BleCompatibilityCheck and initializeService().
       await FlutterBluePlus.startScan(
-        // continuousUpdates: true keeps the scan alive indefinitely.
-        // Do NOT add withMsd/withNames: OS-level filters block beacons before our code sees them.
-        // Do NOT add continuousDivisor > 1: it drops packets and makes the beacon appear/disappear.
-        // Memory is controlled by the throttle in the scanResults listener instead.
         continuousUpdates: true,
+        removeIfGone: const Duration(seconds: 10),
       );
+      return true;
     } catch (e) {
       debugPrint('[BLE] StartScan error: $e');
+      return false;
     } finally {
       _scanStartInProgress = false;
     }
@@ -549,6 +594,7 @@ Future<void> onStart(ServiceInstance service) async {
 
   service.on('pauseScan').listen((_) async {
     _isScanPausedByUi = true;
+    scanGuard.invalidate();
     try {
       await FlutterBluePlus.stopScan();
       debugPrint('[BLE Service] Scan paused by UI to prevent OOM');
@@ -557,6 +603,7 @@ Future<void> onStart(ServiceInstance service) async {
 
   service.on('resumeScan').listen((_) {
     _isScanPausedByUi = false;
+        // Do NOT invalidate here — guard was reset when camera opened.
     debugPrint('[BLE Service] Scan resumed by UI');
     if (_isBluetoothOn) _runScan();
   });
@@ -588,14 +635,14 @@ Future<void> onStart(ServiceInstance service) async {
       });
     } else {
       _isBluetoothOn = false;
+      scanGuard.invalidate();
       _periodicScanTimer?.cancel();
       _periodicScanTimer = null;
-      // FIX: Mark that the adapter itself turned OFF (user disabled Bluetooth).
-      // The grace period timer must NOT punch OUT in this case — it is NOT the same
-      // as physically leaving the beacon's range.
-      _bluetoothAdapterJustTurnedOff = true;
-      // Clear all beacon tracking so the timer does not fire punch OUTs
-      _beaconLastSeen.clear();
+      // BUSINESS RULE: Turning off phone Bluetooth = same as leaving beacon range.
+      // Keep _bluetoothAdapterJustTurnedOff = false so the OUT grace period fires normally.
+      _bluetoothAdapterJustTurnedOff = false;
+      // Do NOT clear _beaconLastSeen — the OUT timer needs these timestamps to fire.
+      // Clear only display/RSSI data.
       _detectedBeacons.clear();
       _rssiBuffer.clear();
       service.invoke('beaconUpdate', {'beacons': <Map<String, dynamic>>[]});
@@ -617,60 +664,46 @@ Future<void> onStart(ServiceInstance service) async {
   _scanSub = FlutterBluePlus.scanResults.listen((results) async {
     if (!_isBluetoothOn) return;
     final now = DateTime.now();
-    _lastAnyScanResult = now;
 
+    if (lastScanDiagnostic == null ||
+        now.difference(lastScanDiagnostic!) >= const Duration(seconds: 30)) {
+      lastScanDiagnostic = now;
+      debugPrint('[BLE Scan] delivered=${results.length} '
+          'configured=${BluetoothAttendanceConfig.authorizedBeacons.length}');
+    }
     for (final result in results) {
-      // Ignore stale cached results emitted by Android's continuous scanner
-      if (now.difference(result.timeStamp).inSeconds > 10) continue;
 
-      String name = result.device.platformName.trim().isNotEmpty
-          ? result.device.platformName.trim()
-          : result.advertisementData.advName.trim();
-
-      String extractedUuid = '';
-
-      // Parse iBeacon manufacturer data (Apple = 76 / 0x004C)
-      if (result.advertisementData.manufacturerData.containsKey(76)) {
-        final data = result.advertisementData.manufacturerData[76]!;
-        // iBeacon packet structure: 02 15 [16 byte UUID] [2 byte Major] [2 byte Minor] [1 byte TX Power]
-        if (data.length >= 23 && data[0] == 0x02 && data[1] == 0x15) {
-          final uuidBytes = data.sublist(2, 18);
-          extractedUuid = uuidBytes
-              .map((b) => b.toRadixString(16).padLeft(2, '0'))
-              .join('');
-          // If the beacon didn't have a name, use its raw UUID as the identifier
-          if (name.isEmpty) {
-            name = extractedUuid;
-          }
+      // Scan ALL manufacturer data entries for iBeacon format (type=0x02, len=0x15).
+      // Apple iPhones use company ID 76. Android beacon apps (e.g. V Beacon, Beacon Simulator)
+      // may use a different company ID. By checking all entries we detect both.
+      List<int>? packet;
+      int? packetCompanyId;
+      for (final entry in result.advertisementData.manufacturerData.entries) {
+        final d = entry.value;
+        if (d.length >= 23 && d[0] == 2 && d[1] == 21) {
+          packet = d;
+          packetCompanyId = entry.key;
+          break;
         }
       }
-
-      if (name.isEmpty && extractedUuid.isEmpty)
-        continue; // Skip pure noise (nameless and non-iBeacon)
-
-      final mac = result.device.remoteId.str;
-
-      // Try to match against authorized beacons to get the REAL name (e.g. DEMO-OFFICE-001)
-      final cleanMacForMatch = mac
-          .replaceAll(':', '')
-          .replaceAll('-', '')
-          .toLowerCase();
-      final cleanNameForMatch = name.replaceAll('-', '').toLowerCase();
-      final cleanExtractedUuid = extractedUuid
-          .replaceAll('-', '')
-          .toLowerCase();
-
+      // Bounded diagnostics
+      if (packet != null) {
+        final identity = packet.sublist(2, 22)
+            .map((byte) => byte.toRadixString(16).padLeft(2, '0')).join();
+        if (loggedBeaconPackets.length < 8 && loggedBeaconPackets.add(identity)) {
+          final matched = BluetoothAttendanceConfig.authorizedBeacons.any(
+            (beacon) => matchesIBeacon(packet, beacon.uuid, beacon.major, beacon.minor));
+          debugPrint('[BLE Scan] iBeacon companyId=$packetCompanyId uuid=${identity.substring(0, 32)} '
+              'major=${(packet[18] << 8) | packet[19]} '
+              'minor=${(packet[20] << 8) | packet[21]} matched=$matched');
+        }
+      }
+      String name = '';
       bool isAuthorized = false;
       String site = '';
       String zone = '';
       for (final b in BluetoothAttendanceConfig.authorizedBeacons) {
-        final cleanUuid = b.uuid.replaceAll('-', '').toLowerCase();
-        final cleanBeaconId = b.beaconId.replaceAll('-', '').toLowerCase();
-
-        if (cleanBeaconId == cleanNameForMatch ||
-            cleanUuid == cleanMacForMatch ||
-            cleanUuid == cleanExtractedUuid ||
-            cleanUuid == cleanNameForMatch) {
+        if (matchesIBeacon(packet, b.uuid, b.major, b.minor)) {
           name = b.beaconId; // USE THE OFFICIAL NAME!
           site = b.site;
           zone = b.zone;
@@ -730,34 +763,22 @@ Future<void> onStart(ServiceInstance service) async {
 
   // ── Grace period timer: check for Punch OUT ───────────────────────────────
   _outTimer = Timer.periodic(const Duration(seconds: 10), (_) async {
-    if (_outCheckInProgress ||
-        !_isBluetoothOn ||
-        _bluetoothAdapterJustTurnedOff)
-      return;
+    // softAvailable: BT is on and camera is not blocking the scan.
+    // We deliberately do NOT require FlutterBluePlus.isScanningNow here because
+    // Samsung Galaxy aggressively kills background BLE scans every ~30 seconds.
+    // Requiring isScanningNow would cause tick(available:false) → scanGuard.invalidate()
+    // every time Samsung restarts the scan, permanently blocking OUT detection.
+    // The _periodicScanTimer (every 10s) already handles restarting dead scans.
+    final softAvailable = _isBluetoothOn && !_isScanPausedByUi;
+    scanGuard.tick(DateTime.now(), available: softAvailable);
+    // CRITICAL FIX: Do NOT bail on !_isBluetoothOn here.
+    // When BT turns off, _beaconLastSeen still has timestamps.
+    // The OUT punch MUST fire even when BT is off.
+    // Only skip if scan paused by camera UI (OOM prevention).
+    if (_outCheckInProgress || _isScanPausedByUi) return;
     _outCheckInProgress = true;
     try {
       final now = DateTime.now();
-
-      // Android silently kills unfiltered background scans after ~30 mins.
-      // Detect this by checking if FlutterBluePlus thinks it is scanning BUT
-      // we haven't received any packets in over 90 seconds — the scan is dead.
-      final scanAppearsAlive = FlutterBluePlus.isScanningNow;
-      final noPacketsTooLong =
-          now.difference(_lastAnyScanResult) > const Duration(seconds: 90);
-      if (_isBluetoothOn && !_scanStartInProgress &&
-          (!scanAppearsAlive || noPacketsTooLong)) {
-        debugPrint(
-          '[BLE] Scan dead (isScanningNow=$scanAppearsAlive, noPackets=$noPacketsTooLong). Restarting...',
-        );
-        _lastAnyScanResult = now; // reset to prevent spamming
-        try {
-          await FlutterBluePlus.stopScan();
-          await Future.delayed(const Duration(milliseconds: 500));
-        } catch (_) {}
-        _runScan();
-        _outCheckInProgress = false;
-        return;
-      }
 
       final expired = <String>[];
 
@@ -768,6 +789,19 @@ Future<void> onStart(ServiceInstance service) async {
       }
 
       if (expired.isNotEmpty) {
+        // Confirm loss through a freshly started scan before recording OUT.
+        if (expired.any(
+          (key) => scanGuard.needsVerification(_beaconLastSeen[key]!),
+        )) {
+          scanGuard.invalidate();
+          await FlutterBluePlus.stopScan();
+          if (await _runScan()) scanGuard.scanStarted(DateTime.now());
+          return;
+        }
+        expired.removeWhere(
+          (key) => !scanGuard.canExit(now, _beaconLastSeen[key]!),
+        );
+        if (expired.isEmpty) return;
         final deviceId = await _getDeviceId();
         Position? position;
         try {
@@ -782,7 +816,10 @@ Future<void> onStart(ServiceInstance service) async {
         for (final mac in expired) {
           if (_pendingIn.contains(mac)) continue;
           final lastSeen = _beaconLastSeen[mac];
-          if (!_isBluetoothOn ||
+          // CRITICAL FIX: Do NOT check _isBluetoothOn or isScanningNow here.
+          // When BT turns off OR Samsung kills the scan, we still MUST punch OUT.
+          // The grace period already confirmed the beacon is gone.
+          if (_isScanPausedByUi ||
               lastSeen == null ||
               DateTime.now().difference(lastSeen) <= gracePeriod)
             continue;
@@ -874,31 +911,33 @@ Future<void> onStart(ServiceInstance service) async {
                 updatedPunchedIn.remove(mac);
                 storage.write('punched_in_beacons', updatedPunchedIn);
                 _punchedIn.remove(mac);
+                // CRITICAL FIX: Clear the per-beacon debounce key after a successful
+                // punch-OUT. Without this, the 60-second global debounce blocks the
+                // next punch-IN when the beacon comes back into range, because the
+                // OUT timestamp is still stored and treated as a recent punch.
+                storage.remove('last_api_punch_$mac');
                 if (_beaconLastSeen[mac] == exactTimeLeft) {
                   _beaconLastSeen.remove(mac);
                 }
 
                 // Punch OUT notification — unique ID per event so each OUT shows separately
                 try {
-                  final hasPerm = await Permission.notification.isGranted;
-                  if (hasPerm) {
-                    final notifId =
-                        DateTime.now().millisecondsSinceEpoch % 100000;
-                    flutterLocalNotificationsPlugin.show(
-                      notifId,
-                      '🔴 Attendance: OUT — $employeeName',
-                      'Left beacon range. API recorded check-out.',
-                      const NotificationDetails(
-                        android: AndroidNotificationDetails(
-                          'bluetooth_attendance_channel',
-                          'Bluetooth Attendance Tracking',
-                          icon: '@mipmap/launcher_icon',
-                          importance: Importance.high,
-                          priority: Priority.high,
-                        ),
+                  final notifId =
+                      DateTime.now().millisecondsSinceEpoch % 100000;
+                  flutterLocalNotificationsPlugin.show(
+                    notifId,
+                    '🔴 Attendance: OUT — $employeeName',
+                    'Left beacon range. API recorded check-out.',
+                    const NotificationDetails(
+                      android: AndroidNotificationDetails(
+                        'bluetooth_attendance_channel',
+                        'Bluetooth Attendance Tracking',
+                        icon: '@mipmap/launcher_icon',
+                        importance: Importance.high,
+                        priority: Priority.high,
                       ),
-                    );
-                  }
+                    ),
+                  );
                 } catch (e) {
                   debugPrint('[BLE Punch Out] Failed to show notification: $e');
                 }

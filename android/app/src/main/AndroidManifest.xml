@@ -38,6 +38,10 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- CRITICAL FOR SAMSUNG GALAXY: Prevents One UI from killing the background
+         BLE scan after 3 minutes. Without this, attendance only works on phones
+         where the user has manually gone to Settings > Battery > and exempted the app. -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
     <!-- Notification permissions — Required for Foreground Services -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />

@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:resource_plus/app/modules/face_attendance/services/attendance_security_service.dart';
 import 'package:resource_plus/app/modules/face_attendance/repositories/mock_local_punch_repository.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
+import '../../home/views/widgets/beta_notice_popup.dart';
 
 class QRAttendanceController extends GetxController {
   // Use low resolution to avoid OOM on low-RAM devices (avoids ~460KB/frame native alloc at 30fps)
@@ -25,6 +27,24 @@ class QRAttendanceController extends GetxController {
     try {
       FlutterBackgroundService().invoke('pauseScan');
     } catch (_) {}
+    
+    // Delay showing the notice to ensure camera starts smoothly
+    Future.delayed(const Duration(milliseconds: 1200), () {
+      if (Get.context != null) {
+        Get.snackbar(
+          'beta_access'.tr,
+          'beta_msg_qr'.tr,
+          snackPosition: SnackPosition.TOP,
+          backgroundColor: Color(0xFF1E293B).withValues(alpha: 0.9),
+          colorText: const Color(0xFFF9A8D4),
+          icon: const Icon(Icons.rocket_launch_rounded, color: Color(0xFF8B5CF6)),
+          margin: const EdgeInsets.all(16),
+          borderRadius: 16,
+          duration: const Duration(seconds: 5),
+          isDismissible: true,
+        );
+      }
+    });
   }
 
   @override

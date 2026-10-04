@@ -232,7 +232,11 @@ class AppTranslations extends Translations {
       'device_id_desc': 'Unique device identifier used for session security and anti-spoofing.',
       'consent_statement_1': 'By using this app, you agree to our ',
       'consent_statement_2': ' and ',
-      'consent_statement_3': '. You confirm you are an active employee and your employer provided your login credentials. The app collects selfie, location, and device ID for attendance and security.\n\n',
+      'consent_statement_3': '. You confirm you are an active employee and your employer provided your login credentials.\n\n'
+          'Privacy & Data Consent\n\n'
+          'By continuing, I give my explicit consent to ResourcePlus to collect and process necessary personal and biometric data, including facial/biometric data, fingerprint data, location, camera/selfie, Bluetooth/nearby-device data, QR code data, and attendance data, for identity verification, attendance recording, and related HR services.\n\n'
+          'Bluetooth may operate in the background to detect authorized attendance beacons and support attendance recording.\n\n'
+          'I understand that device permissions may be required to enable these features.\n\n',
       'do_you_agree': 'Do you agree?',
       'i_agree': 'I Agree',
       'cancel_not_agree': 'Cancel (Do Not Agree)',
@@ -281,6 +285,7 @@ class AppTranslations extends Translations {
       'out_uppercase': 'OUT',
       'current_shift': 'Current Shift',
       'location': 'Location',
+      'location_not_available': 'Not Available',
       'last_5_punches': 'Last 5 Punches',
       'login_title': 'Login',
       'username_or_email': 'Username or Email',
@@ -441,14 +446,51 @@ class AppTranslations extends Translations {
 
       // FAB Actions
       'ai_chat': 'AI Chat',
+      'ai_workforce': 'AI Workforce',
+      'quick_actions': 'Quick Actions',
+      'selfie_punch': 'Selfie Punch',
       'face_punch': 'Face Punch',
       'fingerprint': 'Fingerprint',
       'bluetooth': 'Bluetooth',
       'qr_scan': 'QR Scan',
+      'employee_attendance_details': 'Employee Attendance Details',
+      'employee': 'Employee',
+      'shift': 'Shift',
+      'date': 'Date',
+      'expected_hours': 'Expected Hours',
+      'type': 'Type',
+      'general_shift': 'General Shift',
+      'punch_details': 'Punch Details',
+      'day': 'Day',
+      'week': 'Week',
+      'month': 'Month',
+      'status': 'Status',
+      'method': 'Method',
+      'punch_time': 'Punch Time',
+      'device': 'Device',
+      'location': 'Location',
+      'location_not_available': 'Not Available',
+      'location_map': 'Location Map',
+      'open_in_google_maps': 'Open in Google Maps',
+      'unknown': 'Unknown',
 
       // Biometric API errors
       'server_rejected_punch': 'Server rejected the punch. Please try again.',
       'server_error': 'Server error. Please try again.',
+      
+      'beta_access': 'BETA ACCESS',
+      'beta_msg_ai': 'You are experiencing a next-generation feature. AI models and systems are currently in active testing and optimization.',
+      'beta_msg_qr': 'You are experiencing a new feature. The QR code attendance scanner is currently in active testing and optimization.',
+      'proceed_btn': 'PROCEED',
+      
+      // Hour Acronyms
+      'hour_acronyms': 'Hour Acronyms',
+      'gsh_desc': 'Gross Hours',
+      'nth_desc': 'Net Hours',
+      'dih_desc': 'Delay In Hours',
+      'eoh_desc': 'Early Out Hours',
+      'lsh_desc': 'Less Hours',
+      'esh_desc': 'Excess Hours',
     },
     'ar_SA': {
       // Common
@@ -469,6 +511,15 @@ class AppTranslations extends Translations {
       'ok': 'موافق',
       'yes': 'نعم',
       'no': 'لا',
+      'status': 'الحالة',
+      'method': 'الطريقة',
+      'punch_time': 'وقت البصمة',
+      'device': 'الجهاز',
+      'location': 'الموقع',
+      'location_not_available': 'غير متاح',
+      'location_map': 'خريطة الموقع',
+      'open_in_google_maps': 'الفتح في خرائط جوجل',
+      'unknown': 'غير معروف',
 
       // Navigation
       'home': 'الرئيسية',
@@ -567,6 +618,18 @@ class AppTranslations extends Translations {
       'position': 'المنصب',
       'organization': 'المنظمة',
       'logout': 'تسجيل الخروج',
+      
+      'employee_attendance_details': 'تفاصيل حضور الموظف',
+      'employee': 'الموظف',
+      'shift': 'الوردية',
+      'date': 'التاريخ',
+      'expected_hours': 'الساعات المتوقعة',
+      'type': 'النوع',
+      'general_shift': 'وردية عامة',
+      'punch_details': 'تفاصيل التسجيل',
+      'day': 'يوم',
+      'week': 'أسبوع',
+      'month': 'شهر',
 
       // Notifications
       'mark_all_as_read': 'تحديد الكل كمقروء',
@@ -677,7 +740,10 @@ class AppTranslations extends Translations {
       'device_id_desc': 'معرف جهاز فريد يستخدم لأمان الجلسة ومنع التلاعب.',
       'consent_statement_1': 'باستخدام هذا التطبيق، فإنك توافق على ',
       'consent_statement_2': ' و ',
-      'consent_statement_3': '. أنت تؤكد أنك موظف نشط وأن صاحب العمل قد زودك ببيانات تسجيل الدخول الخاصة بك. يجمع التطبيق الصورة الشخصية، الموقع، ومعرف الجهاز للحضور والأمان.\n\n',
+      'consent_statement_3': '. أنت تؤكد أنك موظف نشط وأن صاحب العمل قد زودك ببيانات تسجيل الدخول الخاصة بك.\n\n'
+          'موافقة الخصوصية والبيانات\n\n'
+          'من خلال الاستمرار، أوافق على قيام ResourcePlus بجمع ومعالجة البيانات الشخصية والبيومترية الضرورية، بما في ذلك بصمة الوجه، بصمة الإصبع، الموقع، الكاميرا، البلوتوث، رمز الاستجابة السريعة، وبيانات الحضور، لأغراض التحقق من الهوية والحضور وخدمات الموارد البشرية، وفقاً لقوانين الخصوصية وحماية البيانات المعمول بها.\n\n'
+          'أدرك أنه قد تكون هناك حاجة لأذونات الجهاز لتمكين هذه الميزات.\n\n',
       'do_you_agree': 'هل توافق؟',
       'i_agree': 'أوافق',
       'cancel_not_agree': 'إلغاء (لا أوافق)',
@@ -726,6 +792,7 @@ class AppTranslations extends Translations {
       'out_uppercase': 'خروج',
       'current_shift': 'الوردية الحالية',
       'location': 'الموقع',
+      'location_not_available': 'غير متاح',
       'last_5_punches': 'آخر 5 بصمات',
       'login_title': 'تسجيل الدخول',
       'username_or_email': 'اسم المستخدم أو البريد الإلكتروني',
@@ -886,6 +953,9 @@ class AppTranslations extends Translations {
 
       // FAB Actions
       'ai_chat': 'محادثة AI',
+      'ai_workforce': 'القوى العاملة الذكية',
+      'quick_actions': 'إجراءات سريعة',
+      'selfie_punch': 'صورة ذاتية',
       'face_punch': 'بصمة الوجه',
       'fingerprint': 'بصمة الإصبع',
       'bluetooth': 'البلوتوث',
@@ -894,6 +964,20 @@ class AppTranslations extends Translations {
       // Biometric API errors
       'server_rejected_punch': 'رفض الخادم تسجيل الحضور. يرجى المحاولة مرة أخرى.',
       'server_error': 'خطأ في الخادم. يرجى المحاولة مرة أخرى.',
+      
+      'beta_access': 'الوصول التجريبي (BETA)',
+      'beta_msg_ai': 'أنت تختبر ميزة من الجيل القادم. نماذج وأنظمة الذكاء الاصطناعي حالياً في مرحلة الاختبار والتحسين النشط.',
+      'beta_msg_qr': 'أنت تختبر ميزة جديدة. ماسح رمز الاستجابة السريعة (QR) للحضور حالياً في مرحلة الاختبار والتحسين النشط.',
+      'proceed_btn': 'متابعة',
+      
+      // Hour Acronyms
+      'hour_acronyms': 'اختصارات الساعات',
+      'gsh_desc': 'إجمالي الساعات',
+      'nth_desc': 'صافي الساعات',
+      'dih_desc': 'ساعات التأخير',
+      'eoh_desc': 'ساعات الخروج المبكر',
+      'lsh_desc': 'ساعات أقل',
+      'esh_desc': 'الساعات الإضافية',
     },
   };
 }

@@ -196,56 +196,30 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
               child: ListView(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 20),
-                children: ['10', '20', '30', '50', 'next_50'].map((val) {
+                children: ['day', 'week', 'month'].map((val) {
                   return Padding(
                     padding: const EdgeInsets.only(right: 8),
                     child: GestureDetector(
                       onTap: () {
-                        showDialog(
-                          context: context,
-                          barrierColor: Colors.black26,
-                          builder: (context) {
-                            Future.delayed(const Duration(milliseconds: 1500), () {
-                              if (Navigator.of(context).canPop()) {
-                                Navigator.of(context).pop();
-                              }
-                            });
-                            return Center(
-                              child: Material(
-                                color: Colors.transparent,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-                                  margin: const EdgeInsets.symmetric(horizontal: 40),
-                                  decoration: BoxDecoration(
-                                    color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                                    borderRadius: BorderRadius.circular(20),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withValues(alpha: 0.2),
-                                        blurRadius: 20,
-                                        spreadRadius: 2,
-                                      ),
-                                    ],
-                                  ),
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Icon(Icons.auto_awesome, color: Colors.amber, size: 40),
-                                      const SizedBox(height: 16),
-                                      Text('coming_soon'.tr, style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 18)),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        'filter_update_desc'.tr.replaceAll('@val', val.tr),
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[600], fontSize: 14),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        );
+                        final now = DateTime.now();
+                        setState(() {
+                          if (val == 'day') {
+                            _dateRange = DateTimeRange(
+                                start: DateTime(now.year, now.month, now.day),
+                                end: DateTime(now.year, now.month, now.day));
+                          } else if (val == 'week') {
+                            final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+                            final endOfWeek = startOfWeek.add(const Duration(days: 6));
+                            _dateRange = DateTimeRange(
+                                start: DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day),
+                                end: DateTime(endOfWeek.year, endOfWeek.month, endOfWeek.day));
+                          } else if (val == 'month') {
+                            final endOfMonth = DateTime(now.year, now.month + 1, 0);
+                            _dateRange = DateTimeRange(
+                                start: DateTime(now.year, now.month, 1),
+                                end: DateTime(endOfMonth.year, endOfMonth.month, endOfMonth.day));
+                          }
+                        });
                       },
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -541,6 +515,15 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
     }
 
     final deviceId = (item['DeviceID'] ?? item['deviceinfo'] ?? 'Device info unavailable').toString();
+    
+    // Clean up backend location duplication bugs based on device type
+    final dLow = deviceId.toLowerCase();
+    if (dLow.contains('external') || dLow.contains('adms')) {
+      location = 'Location data unavailable';
+    } else if (!dLow.contains('bluetooth') && !dLow.contains('ble') && location.toLowerCase().contains('ble beacon')) {
+      location = 'Location data unavailable';
+    }
+
     final selfieUrl = (item['SelfieUrl'] ?? item['PunchImage'] ?? '').toString();
 
     // Extract raw GPS coordinates from CheckINAddr or CheckoutAddr
