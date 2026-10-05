@@ -57,6 +57,7 @@ class LanguageController extends GetxController {
         homeController.fetchAttendanceData(silent: true);
         homeController.fetchProfileData(silent: true);
         homeController.fetchSettingsData(silent: true);
+        homeController.fetchNotificationData(silent: true);
       }
       
       // We also need to refresh HrPortalController if it's active

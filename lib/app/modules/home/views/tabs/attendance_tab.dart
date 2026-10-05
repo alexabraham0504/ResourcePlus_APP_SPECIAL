@@ -474,10 +474,15 @@ class AttendanceTab extends GetView<HomeController> {
             final fallbackLoc = summary['Location']?.toString() ?? summary['locationinfo']?.toString() ?? '';
             
             for (var punch in rawPunches) {
+              // If punch has its own location data, preserve it — don't overwrite with summary-level data
+              final hasPunchLocation = (punch['locationinfo']?.toString() ?? '').isNotEmpty ||
+                  (punch['LocationInfo']?.toString() ?? '').isNotEmpty ||
+                  (punch['Location']?.toString() ?? '').isNotEmpty;
+              if (hasPunchLocation) continue;
+              
               final type = punch['Type']?.toString().toUpperCase() ?? '';
               if (type == 'IN' && inAddr.isNotEmpty) punch['CheckINAddr'] = inAddr;
               else if (type == 'OUT' && outAddr.isNotEmpty) punch['CheckoutAddr'] = outAddr;
-              
               if (fallbackLoc.isNotEmpty) punch['Location'] = fallbackLoc;
             }
           }
@@ -742,7 +747,8 @@ class AttendanceTab extends GetView<HomeController> {
 
     String find(List<String> keys) {
       for (final k in firstRecord.keys) {
-        if (keys.any((pk) => pk.toLowerCase().trim() == k.toString().toLowerCase().trim())) {
+        final cleanApiKey = k.toString().replaceAll(' ', '').replaceAll('_', '').toLowerCase().trim();
+        if (keys.any((pk) => pk.replaceAll(' ', '').replaceAll('_', '').toLowerCase().trim() == cleanApiKey)) {
           final val = firstRecord[k];
           if (val != null && val.toString().trim().isNotEmpty && val.toString() != 'null') {
             return val.toString().trim();
@@ -755,15 +761,60 @@ class AttendanceTab extends GetView<HomeController> {
     final empName = homeController.profileEmployeeName.value;
     final empNo = homeController.profileEmpNumber.value;
     final type = (firstRecord['DayType'] ?? 'Regular').toString();
-    final date = (firstRecord['AttDate'] ?? '').toString();
-    String shift = find(['Shift', 'ShiftName']);
-    final shiftIn = find(['ShiftInTime', 'ShiftIn', 'StartTime', 'ExpectedIn', 'ShiftStartTime']);
-    final shiftOut = find(['ShiftOutTime', 'ShiftOut', 'EndTime', 'ExpectedOut', 'ShiftEndTime']);
+    final dateRawFull = (firstRecord['AttDate'] ?? '').toString();
+    final dateRaw = dateRawFull.split(' ').first.split('T').first; // Strip time
+    String date = dateRawFull;
+    try {
+      if (dateRaw.contains('/')) {
+        final parts = dateRaw.split('/');
+        if (parts.length >= 3) {
+          int day = int.parse(parts[0]);
+          int month = int.parse(parts[1]);
+          int year = int.parse(parts[2]);
+          DateTime d = (day > 12 && month <= 12) ? DateTime(year, month, day) : ((month > 12 && day <= 12) ? DateTime(year, day, month) : DateTime(year, month, day));
+          date = DateFormat('dd-MM-yyyy EEE').format(d);
+        }
+      } else if (dateRaw.contains('-')) {
+        final parts = dateRaw.split('-');
+        if (parts.length >= 3) {
+          int p0 = int.parse(parts[0]);
+          int p1 = int.parse(parts[1]);
+          int p2 = int.parse(parts[2]);
+          DateTime d;
+          if (p0 > 1000) {
+            d = DateTime(p0, p1, p2); // yyyy-MM-dd
+          } else {
+            d = (p0 > 12 && p1 <= 12) ? DateTime(p2, p1, p0) : ((p1 > 12 && p0 <= 12) ? DateTime(p2, p0, p1) : DateTime(p2, p1, p0)); // dd-MM-yyyy
+          }
+          date = DateFormat('dd-MM-yyyy EEE').format(d);
+        }
+      }
+    } catch (_) {}
+
+    String shift = find(['Shift', 'ShiftName', 'Shift_Name']);
+    if (shift.isEmpty) shift = 'general_shift'.tr;
+    
+    final shiftIn = find(['ShiftInTime', 'ShiftIn', 'StartTime', 'ExpectedIn', 'ShiftStartTime', 'InTime', 'Shift_In', 'Shift_In_Time', 'expected_in', 'expected_in_time', 'expectedin', 'Start_Time', 'SInTime', 'SIn', 'Shift_Start', 'Expected_Start', 'shift_in', 'exp_in', 'ExpectedCheckIn', 'ScheduledIn', 'ShiftInHr', 'TimeIn', 'ShiftStart']);
+    final shiftOut = find(['ShiftOutTime', 'ShiftOut', 'EndTime', 'ExpectedOut', 'ShiftEndTime', 'OutTime', 'Shift_Out', 'Shift_Out_Time', 'expected_out', 'expected_out_time', 'expectedout', 'End_Time', 'SOutTime', 'SOut', 'Shift_End', 'Expected_End', 'shift_out', 'exp_out', 'ExpectedCheckOut', 'ScheduledOut', 'ShiftOutHr', 'TimeOut', 'ShiftEnd']);
+    
+    // Sometimes backend sends something like 08:00 AM - 05:00 PM directly in 'ShiftTime' or 'Shift_Time'
+    final combinedShiftTime = find(['ShiftTime', 'Shift_Time', 'Shift_Times', 'ExpectedShiftTime', 'shifttime', 'shift_times']);
+    final expectedHrs = find(['ExpectedHours', 'ExpectedHrs', 'ExpectedHr', 'Expected_Hours']);
+    
+    final expected = expectedHrs.isNotEmpty ? expectedHrs : '08:00';
+    
     if (shiftIn.isNotEmpty && shiftOut.isNotEmpty) {
       shift = '$shift ($shiftIn - $shiftOut)'.trim();
+    } else if (combinedShiftTime.isNotEmpty) {
+      shift = '$shift ($combinedShiftTime)'.trim();
+    } else {
+      // Fallback: match web dashboard for General Shift if no explicit times are given
+      if ((shift == 'General Shift' || shift == 'general_shift'.tr) && expected == '08:00') {
+        shift = '$shift (08:00 - 17:00)'.trim();
+      } else {
+        shift = '$shift ($expected)'.trim();
+      }
     }
-    
-    final expectedHrs = find(['ExpectedHours', 'ExpectedHrs']);
     
     String firstIn = '';
     String lastOut = '';
@@ -816,23 +867,14 @@ class AttendanceTab extends GetView<HomeController> {
         if (cout.isNotEmpty) parsedPunches.add({'time': cout, 'type': 'OUT', 'device': '', 'record': p});
       }
     }
-
-    final calculatedIn = parsedPunches.where((p) => p['type'] == 'IN').length.toString();
-    final calculatedOut = parsedPunches.where((p) => p['type'] == 'OUT').length.toString();
-    
-    final totalIn = find(['TotalIN', 'TotalInCount']).isNotEmpty ? find(['TotalIN', 'TotalInCount']) : calculatedIn;
-    final totalOut = find(['TotalOUT', 'TotalOutCount']).isNotEmpty ? find(['TotalOUT', 'TotalOutCount']) : calculatedOut;
-    final missingIn = find(['MissingIN', 'MissingInCount']).isNotEmpty ? find(['MissingIN', 'MissingInCount']) : '0';
-    final missingOut = find(['MissingOUT', 'MissingOutCount']).isNotEmpty ? find(['MissingOUT', 'MissingOutCount']) : '0';
-
-    final gsh = find(['GSH', 'GrossHrs']).isNotEmpty ? find(['GSH', 'GrossHrs']) : '00:00';
-    String nth = find(['NTH', 'NetHrs', 'NetHr', 'NetHours']);
+    final gsh = find(['GrossHrs', 'GrossHr', 'GrossHours', 'GSH']).isNotEmpty ? find(['GrossHrs', 'GrossHr', 'GrossHours', 'GSH']) : '00:00';
+    String nth = find(['NetHrs', 'NetHr', 'NetHours', 'NTH']);
     if (nth.isEmpty) nth = '00:00';
-    final dih = find(['DIH', 'LateHrs', 'LateHours', 'LateIn', 'DelayIn']).isNotEmpty ? find(['DIH', 'LateHrs', 'LateHours', 'LateIn', 'DelayIn']) : '00:00';
-    final eoh = find(['EOH', 'EarlyHrs', 'EarlyHours', 'EarlyOut']).isNotEmpty ? find(['EOH', 'EarlyHrs', 'EarlyHours', 'EarlyOut']) : '00:00';
-    String lsh = find(['LSH', 'LessHrs', 'LessHr', 'LessHours']);
+    final dih = find(['DelayHrs', 'DelayHr', 'DelayHours', 'LateHrs', 'LateHours', 'LateIn', 'DelayIn', 'DIH']).isNotEmpty ? find(['DelayHrs', 'DelayHr', 'DelayHours', 'LateHrs', 'LateHours', 'LateIn', 'DelayIn', 'DIH']) : '00:00';
+    final eoh = find(['EarlyOutHrs', 'EarlyOutHr', 'EarlyOutHours', 'EarlyHrs', 'EarlyHours', 'EarlyOut', 'EOH']).isNotEmpty ? find(['EarlyOutHrs', 'EarlyOutHr', 'EarlyOutHours', 'EarlyHrs', 'EarlyHours', 'EarlyOut', 'EOH']) : '00:00';
+    String lsh = find(['LessHrs', 'LessHr', 'LessHours', 'LSH']);
     if (lsh.isEmpty) lsh = '00:00';
-    final esh = find(['ESH', 'ExtraHrs', 'ExtraHours', 'Overtime', 'ExcessHrs']).isNotEmpty ? find(['ESH', 'ExtraHrs', 'ExtraHours', 'Overtime', 'ExcessHrs']) : '00:00';
+    final esh = find(['ExcessHrs', 'ExcessHr', 'ExcessHours', 'ExtraHrs', 'ExtraHours', 'Overtime', 'ESH']).isNotEmpty ? find(['ExcessHrs', 'ExcessHr', 'ExcessHours', 'ExtraHrs', 'ExtraHours', 'Overtime', 'ESH']) : '00:00';
 
     Widget tableRowSingle(String label, Widget val) {
       return Container(
@@ -986,15 +1028,17 @@ class AttendanceTab extends GetView<HomeController> {
                             borderRadius: BorderRadius.circular(12),
                             boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 4, offset: const Offset(0, 2))],
                           ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          child: Wrap(
+                            spacing: 16,
+                            runSpacing: 16,
+                            alignment: WrapAlignment.center,
                             children: [
-                              hoursCol('GSH', gsh, Colors.blue[600]!, isDark ? Colors.grey[300]! : Colors.grey[600]!),
-                              hoursCol('NTH', nth, Colors.lightBlue[400]!, isDark ? Colors.grey[300]! : Colors.grey[800]!),
-                              hoursCol('DIH', dih, Colors.orange, isDark ? Colors.grey[300]! : Colors.grey[600]!),
-                              hoursCol('EOH', eoh, Colors.deepOrange, isDark ? Colors.grey[300]! : Colors.grey[600]!),
-                              hoursCol('LSH', lsh, Colors.red[600]!, isDark ? Colors.grey[300]! : Colors.grey[800]!),
-                              hoursCol('ESH', esh, Colors.green, isDark ? Colors.grey[300]! : Colors.grey[600]!),
+                              hoursCol('gsh'.tr, gsh, Colors.blue[600]!, isDark ? Colors.grey[300]! : Colors.grey[600]!),
+                              hoursCol('nth'.tr, nth, Colors.lightBlue[400]!, isDark ? Colors.grey[300]! : Colors.grey[800]!),
+                              hoursCol('dih'.tr, dih, Colors.orange, isDark ? Colors.grey[300]! : Colors.grey[600]!),
+                              hoursCol('eoh'.tr, eoh, Colors.deepOrange, isDark ? Colors.grey[300]! : Colors.grey[600]!),
+                              hoursCol('lsh'.tr, lsh, Colors.red[600]!, isDark ? Colors.grey[300]! : Colors.grey[800]!),
+                              hoursCol('esh'.tr, esh, Colors.green, isDark ? Colors.grey[300]! : Colors.grey[600]!),
                             ],
                           ),
                         ),
@@ -1108,20 +1152,37 @@ class AttendanceTab extends GetView<HomeController> {
 
     // Helper: extract human-readable address from locationinfo string
     String _extractAddress(String raw) {
-      // Format: "lat|lng| Address : BLE Beacon DEMO-001,"
+      // Format 1: "lat|lng| Address : BLE Beacon DEMO-001,"
       final addrIdx = raw.toLowerCase().indexOf('address');
       if (addrIdx >= 0) {
-        return raw.substring(addrIdx).replaceAll(RegExp(r'^[Aa]ddress\s*:\s*'), '').replaceAll('Address :', '').trim().replaceAll(RegExp(r',\s*$'), '').trim();
+        final extracted = raw.substring(addrIdx)
+            .replaceAll(RegExp(r'^[Aa]ddress\s*:\s*'), '')
+            .replaceAll('Address :', '')
+            .trim()
+            .replaceAll(RegExp(r',\s*$'), '')
+            .trim();
+        // If what's after "Address :" is just more coordinates, show them as GPS location
+        if (extracted.isNotEmpty) return extracted;
       }
-      // If no "Address" keyword, return raw value stripped of coordinates
-      return raw.replaceAll(RegExp(r'-?\d+\.?\d*[|,/]-?\d+\.?\d*[|,/]?'), '').replaceAll('|', '').trim();
+      // Format 2: Pure GPS string like "24.713552,46.675297" — strip coords and check for leftover text
+      final stripped = raw
+          .replaceAll(RegExp(r'-?\d+\.?\d*[|,/]-?\d+\.?\d*[|,/]?'), '')
+          .replaceAll('|', '')
+          .replaceAll(',', '')
+          .trim();
+      // If there's meaningful text left after stripping numbers, show it
+      if (stripped.length > 3) return stripped;
+      // Otherwise, the raw value IS just coordinates — they'll be shown via mapLat/mapLng fallback
+      return '';
     }
 
     // Search ALL possible location fields from both daily summary AND per-punch API
     final locationFields = [
       'locationinfo', 'LocationInfo', 'location_info',
+      'PunchLocationInfo', 'AttLocationInfo', 'punch_locationinfo',
       'CheckINAddr', 'checkin_location', 'CheckoutAddr', 'checkout_location',
       'Location', 'Addr', 'Address', 'GpsLocation', 'AttAddr', 'PunchAddr',
+      'GPS', 'GpsAddr', 'GpsAddress',
     ];
     
     for (final fieldKey in locationFields) {
@@ -1644,6 +1705,7 @@ class AttendanceTab extends GetView<HomeController> {
       case 'less':                                          return 'less_hrs'.tr;
       case 'regular':                                       return 'regular'.tr;
       case 'week end': case 'weekend': case 'week_end':     return 'week_end'.tr;
+      case 'holiday':                                       return 'holiday'.tr;
       default:                                              return type;
     }
   }

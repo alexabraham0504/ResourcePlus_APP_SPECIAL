@@ -662,6 +662,7 @@ class HomeTab extends GetView<HomeController> {
       case 'less':                                          return 'less_hrs'.tr;
       case 'regular':                                       return 'regular'.tr;
       case 'week end': case 'weekend': case 'week_end':    return 'week_end'.tr;
+      case 'holiday':                                      return 'holiday'.tr;
       default:                                              return type.isEmpty ? 'No Data' : type;
     }
   }

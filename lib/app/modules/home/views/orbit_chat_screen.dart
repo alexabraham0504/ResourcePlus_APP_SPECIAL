@@ -39,12 +39,10 @@ enum ChatShortcut {
 class OrbitChatScreen extends StatelessWidget {
   const OrbitChatScreen({
     super.key,
-    required this.settingsService,
     required this.onQuickAccess,
     this.appHeader,
     this.onBackPressed,
   });
-  final SettingsService settingsService;
   final ValueChanged<ChatShortcut> onQuickAccess;
   final Widget? appHeader;
   final VoidCallback? onBackPressed;
@@ -62,11 +60,6 @@ class OrbitChatScreen extends StatelessWidget {
           context.read<ChatBloc>().add(const RetryLastMessageEvent()),
       onClear: () => context.read<ChatBloc>().add(const ClearChatEvent()),
       onBack: onBackPressed ?? () => Navigator.of(context).maybePop(),
-      onSettings: () => Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (_) => SettingsScreen(settingsService: settingsService),
-        ),
-      ),
     ),
   );
 }
@@ -78,7 +71,6 @@ class OrbitChatPage extends StatefulWidget {
     super.key,
     required this.onSend,
     required this.onBack,
-    required this.onSettings,
     required this.onClear,
     required this.onRetry,
     required this.onQuickAccess,
@@ -90,7 +82,7 @@ class OrbitChatPage extends StatefulWidget {
   final ValueChanged<String> onSend;
   final ValueChanged<ChatShortcut> onQuickAccess;
   final Widget? appHeader;
-  final VoidCallback onBack, onSettings, onClear, onRetry;
+  final VoidCallback onBack, onClear, onRetry;
   final List<ChatMessage> messages;
   final bool busy;
   final String? error;
@@ -478,14 +470,11 @@ class _OrbitChatPageState extends State<OrbitChatPage>
           tooltip: 'Chat options',
           icon: const Icon(Icons.more_vert_rounded, color: _muted, size: 20),
           onSelected: (value) {
-            if (value == 'settings') {
-              widget.onSettings();
-            } else {
+            if (value == 'clear') {
               widget.onClear();
             }
           },
           itemBuilder: (_) => [
-            const PopupMenuItem(value: 'settings', child: Text('AI settings')),
             PopupMenuItem(
               value: 'clear',
               enabled: !widget.busy && widget.messages.isNotEmpty,

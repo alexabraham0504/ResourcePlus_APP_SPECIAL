@@ -284,9 +284,13 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
       return '00:00';
     }
 
-    // Read NTH (Net Hours) and LSH (Less Hours) directly from the API response
-    String nth = _find(['NetHrs', 'NetHr', 'NetHours']);
-    String lsh = _find(['LessHrs', 'LessHr', 'LessHours']);
+    // Read hour fields directly from the API response
+    String gsh = _find(['GrossHrs', 'GrossHr', 'GrossHours', 'GSH']);
+    String nth = _find(['NetHrs', 'NetHr', 'NetHours', 'NTH']);
+    String dih = _find(['DelayHrs', 'DelayHr', 'DelayHours', 'DIH']);
+    String eoh = _find(['EarlyOutHrs', 'EarlyOutHr', 'EarlyOutHours', 'EOH']);
+    String lsh = _find(['LessHrs', 'LessHr', 'LessHours', 'LSH']);
+    String esh = _find(['ExcessHrs', 'ExcessHr', 'ExcessHours', 'ESH']);
 
     final color = _statusColor(type);
 
@@ -364,10 +368,15 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
             final fallbackLoc = item['Location']?.toString() ?? item['locationinfo']?.toString() ?? '';
             
             for (var punch in rawPunches) {
+              // If punch has its own location data, preserve it — don't overwrite with summary-level data
+              final hasPunchLocation = (punch['locationinfo']?.toString() ?? '').isNotEmpty ||
+                  (punch['LocationInfo']?.toString() ?? '').isNotEmpty ||
+                  (punch['Location']?.toString() ?? '').isNotEmpty;
+              if (hasPunchLocation) continue;
+              
               final t = punch['Type']?.toString().toUpperCase() ?? '';
               if (t == 'IN' && inAddr.isNotEmpty) punch['CheckINAddr'] = inAddr;
               else if (t == 'OUT' && outAddr.isNotEmpty) punch['CheckoutAddr'] = outAddr;
-              
               if (fallbackLoc.isNotEmpty) punch['Location'] = fallbackLoc;
             }
           }
@@ -439,19 +448,26 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
                                 Expanded(child: _timeSection(ctx, 'check_out'.tr, checkOut.isNotEmpty ? checkOut : '--:--', isRight: true)),
                               ],
                             ),
-                            if (nth.isNotEmpty || lsh.isNotEmpty) ...[
+                            if (gsh != '00:00' || nth != '00:00' || dih != '00:00' || eoh != '00:00' || lsh != '00:00' || esh != '00:00') ...[
                               const SizedBox(height: 10),
                               Container(
+                                width: double.infinity,
                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                 decoration: BoxDecoration(
                                   color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
-                                child: Row(
+                                child: Wrap(
+                                  spacing: 12,
+                                  runSpacing: 8,
+                                  alignment: WrapAlignment.center,
                                   children: [
-                                    if (nth.isNotEmpty) Expanded(child: Center(child: _hoursChip(ctx, 'nth'.tr, nth, const Color(0xFF059669)))),
-                                    if (nth.isNotEmpty && lsh.isNotEmpty) Container(width: 1, height: 24, color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
-                                    if (lsh.isNotEmpty) Expanded(child: Center(child: _hoursChip(ctx, 'lsh'.tr, lsh, const Color(0xFFE11D48)))),
+                                    if (gsh != '00:00') _hoursChip(ctx, 'gsh'.tr, gsh, Colors.blue[600]!),
+                                    if (nth != '00:00' || (gsh == '00:00' && lsh == '00:00' && dih == '00:00')) _hoursChip(ctx, 'nth'.tr, nth, const Color(0xFF059669)),
+                                    if (dih != '00:00') _hoursChip(ctx, 'dih'.tr, dih, Colors.orange),
+                                    if (eoh != '00:00') _hoursChip(ctx, 'eoh'.tr, eoh, Colors.deepOrange),
+                                    if (lsh != '00:00') _hoursChip(ctx, 'lsh'.tr, lsh, const Color(0xFFE11D48)),
+                                    if (esh != '00:00') _hoursChip(ctx, 'esh'.tr, esh, Colors.green),
                                   ],
                                 ),
                               ),
@@ -722,6 +738,7 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
       case 'less':                                          return 'less_hrs'.tr;
       case 'regular':                                       return 'regular'.tr;
       case 'week end': case 'weekend': case 'week_end':     return 'week_end'.tr;
+      case 'holiday':                                       return 'holiday'.tr;
       default:                                              return type;
     }
   }

@@ -180,7 +180,7 @@ class NotificationTab extends StatelessWidget {
                               children: [
                                 Expanded(
                                   child: Text(
-                                    notification['NotifcnTitle'] ?? 'Notification',
+                                    (notification['NotifcnTitle']?.toString() ?? 'Notification').tr,
                                     style: TextStyle(
                                       fontSize: 15,
                                       fontWeight: isRead ? FontWeight.w600 : FontWeight.w800,
@@ -205,7 +205,7 @@ class NotificationTab extends StatelessWidget {
                             ),
                             const SizedBox(height: 6),
                             Text(
-                              _stripHtmlIfNeeded(notification['NotifcnBody'] ?? ''),
+                              _stripHtmlIfNeeded(notification['NotifcnBody'] ?? '').tr,
                               style: TextStyle(
                                 fontSize: 13,
                                 color: isDark ? Colors.grey[400] : Colors.grey[600],

@@ -285,6 +285,13 @@ class HomeController extends GetxController with GetSingleTickerProviderStateMix
       final fallbackLoc = summary['Location']?.toString() ?? summary['locationinfo']?.toString() ?? '';
       
       for (var punch in rawPunches) {
+        // Check if this individual punch already has its own location data.
+        // If so, do NOT overwrite it with summary-level location (which may be from a different punch method/device).
+        final hasPunchLocation = (punch['locationinfo']?.toString() ?? '').isNotEmpty ||
+            (punch['LocationInfo']?.toString() ?? '').isNotEmpty ||
+            (punch['Location']?.toString() ?? '').isNotEmpty;
+        if (hasPunchLocation) continue; // Punch has its own location — preserve it
+        
         final type = punch['Type']?.toString().toUpperCase() ?? '';
         if (type == 'IN' && inAddr.isNotEmpty) punch['CheckINAddr'] = inAddr;
         else if (type == 'OUT' && outAddr.isNotEmpty) punch['CheckoutAddr'] = outAddr;
@@ -883,7 +890,8 @@ class HomeController extends GetxController with GetSingleTickerProviderStateMix
         queryParameters: {
           'instanceName': instanceName,
           'usrEmail': usrEmailValue,
-          'lang': languageController.currentLangCode == 'ar' ? 2 : 1,
+          'lang': languageController.currentLangCode,
+          'Lang': languageController.currentLangCode, // Ensure backend receives expected casing/format
         },
         options: Options(
           responseType: ResponseType.json,
@@ -1101,6 +1109,7 @@ class HomeController extends GetxController with GetSingleTickerProviderStateMix
           'instanceName': instanceName,
           'usrEmail': usrEmailValue,
           'lang': languageController.currentLangCode,
+          'Lang': languageController.currentLangCode, // Ensure backend receives expected casing
         },
       );
 

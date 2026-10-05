@@ -65,7 +65,6 @@ class _AIChatTabState extends State<AIChatTab> {
               ),
             ),
             child: OrbitChatScreen(
-              settingsService: settingsService,
               onQuickAccess: (shortcut) => showChatDetails(context, shortcut),
               appHeader: ResourcePlusChatHeader(
                 onNotifications: () =>
