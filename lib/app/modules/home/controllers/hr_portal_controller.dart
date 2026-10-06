@@ -236,16 +236,16 @@ class HrPortalController extends GetxController {
     return '$deviceId|${_getDeviceName()}|$utcTimeStr|$localTimeStr|$timeZoneStr';
   }
 
-  // Build location info string: "Latitude|Longitude| Address : Lat/Lng,"
+  // Build location info string: "Latitude|Longitude| Address : GPS (Lat, Lng),"
   String _buildLocationInfo() {
     if (_currentPosition == null) {
-      return '0.000000|0.000000| Address : 0/0,';
+      return '0.000000|0.000000| Address : No Location,';
     }
 
     final lat = _currentPosition!.latitude.toStringAsFixed(6);
     final lng = _currentPosition!.longitude.toStringAsFixed(6);
 
-    return '$lat|$lng| Address : $lat/$lng,';
+    return '$lat|$lng| Address : GPS ($lat, $lng),';
   }
 
   @override
@@ -551,18 +551,21 @@ class HrPortalController extends GetxController {
                   }
 
                   if (parsedDate != null) {
-                    dateStr = DateFormat('dd MMM yyyy').format(parsedDate);
+                    final lc = Get.find<LanguageController>().currentLanguage.value;
+                    dateStr = DateFormat('dd MMM yyyy', lc == 'ar' ? 'ar' : 'en').format(parsedDate);
                     timeStr = DateFormat('HH:mm:ss').format(parsedDate);
                   } else {
                     debugPrint('Could not parse date: $punchTimeDevice');
                     final now = DateTime.now();
-                    dateStr = DateFormat('dd MMM yyyy').format(now);
+                    final lc = Get.find<LanguageController>().currentLanguage.value;
+                    dateStr = DateFormat('dd MMM yyyy', lc == 'ar' ? 'ar' : 'en').format(now);
                     timeStr = DateFormat('HH:mm:ss').format(now);
                   }
                 } catch (e) {
                   debugPrint('Error parsing date: $e');
                   final now = DateTime.now();
-                  dateStr = DateFormat('dd MMM yyyy').format(now);
+                  final lc = Get.find<LanguageController>().currentLanguage.value;
+                  dateStr = DateFormat('dd MMM yyyy', lc == 'ar' ? 'ar' : 'en').format(now);
                   timeStr = DateFormat('HH:mm:ss').format(now);
                 }
 

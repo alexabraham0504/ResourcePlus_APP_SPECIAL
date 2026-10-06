@@ -10,6 +10,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:get/get.dart';
 import 'package:resourceplus_app/bloc/chat_bloc.dart';
 import 'package:resourceplus_app/bloc/chat_event.dart';
 import 'package:resourceplus_app/bloc/chat_state.dart';
@@ -17,6 +18,7 @@ import 'package:resourceplus_app/models/chat_message.dart';
 import 'package:resourceplus_app/screens/settings_screen.dart';
 import 'package:resourceplus_app/services/settings_service.dart';
 import 'package:resourceplus_app/services/voice_websocket_service.dart';
+import 'widgets/chat_block_widgets.dart';
 
 const _ink = Color(0xFF173347);
 const _blue = Color(0xFF004A77);
@@ -33,6 +35,14 @@ enum ChatShortcut {
   const ChatShortcut(this.code, this.label);
   final String code;
   final String label;
+  String get trLabel {
+    if (this == ChatShortcut.attendance) return 'attendance'.tr;
+    if (this == ChatShortcut.leaveTravel) return 'leave_travel'.tr;
+    if (this == ChatShortcut.requests) return 'requests'.tr;
+    if (this == ChatShortcut.notifications) return 'notifications'.tr;
+    if (this == ChatShortcut.approvals) return 'manager_approvals'.tr;
+    return label;
+  }
 }
 
 /// Adapter for the existing ResourcePlus chat service.
@@ -167,11 +177,17 @@ class _OrbitChatPageState extends State<OrbitChatPage>
           final List<String>? reasonOptions = data['reason_options'] != null
               ? List<String>.from(data['reason_options'])
               : null;
+          // Parse structured blocks (tables, action buttons, kpi_cards, etc.)
+          final List<Map<String, dynamic>>? blocks = data['blocks'] != null
+              ? List<Map<String, dynamic>>.from(
+                  (data['blocks'] as List).map((b) => Map<String, dynamic>.from(b as Map)))
+              : null;
           context.read<ChatBloc>().add(AddMessageEvent(
             ChatMessage.assistant(
               content: aiText,
               confirmationId: confirmationId,
               reasonOptions: reasonOptions,
+              blocks: (blocks?.isNotEmpty ?? false) ? blocks : null,
             ),
           ));
           // Backend will send {type: 'final', audio_base64: '...'} with the Azure TTS audio.
@@ -581,9 +597,9 @@ class _OrbitChatPageState extends State<OrbitChatPage>
                     ),
                   ),
                   const SizedBox(width: 7),
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'RESOURCEPLUS INTELLIGENCE',
+                      'rp_intelligence'.tr,
                       style: TextStyle(
                         color: _blue,
                         letterSpacing: 1.4,
@@ -604,7 +620,7 @@ class _OrbitChatPageState extends State<OrbitChatPage>
                 children: [
                   Expanded(
                     child: Text(
-                      'Less busywork.\nMore possibility.',
+                      'less_busywork'.tr,
                       style: const TextStyle(
                         color: _ink,
                         fontSize: 27,
@@ -632,8 +648,8 @@ class _OrbitChatPageState extends State<OrbitChatPage>
                 ],
               ),
               const SizedBox(height: 12),
-              const Text(
-                'Your workday, a little lighter. What can I help with?',
+              Text(
+                'your_workday'.tr,
                 style: TextStyle(
                   color: _muted,
                   fontSize: 12,
@@ -646,11 +662,11 @@ class _OrbitChatPageState extends State<OrbitChatPage>
 
         if (showActions) ...[
           const SizedBox(height: 22),
-          const Row(
+          Row(
             children: [
               Expanded(
                 child: Text(
-                  'Your work, one tap away',
+                  'your_work_one_tap'.tr,
                   style: TextStyle(
                     color: _ink,
                     fontSize: 16,
@@ -663,9 +679,9 @@ class _OrbitChatPageState extends State<OrbitChatPage>
             ],
           ),
           const SizedBox(height: 4),
-          const Text(
-            'Open the details. Pick up right where you left off.',
-            style: TextStyle(color: _muted, fontSize: 11),
+          Text(
+            'open_details_pick_up'.tr,
+            style: const TextStyle(color: _muted, fontSize: 11),
           ),
           const SizedBox(height: 13),
           Row(
@@ -703,8 +719,8 @@ class _OrbitChatPageState extends State<OrbitChatPage>
         ],
         if (!_voice) ...[
           const SizedBox(height: 18),
-          const Text(
-            'OR START WITH A LITTLE INSPIRATION',
+          Text(
+            'start_inspiration'.tr,
             style: TextStyle(color: _muted, fontSize: 9, letterSpacing: 1.2),
           ),
           const SizedBox(height: 10),
@@ -714,13 +730,13 @@ class _OrbitChatPageState extends State<OrbitChatPage>
             children: [
               _prompt(
                 Icons.lightbulb_outline_rounded,
-                'Find my spark',
-                'Help me brainstorm a fresh idea for my next team meeting.',
+                'find_my_spark'.tr,
+                'brainstorm_idea'.tr,
               ),
               _prompt(
                 Icons.wb_sunny_outlined,
-                'Shape my day',
-                'Help me create a focused plan for my workday.',
+                'shape_my_day'.tr,
+                'create_focused_plan'.tr,
               ),
             ],
           ),
@@ -816,6 +832,17 @@ class _OrbitChatPageState extends State<OrbitChatPage>
                           height: 1.6,
                         ),
                       ),
+                ),
+              // ── Rich blocks (tables, action buttons, kpi cards) ──
+              if (!message.isTyping && message.blocks != null && message.blocks!.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: ChatBlockList(
+                    blocks: message.blocks!,
+                    onAction: (text) {
+                      context.read<ChatBloc>().add(SendMessageEvent(text));
+                    },
+                  ),
                 ),
               if (!message.isUser && !message.isTyping && message.reasonOptions != null && message.reasonOptions!.isNotEmpty)
                 Padding(
@@ -946,10 +973,10 @@ class _OrbitChatPageState extends State<OrbitChatPage>
                   textCapitalization: TextCapitalization.sentences,
                   decoration: InputDecoration(
                     hintText: widget.busy
-                        ? 'ResourcePlus AI is thinking…'
+                        ? 'ai_thinking'.tr
                         : _listening
-                        ? 'Your words appear here…'
-                        : 'Ask about your workday…',
+                        ? 'words_appear_here'.tr
+                        : 'ask_workday'.tr,
                     hintStyle: const TextStyle(color: _muted, fontSize: 12),
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(vertical: 13),
@@ -976,8 +1003,8 @@ class _OrbitChatPageState extends State<OrbitChatPage>
           ),
         ),
         const SizedBox(height: 10),
-        const Text(
-          'Made for your workday.  Always check important details.',
+        Text(
+          'made_for_workday'.tr,
           textAlign: TextAlign.center,
           style: TextStyle(color: _muted, fontSize: 9),
         ),
@@ -1009,13 +1036,13 @@ extension on ChatShortcut {
     ChatShortcut.approvals => const Color(0xFFF2EDFA),
   };
   String get shortLabel => switch (this) {
-    ChatShortcut.leaveTravel => 'Leave & travel',
-    ChatShortcut.approvals => 'Approvals',
-    _ => label,
+    ChatShortcut.leaveTravel => 'leave_travel'.tr,
+    ChatShortcut.approvals => 'manager_approvals'.tr,
+    _ => trLabel,
   };
   String get subtitle => this == ChatShortcut.attendance
-      ? 'Your time, at a glance'
-      : 'Make room for life';
+      ? 'time_at_glance'.tr
+      : 'room_for_life'.tr;
 }
 
 class _ShortcutCard extends StatefulWidget {

@@ -35,9 +35,9 @@ class QRAttendanceView extends GetView<QRAttendanceController> {
                   icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
                   onPressed: () => Get.back(),
                 ),
-                const Text(
-                  'QR Attendance',
-                  style: TextStyle(
+                Text(
+                  'qr_attendance'.tr,
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -66,7 +66,7 @@ class QRAttendanceView extends GetView<QRAttendanceController> {
                 ),
                 const SizedBox(height: 16),
                 Obx(() {
-              final isSuccess = controller.statusMessage.value == 'Punch Successful!';
+              final isSuccess = controller.statusMessage.value == 'punch_success'.tr;
               return Container(
                     padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
                     decoration: BoxDecoration(

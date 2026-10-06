@@ -1,5 +1,6 @@
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 enum FaceQualityState {
   noFace,
@@ -52,17 +53,17 @@ class FaceQualityService {
   String getFeedbackMessage(FaceQualityState state) {
     switch (state) {
       case FaceQualityState.noFace:
-        return "Position your face inside the guide";
+        return 'position_face_guide'.tr;
       case FaceQualityState.multipleFaces:
-        return "Only one person should be visible";
+        return 'only_one_person'.tr;
       case FaceQualityState.faceTooSmall:
-        return "Move closer";
+        return 'move_closer'.tr;
       case FaceQualityState.faceNotCentered:
-        return "Center your face in the oval";
+        return 'center_face'.tr;
       case FaceQualityState.headAngleInvalid:
-        return "Keep your face straight";
+        return 'keep_face_straight'.tr;
       case FaceQualityState.ready:
-        return "Hold still...";
+        return 'hold_still'.tr;
     }
   }
 }

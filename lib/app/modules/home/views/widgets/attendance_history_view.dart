@@ -1,8 +1,15 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/io_client.dart' as io_client;
+import 'package:get_storage/get_storage.dart';
+
+import '../../../../config/api_endpoints.dart';
+import '../../../../controllers/language_controller.dart';
 import '../../controllers/home_controller.dart';
 import 'tab_header.dart';
 import '../tabs/attendance_tab.dart';
@@ -26,29 +33,95 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
   static const _weekend    = Color(0xFF4F46E5); // Indigo 600
   static const _neutral    = Color(0xFF64748B); // Slate 500
 
-  DateTimeRange? _dateRange;
   final HomeController _controller = Get.find<HomeController>();
 
-  Color _statusColor(String dayType) {
-    switch (dayType.toLowerCase().trim()) {
-      case 'present':                              return _present;
-      case 'absent': case 'absent *p': case 'absent*p': return _absent;
-      case 'late':                                 return _late;
-      case 'early':                                return _present;
-      case 'week end': case 'weekend':             return _weekend;
-      case 'half day': case 'halfday':             return _late;
-      case 'leave':                                return _weekend;
-      default:                                     return _neutral;
+  String _selectedPeriod = 'This Week';
+  DateTime? _fromDate;
+  DateTime? _toDate;
+  bool _isLoading = false;
+  Map<String, dynamic>? _summaryData;
+
+  final List<String> _periods = [
+    'Today',
+    'This Week',
+    'Last Week',
+    'This Month',
+    'Last Month',
+    'This Year',
+    'Last Year',
+    'Select Date',
+    'All'
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _updateDatesFromPeriod();
+    _fetchSummaryData();
+  }
+
+  void _updateDatesFromPeriod() {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    
+    switch (_selectedPeriod) {
+      case 'Today':
+        _fromDate = today;
+        _toDate = today;
+        break;
+      case 'This Week':
+        _fromDate = today.subtract(Duration(days: today.weekday - 1));
+        _toDate = _fromDate!.add(const Duration(days: 6));
+        if (_toDate!.isAfter(today)) _toDate = today; // Cap to today
+        break;
+      case 'Last Week':
+        final lastWeekStart = today.subtract(Duration(days: today.weekday - 1 + 7));
+        _fromDate = lastWeekStart;
+        _toDate = _fromDate!.add(const Duration(days: 6));
+        break;
+      case 'This Month':
+        _fromDate = DateTime(today.year, today.month, 1);
+        _toDate = DateTime(today.year, today.month + 1, 0);
+        if (_toDate!.isAfter(today)) _toDate = today; // Cap to today
+        break;
+      case 'Last Month':
+        _fromDate = DateTime(today.year, today.month - 1, 1);
+        _toDate = DateTime(today.year, today.month, 0);
+        break;
+      case 'This Year':
+        _fromDate = DateTime(today.year, 1, 1);
+        _toDate = DateTime(today.year, 12, 31);
+        if (_toDate!.isAfter(today)) _toDate = today; // Cap to today
+        break;
+      case 'Last Year':
+        _fromDate = DateTime(today.year - 1, 1, 1);
+        _toDate = DateTime(today.year - 1, 12, 31);
+        break;
+      case 'Select Date':
+        _fromDate ??= today;
+        _toDate ??= today;
+        break;
+      case 'All':
+        _fromDate = null;
+        _toDate = null;
+        break;
     }
   }
 
-  void _showDatePicker() async {
-    final now = DateTime.now();
-    final result = await showDateRangePicker(
+  Future<void> _selectDate(BuildContext context, bool isFrom) async {
+    // Automatically switch to 'Select Date' if they tap the date field
+    if (_selectedPeriod != 'Select Date') {
+      setState(() {
+        _selectedPeriod = 'Select Date';
+      });
+    }
+    
+    final initialDate = isFrom ? (_fromDate ?? DateTime.now()) : (_toDate ?? DateTime.now());
+    final picked = await showDatePicker(
       context: context,
-      firstDate: DateTime(2020),
-      lastDate: now.add(const Duration(days: 365)),
-      initialDateRange: _dateRange,
+      initialDate: initialDate,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
@@ -60,57 +133,597 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
         );
       },
     );
-    if (result != null) {
+
+    if (picked != null) {
       setState(() {
-        _dateRange = result;
+        if (isFrom) {
+          _fromDate = picked;
+          if (_toDate != null && picked.isAfter(_toDate!)) {
+            _toDate = picked;
+          }
+        } else {
+          _toDate = picked;
+          if (_fromDate != null && picked.isBefore(_fromDate!)) {
+            _fromDate = picked;
+          }
+        }
       });
     }
   }
 
-  List<dynamic> _getFilteredRecords() {
-    List<dynamic> records = _controller.recentActivities.toList();
+  Future<void> _fetchSummaryData() async {
+    setState(() => _isLoading = true);
+    try {
+      final email = GetStorage().read('username') ?? '';
+      final instance = GetStorage().read('instanceName') ?? '';
+      final langId = Get.find<LanguageController>().currentLanguage.value == 'ar' ? '2' : '1';
+      
+      String fromStr = '';
+      String toStr = '';
+      if (_fromDate != null) fromStr = DateFormat('yyyy-MM-dd').format(_fromDate!);
+      if (_toDate != null) toStr = DateFormat('yyyy-MM-dd').format(_toDate!);
+
+      final uri = Uri.parse('${ApiEndpoints.getAttendanceSummary}?usrEmail=$email&fromDate=$fromStr&toDate=$toStr&instanceName=$instance&lang=$langId');
+      
+      final ioClient = HttpClient()..badCertificateCallback = ((_, __, ___) => true);
+      final client = io_client.IOClient(ioClient);
+      
+      var response = await client.get(uri);
+      
+      // Fallback for missing /Mobile prefix
+      if (response.statusCode == 404) {
+        final fallbackUri = Uri.parse('${ApiEndpoints.baseUrl}/Mobile/api/AI/AttendanceSummary?usrEmail=$email&fromDate=$fromStr&toDate=$toStr&instanceName=$instance&lang=$langId');
+        response = await client.get(fallbackUri);
+      }
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          _summaryData = data;
+        });
+      } else {
+         debugPrint('API Error: ${response.statusCode} - ${response.body}');
+         // Try to parse the error message if any
+         String errorMsg = 'server_error'.tr;
+         try {
+           final errData = json.decode(response.body);
+           if (errData['Message'] != null) errorMsg = errData['Message'];
+         } catch (_) {}
+         Get.snackbar('error'.tr, errorMsg, backgroundColor: Colors.red, colorText: Colors.white, snackPosition: SnackPosition.BOTTOM);
+      }
+    } catch (e) {
+      debugPrint('Error fetching summary: $e');
+      Get.snackbar('error'.tr, 'network_error'.tr, backgroundColor: Colors.red, colorText: Colors.white);
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  String _getTranslationForPeriod(String period) {
+    switch (period) {
+      case 'Today': return 'today'.tr;
+      case 'This Week': return 'this_week'.tr;
+      case 'Last Week': return 'last_week'.tr;
+      case 'This Month': return 'this_month'.tr;
+      case 'Last Month': return 'last_month'.tr;
+      case 'This Year': return 'this_year'.tr;
+      case 'Last Year': return 'last_year'.tr;
+      case 'Select Date': return 'select_date'.tr;
+      case 'All': return 'all_period'.tr;
+      default: return period;
+    }
+  }
+
+  Widget _buildSearchCriteria(bool isDark) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: isDark ? const Color(0xFF334155) : Colors.grey[200]!),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.search_rounded, size: 20, color: isDark ? Colors.white : _primary),
+              const SizedBox(width: 8),
+              Text('search_criteria'.tr, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? Colors.white : _primary)),
+            ],
+          ),
+          const SizedBox(height: 20),
+          
+          // Period Dropdown
+          Text('period'.tr, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey[600])),
+          const SizedBox(height: 6),
+          Container(
+            height: 48,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+              border: Border.all(color: isDark ? const Color(0xFF475569) : Colors.grey[300]!),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                isExpanded: true,
+                value: _selectedPeriod,
+                dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                icon: Icon(Icons.keyboard_arrow_down_rounded, color: Colors.grey[600]),
+                items: _periods.map((String period) {
+                  return DropdownMenuItem<String>(
+                    value: period,
+                    child: Text(_getTranslationForPeriod(period), style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: isDark ? Colors.white : _primary)),
+                  );
+                }).toList(),
+                onChanged: (String? newValue) {
+                  if (newValue != null) {
+                    setState(() {
+                      _selectedPeriod = newValue;
+                      _updateDatesFromPeriod();
+                    });
+                  }
+                },
+              ),
+            ),
+          ),
+          
+          const SizedBox(height: 16),
+          
+          // Dates Row
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('from_date'.tr, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey[600])),
+                    const SizedBox(height: 6),
+                    GestureDetector(
+                      onTap: () => _selectDate(context, true),
+                      child: Container(
+                        height: 48,
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        decoration: BoxDecoration(
+                          color: _selectedPeriod == 'Select Date' ? (isDark ? const Color(0xFF0F172A) : Colors.white) : (isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9)),
+                          border: Border.all(color: isDark ? const Color(0xFF475569) : Colors.grey[300]!),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              _fromDate != null ? DateFormat('dd/MM/yyyy').format(_fromDate!) : '',
+                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: _selectedPeriod == 'Select Date' ? (isDark ? Colors.white : _primary) : Colors.grey[500]),
+                            ),
+                            Icon(Icons.calendar_month_rounded, size: 18, color: Colors.grey[500]),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('to_date'.tr, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey[600])),
+                    const SizedBox(height: 6),
+                    GestureDetector(
+                      onTap: () => _selectDate(context, false),
+                      child: Container(
+                        height: 48,
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        decoration: BoxDecoration(
+                          color: _selectedPeriod == 'Select Date' ? (isDark ? const Color(0xFF0F172A) : Colors.white) : (isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9)),
+                          border: Border.all(color: isDark ? const Color(0xFF475569) : Colors.grey[300]!),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              _toDate != null ? DateFormat('dd/MM/yyyy').format(_toDate!) : '',
+                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: _selectedPeriod == 'Select Date' ? (isDark ? Colors.white : _primary) : Colors.grey[500]),
+                            ),
+                            Icon(Icons.calendar_month_rounded, size: 18, color: Colors.grey[500]),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          
+          const SizedBox(height: 24),
+          
+          // View Button
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF006E1C), // Corporate Green
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 0,
+              ),
+              onPressed: _isLoading ? null : _fetchSummaryData,
+              child: _isLoading 
+                  ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.analytics_outlined, size: 20),
+                        const SizedBox(width: 8),
+                        Text('view'.tr, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 0.5)),
+                      ],
+                    ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryCards(bool isDark) {
+    if (_summaryData == null) return const SizedBox.shrink();
     
-    if (_dateRange != null) {
-      records = records.where((record) {
-        final dateStr = (record['AttDate'] ?? record['LogDate'] ?? '').toString();
-        if (dateStr.isEmpty) return true; // keep if no date (fallback)
-        
-        DateTime? parsed;
+    final counts = _summaryData!['Attendance Counts'] as List<dynamic>? ?? [];
+    int present = 0, less = 0, absent = 0;
+    
+    for (var c in counts) {
+      if (c['CountType'] == 'Present') present = c['NoOfDays'] ?? 0;
+      if (c['CountType'] == 'Less') less = c['NoOfDays'] ?? 0;
+      if (c['CountType'] == 'Absent') absent = c['NoOfDays'] ?? 0;
+    }
+
+    final rates = _summaryData!['Attendance Rate'] as List<dynamic>? ?? [];
+    String presentPerc = '0.00', absentPerc = '0.00';
+    if (rates.isNotEmpty) {
+      presentPerc = rates[0]['PresentPercentage']?.toString() ?? '0.00';
+      absentPerc = rates[0]['AbsentPercentage']?.toString() ?? '0.00';
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: _statCard('present_percentage'.tr, '$presentPerc%', Colors.green, isDark),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _statCard('absent_percentage'.tr, '$absentPerc%', Colors.red, isDark),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _statCard('less'.tr, less.toString(), Colors.orange, isDark),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _statCard(String title, String value, Color color, bool isDark) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(title, style: TextStyle(fontSize: 11, color: isDark ? Colors.grey[400] : Colors.grey[600]), textAlign: TextAlign.center, maxLines: 2),
+          const SizedBox(height: 4),
+          Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color)),
+        ],
+      ),
+    );
+  }
+
+  void _onDayTapped(Map<String, dynamic> day) async {
+    final dateStr = day['AttDate']?.toString() ?? '';
+    if (dateStr.isEmpty) return;
+    
+    // Parse DD/MM/YYYY into YYYY-MM-DD
+    String apiDate = dateStr;
+    try {
+      final parts = dateStr.split('/');
+      if (parts.length == 3) {
+        apiDate = '${parts[2]}-${parts[1]}-${parts[0]}';
+      }
+    } catch (_) {}
+    
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (c) => const Center(child: CircularProgressIndicator()),
+    );
+    
+    try {
+      final rawPunches = await _controller.fetchPunchesForDate(apiDate);
+      if (mounted) Navigator.pop(context); // Close loading
+      
+      if (rawPunches.isEmpty) {
+        Get.snackbar('Notice', 'No punches found for this date', snackPosition: SnackPosition.BOTTOM);
+        return;
+      }
+
+      // Try to find the detailed record from cached GetAttData to get the location fallback
+      final storage = GetStorage();
+      final cachedData = storage.read('cachedAttendanceData');
+      String inAddr = day['CheckINAddr']?.toString() ?? '';
+      String outAddr = day['CheckoutAddr']?.toString() ?? '';
+      String fallbackLoc = day['Location']?.toString() ?? day['locationinfo']?.toString() ?? '';
+
+      if (cachedData != null && cachedData is Map && cachedData.containsKey('Recent Activites')) {
         try {
-          final parts = dateStr.split('/');
-          if (parts.length == 3) {
-            int day = int.parse(parts[0]);
-            int month = int.parse(parts[1]);
-            int year = int.parse(parts[2]);
-            if (day > 12 && month <= 12) {
-              parsed = DateTime(year, month, day);
-            } else if (month > 12 && day <= 12) {
-              parsed = DateTime(year, day, month);
-            } else {
-              parsed = DateTime(year, month, day);
+          final activitiesList = cachedData['Recent Activites'] as List;
+          for (var item in activitiesList) {
+            if (item is Map) {
+              final itemDate = item['AttDate']?.toString() ?? '';
+              // Match by date string (e.g. "05/10/2026")
+              if (itemDate.isNotEmpty && dateStr.isNotEmpty && itemDate.split(' ').first == dateStr.split(' ').first) {
+                if (inAddr.isEmpty) inAddr = item['CheckINAddr']?.toString() ?? '';
+                if (outAddr.isEmpty) outAddr = item['CheckoutAddr']?.toString() ?? '';
+                if (fallbackLoc.isEmpty) fallbackLoc = item['Location']?.toString() ?? item['locationinfo']?.toString() ?? item['LocationInfo']?.toString() ?? '';
+                break;
+              }
             }
-          } else {
-            parsed = DateFormat('yyyy-MM-dd').parse(dateStr);
           }
         } catch (_) {}
+      }
 
-        if (parsed != null) {
-          // Check if parsed date falls within range (inclusive of boundaries)
-          final start = _dateRange!.start.subtract(const Duration(days: 1));
-          final end = _dateRange!.end.add(const Duration(days: 1));
-          return parsed.isAfter(start) && parsed.isBefore(end);
+      for (var punch in rawPunches) {
+        final hasPunchLocation = (punch['locationinfo']?.toString() ?? '').isNotEmpty ||
+            (punch['LocationInfo']?.toString() ?? '').isNotEmpty ||
+            (punch['Location']?.toString() ?? '').isNotEmpty ||
+            (punch['CheckINAddr']?.toString() ?? '').isNotEmpty ||
+            (punch['CheckoutAddr']?.toString() ?? '').isNotEmpty ||
+            (punch['Latitude']?.toString() ?? '').isNotEmpty ||
+            (punch['PunchLat']?.toString() ?? '').isNotEmpty ||
+            (punch['Lat']?.toString() ?? '').isNotEmpty;
+            
+        if (hasPunchLocation) continue;
+        
+        final type = (punch['PunchType'] ?? punch['Type'] ?? '').toString().toUpperCase();
+        if (type == 'IN' && inAddr.isNotEmpty) punch['CheckINAddr'] = inAddr;
+        else if (type == 'OUT' && outAddr.isNotEmpty) punch['CheckoutAddr'] = outAddr;
+        
+        if (fallbackLoc.isNotEmpty) {
+          punch['Location'] = fallbackLoc;
         }
-        return true;
-      }).toList();
+      }
+      
+      AttendanceTab.showPunchesBottomSheet(
+        context,
+        [day], // Passing the day data as summary list
+        rawPunches,
+      );
+    } catch (e) {
+      if (mounted) Navigator.pop(context); // Close loading
+      Get.snackbar('Error', 'Failed to fetch punch details', backgroundColor: Colors.red, colorText: Colors.white);
     }
+  }
+
+  Widget _buildCards(bool isDark) {
+    if (_summaryData == null) return const SizedBox.shrink();
     
-    return records;
+    final days = _summaryData!['Days'] as List<dynamic>? ?? [];
+    if (days.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Text('no_punch_records'.tr, style: TextStyle(color: isDark ? Colors.grey[500] : Colors.grey[600])),
+        ),
+      );
+    }
+
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      itemCount: days.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      itemBuilder: (context, index) {
+        final day = days[index];
+        final dayType = day['DayType']?.toString().toLowerCase().trim() ?? '';
+        final actualDateStr = day['AttDate']?.toString() ?? '';
+        
+        Color statusColor = _neutral;
+        if (dayType.contains('present') || dayType.contains('regular')) statusColor = _present;
+        else if (dayType.contains('absent')) statusColor = _absent;
+        else if (dayType.contains('late') || dayType.contains('half')) statusColor = _late;
+        else if (dayType.contains('week end') || dayType.contains('leave')) statusColor = _weekend;
+
+        String monthStr = '';
+        String yearStr = '';
+        String dayStr = '';
+        String weekdayStr = '';
+
+        try {
+          if (actualDateStr.contains('/')) {
+            final parts = actualDateStr.split('/');
+            if (parts.length >= 3) {
+              int d = int.parse(parts[0]);
+              int m = int.parse(parts[1]);
+              int y = int.parse(parts[2]);
+              DateTime dt = (d > 12 && m <= 12) ? DateTime(y, m, d) : ((m > 12 && d <= 12) ? DateTime(y, d, m) : DateTime(y, m, d));
+              monthStr = DateFormat('MMMM').format(dt);
+              yearStr = DateFormat('yyyy').format(dt);
+              dayStr = DateFormat('dd').format(dt);
+              weekdayStr = DateFormat('EEE').format(dt);
+            }
+          }
+        } catch (_) {}
+        
+        if (dayStr.isEmpty && actualDateStr.isNotEmpty) {
+           dayStr = actualDateStr.split('/').first;
+        }
+
+        final overallCheckIn = (day['CheckIN'] ?? '').toString().trim();
+        final overallCheckOut = (day['CheckOut'] ?? '').toString().trim();
+        final nth = (day['NetHrs'] ?? '').toString().trim();
+        final lsh = (day['LessHrs'] ?? '').toString().trim();
+
+        return InkWell(
+          onTap: () => _onDayTapped(day),
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E293B) : _surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+            ),
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.calendar_month_outlined, size: 16, color: (isDark ? Colors.white : Colors.grey[600])?.withValues(alpha: 0.6)),
+                        const SizedBox(width: 6),
+                        Text('$monthStr $yearStr'.trim(), style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: (isDark ? Colors.white : Colors.grey[600])?.withValues(alpha: 0.7))),
+                      ],
+                    ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(width: 6, height: 6, decoration: BoxDecoration(color: statusColor, shape: BoxShape.circle)),
+                        const SizedBox(width: 6),
+                        Text(day['DayType']?.toString() ?? '', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: (isDark ? Colors.white : Colors.grey[600])?.withValues(alpha: 0.8))),
+                      ],
+                    ),
+                  ],
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Divider(height: 1, thickness: 0.5, color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                ),
+                
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF3F3F6).withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFF1A1C1E).withValues(alpha: 0.05)),
+                      ),
+                      child: Column(
+                        children: [
+                          Text(dayStr, style: TextStyle(fontSize: 34, fontWeight: FontWeight.w800, color: isDark ? Colors.white : const Color(0xFF1A1C1E), height: 1.0)),
+                          const SizedBox(height: 4),
+                          Text(weekdayStr, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: (isDark ? Colors.white : const Color(0xFF3F4A3C)).withValues(alpha: 0.9))),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        children: [
+                          if (overallCheckIn.isEmpty && overallCheckOut.isEmpty)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 24),
+                              child: Center(
+                                child: Text('no_punch_data'.tr, style: TextStyle(fontSize: 13, color: Colors.grey[400], fontStyle: FontStyle.italic)),
+                              ),
+                            )
+                          else ...[
+                            Row(
+                              children: [
+                                Expanded(child: _timeSection(context, 'check_in'.tr, overallCheckIn.isNotEmpty ? overallCheckIn : '--:--', isDark)),
+                                Container(width: 1, height: 30, color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                                Expanded(child: _timeSection(context, 'check_out'.tr, overallCheckOut.isNotEmpty ? overallCheckOut : '--:--', isDark, isRight: true)),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(child: Center(child: _hoursChip(context, 'nth'.tr, nth.isNotEmpty ? nth : '00:00', const Color(0xFF059669), isDark))),
+                                  Container(width: 1, height: 24, color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                                  Expanded(child: Center(child: _hoursChip(context, 'lsh'.tr, lsh.isNotEmpty ? lsh : '00:00', const Color(0xFFE11D48), isDark))),
+                                ],
+                              ),
+                            ),
+                          ]
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _timeSection(BuildContext context, String label, String time, bool isDark, {bool isRight = false}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (!isRight) Icon(Icons.login_rounded, size: 14, color: Colors.grey[400]),
+            if (!isRight) const SizedBox(width: 4),
+            Text(label, style: TextStyle(fontSize: 12, color: isDark ? Colors.grey[400] : Colors.grey[500], fontWeight: FontWeight.w500)),
+            if (isRight) const SizedBox(width: 4),
+            if (isRight) Icon(Icons.logout_rounded, size: 14, color: Colors.grey[400]),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(time, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: isDark ? Colors.grey[200] : const Color(0xFF1E293B))),
+      ],
+    );
+  }
+
+  Widget _hoursChip(BuildContext context, String label, String value, Color color, bool isDark) {
+    return Column(
+      children: [
+        Text(label, style: TextStyle(fontSize: 10, color: (isDark ? Colors.white : Colors.grey[600])?.withValues(alpha: 0.7))),
+        const SizedBox(height: 2),
+        Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: color)),
+      ],
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final records = _getFilteredRecords();
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0F172A) : _bg,
@@ -118,7 +731,7 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
         decoration: BoxDecoration(
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
+              color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
               blurRadius: 10,
               offset: const Offset(0, -5),
             ),
@@ -133,7 +746,7 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
             }
           },
           backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-          selectedItemColor: const Color(0xFF006E1C), // primaryGreen from HomeView
+          selectedItemColor: const Color(0xFF006E1C),
           unselectedItemColor: isDark ? Colors.grey[500] : Colors.grey[400],
           showUnselectedLabels: true,
           type: BottomNavigationBarType.fixed,
@@ -152,7 +765,7 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
       body: SafeArea(
         child: Column(
           children: [
-            // Standard header - same as all other pages
+            // Standard header
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               child: TabHeader(title: ''),
@@ -161,635 +774,30 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text('attendance_history'.tr, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18, color: isDark ? Colors.white : _primary)),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: Icon(
-                          _dateRange != null ? Icons.filter_alt_rounded : Icons.filter_alt_outlined, 
-                          color: _dateRange != null ? (isDark ? Colors.white : _primary) : (isDark ? Colors.grey[400] : Colors.grey[600])
-                        ),
-                        onPressed: _showDatePicker,
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                      ),
-                      if (_dateRange != null) ...[
-                        const SizedBox(width: 12),
-                        IconButton(
-                          icon: Icon(Icons.clear, color: isDark ? Colors.grey[400] : Colors.grey[600]),
-                          onPressed: () => setState(() => _dateRange = null),
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                        ),
-                      ],
-                    ],
-                  ),
                 ],
               ),
             ),
-            // "Coming Soon" Filter Chips
-            SizedBox(
-              height: 32,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                children: ['day', 'week', 'month'].map((val) {
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: GestureDetector(
-                      onTap: () {
-                        final now = DateTime.now();
-                        setState(() {
-                          if (val == 'day') {
-                            _dateRange = DateTimeRange(
-                                start: DateTime(now.year, now.month, now.day),
-                                end: DateTime(now.year, now.month, now.day));
-                          } else if (val == 'week') {
-                            final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
-                            final endOfWeek = startOfWeek.add(const Duration(days: 6));
-                            _dateRange = DateTimeRange(
-                                start: DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day),
-                                end: DateTime(endOfWeek.year, endOfWeek.month, endOfWeek.day));
-                          } else if (val == 'month') {
-                            final endOfMonth = DateTime(now.year, now.month + 1, 0);
-                            _dateRange = DateTimeRange(
-                                start: DateTime(now.year, now.month, 1),
-                                end: DateTime(endOfMonth.year, endOfMonth.month, endOfMonth.day));
-                          }
-                        });
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        decoration: BoxDecoration(
-                          color: Colors.transparent,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-                        ),
-                        alignment: Alignment.center,
-                        child: Text(val.tr, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? Colors.grey[400] : Colors.grey[600])),
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-            const SizedBox(height: 8),
+            
             Expanded(
-              child: records.isEmpty
-                ? _emptyState(context)
-                : ListView.separated(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                    physics: const BouncingScrollPhysics(),
-                    itemCount: records.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
-                    itemBuilder: (_, i) => _recordCard(context, records[i]),
-                  ),
+              child: RefreshIndicator(
+                onRefresh: _fetchSummaryData,
+                child: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  children: [
+                    _buildSearchCriteria(isDark),
+                    const SizedBox(height: 8),
+                    _buildSummaryCards(isDark),
+                    _buildCards(isDark),
+                    const SizedBox(height: 24),
+                  ],
+                ),
+              ),
             ),
           ],
         ),
       ),
     );
-  }
-
-  Widget _emptyState(BuildContext ctx) => Container(
-    padding: const EdgeInsets.symmetric(vertical: 40),
-    alignment: Alignment.center,
-    child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      Icon(Icons.history_rounded, size: 40, color: Colors.grey[300]),
-      const SizedBox(height: 12),
-      Text('No records found for the selected period.', style: TextStyle(fontSize: 14, color: Colors.grey[500])),
-    ]),
-  );
-
-  Widget _recordCard(BuildContext ctx, dynamic item) {
-    final isDark = Theme.of(ctx).brightness == Brightness.dark;
-    final date = (item['AttDate'] ?? item['LogDate'] ?? '').toString();
-    final type = (item['DayType'] ?? '').toString();
-    final checkIn = (item['CheckIN'] ?? '').toString();
-    final checkOut = (item['CheckOut'] ?? '').toString();
-
-    // Helper to find value across multiple possible keys
-    String _find(List<String> keys) {
-      for (final k in item.keys) {
-        if (keys.any((pk) => pk.toLowerCase().trim() == k.toString().toLowerCase().trim())) {
-          final val = item[k];
-          if (val != null && val.toString().trim().isNotEmpty && val.toString() != 'null') {
-            return val.toString().trim();
-          }
-        }
-      }
-      return '00:00';
-    }
-
-    // Read hour fields directly from the API response
-    String gsh = _find(['GrossHrs', 'GrossHr', 'GrossHours', 'GSH']);
-    String nth = _find(['NetHrs', 'NetHr', 'NetHours', 'NTH']);
-    String dih = _find(['DelayHrs', 'DelayHr', 'DelayHours', 'DIH']);
-    String eoh = _find(['EarlyOutHrs', 'EarlyOutHr', 'EarlyOutHours', 'EOH']);
-    String lsh = _find(['LessHrs', 'LessHr', 'LessHours', 'LSH']);
-    String esh = _find(['ExcessHrs', 'ExcessHr', 'ExcessHours', 'ESH']);
-
-    final color = _statusColor(type);
-
-    String dayStr = '--';
-    String weekdayStr = '---';
-    String monthStr = '---';
-    String yearStr = '';
-    try {
-      final parts = date.split('/');
-      if (parts.length == 3) {
-        int day = int.parse(parts[0]);
-        int month = int.parse(parts[1]);
-        int year = int.parse(parts[2]);
-        if (day > 12 && month <= 12) {
-          final d = DateTime(year, month, day);
-          dayStr = DateFormat('dd').format(d);
-          weekdayStr = DateFormat('EEE').format(d);
-          monthStr = DateFormat('MMMM').format(d);
-          yearStr = DateFormat('yyyy').format(d);
-        } else if (month > 12 && day <= 12) {
-          final d = DateTime(year, day, month);
-          dayStr = DateFormat('dd').format(d);
-          weekdayStr = DateFormat('EEE').format(d);
-          monthStr = DateFormat('MMMM').format(d);
-          yearStr = DateFormat('yyyy').format(d);
-        } else {
-          final d = DateTime(year, month, day);
-          dayStr = DateFormat('dd').format(d);
-          weekdayStr = DateFormat('EEE').format(d);
-          monthStr = DateFormat('MMMM').format(d);
-          yearStr = DateFormat('yyyy').format(d);
-        }
-      } else {
-        final d = DateFormat('yyyy-MM-dd').parse(date);
-        dayStr = DateFormat('dd').format(d);
-        weekdayStr = DateFormat('EEE').format(d);
-        monthStr = DateFormat('MMMM').format(d);
-        yearStr = DateFormat('yyyy').format(d);
-      }
-    } catch (_) {}
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () async {
-          showDialog(
-            context: ctx,
-            barrierDismissible: false,
-            builder: (c) => const Center(child: CircularProgressIndicator()),
-          );
-
-          final homeController = Get.find<HomeController>();
-          final actualDateStr = (item['AttDate'] ?? '').toString(); 
-          
-          String formattedApiDate = actualDateStr;
-          try {
-            if (actualDateStr.contains('/')) {
-              final parts = actualDateStr.split('/');
-              if (parts.length == 3) {
-                 formattedApiDate = '${parts[2]}-${parts[1]}-${parts[0]}';
-              }
-            } else if (actualDateStr.contains('-')) {
-              final parts = actualDateStr.split('-');
-              if (parts.length == 3 && parts[0].length == 2) {
-                 formattedApiDate = '${parts[2]}-${parts[1]}-${parts[0]}';
-              }
-            }
-          } catch (_) {}
-          
-          final rawPunches = await homeController.fetchPunchesForDate(formattedApiDate);
-          
-          if (rawPunches.isNotEmpty) {
-            final inAddr = item['CheckINAddr']?.toString() ?? '';
-            final outAddr = item['CheckoutAddr']?.toString() ?? '';
-            final fallbackLoc = item['Location']?.toString() ?? item['locationinfo']?.toString() ?? '';
-            
-            for (var punch in rawPunches) {
-              // If punch has its own location data, preserve it — don't overwrite with summary-level data
-              final hasPunchLocation = (punch['locationinfo']?.toString() ?? '').isNotEmpty ||
-                  (punch['LocationInfo']?.toString() ?? '').isNotEmpty ||
-                  (punch['Location']?.toString() ?? '').isNotEmpty;
-              if (hasPunchLocation) continue;
-              
-              final t = punch['Type']?.toString().toUpperCase() ?? '';
-              if (t == 'IN' && inAddr.isNotEmpty) punch['CheckINAddr'] = inAddr;
-              else if (t == 'OUT' && outAddr.isNotEmpty) punch['CheckoutAddr'] = outAddr;
-              if (fallbackLoc.isNotEmpty) punch['Location'] = fallbackLoc;
-            }
-          }
-          
-          Navigator.pop(ctx);
-          AttendanceTab.showPunchesBottomSheet(ctx, [item], rawPunches.isNotEmpty ? rawPunches : [item]);
-        },
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1E293B) : _surface,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-          ),
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.calendar_month_outlined, size: 16, color: (isDark ? Colors.white : Colors.grey[600])?.withValues(alpha: 0.6)),
-                      const SizedBox(width: 6),
-                      Text('$monthStr $yearStr', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: (isDark ? Colors.white : Colors.grey[600])?.withValues(alpha: 0.7))),
-                    ],
-                  ),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(width: 6, height: 6, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-                      const SizedBox(width: 6),
-                      Text(_label(type), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: (isDark ? Colors.white : Colors.grey[600])?.withValues(alpha: 0.8))),
-                    ],
-                  ),
-                ],
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Divider(height: 1, thickness: 0.5, color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-              ),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF3F3F6).withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: const Color(0xFF1A1C1E).withValues(alpha: 0.05)),
-                    ),
-                    child: Column(
-                      children: [
-                        Text(dayStr, style: TextStyle(fontSize: 34, fontWeight: FontWeight.w800, color: isDark ? Colors.white : const Color(0xFF1A1C1E), height: 1.0)),
-                        const SizedBox(height: 4),
-                        Text(weekdayStr, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: (isDark ? Colors.white : const Color(0xFF3F4A3C)).withValues(alpha: 0.9))),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: (checkIn.isNotEmpty || checkOut.isNotEmpty)
-                      ? Column(
-                          children: [
-                            Row(
-                              children: [
-                                Expanded(child: _timeSection(ctx, 'check_in'.tr, checkIn.isNotEmpty ? checkIn : '--:--')),
-                                Container(width: 1, height: 30, color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-                                Expanded(child: _timeSection(ctx, 'check_out'.tr, checkOut.isNotEmpty ? checkOut : '--:--', isRight: true)),
-                              ],
-                            ),
-                            if (gsh != '00:00' || nth != '00:00' || dih != '00:00' || eoh != '00:00' || lsh != '00:00' || esh != '00:00') ...[
-                              const SizedBox(height: 10),
-                              Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                decoration: BoxDecoration(
-                                  color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Wrap(
-                                  spacing: 12,
-                                  runSpacing: 8,
-                                  alignment: WrapAlignment.center,
-                                  children: [
-                                    if (gsh != '00:00') _hoursChip(ctx, 'gsh'.tr, gsh, Colors.blue[600]!),
-                                    if (nth != '00:00' || (gsh == '00:00' && lsh == '00:00' && dih == '00:00')) _hoursChip(ctx, 'nth'.tr, nth, const Color(0xFF059669)),
-                                    if (dih != '00:00') _hoursChip(ctx, 'dih'.tr, dih, Colors.orange),
-                                    if (eoh != '00:00') _hoursChip(ctx, 'eoh'.tr, eoh, Colors.deepOrange),
-                                    if (lsh != '00:00') _hoursChip(ctx, 'lsh'.tr, lsh, const Color(0xFFE11D48)),
-                                    if (esh != '00:00') _hoursChip(ctx, 'esh'.tr, esh, Colors.green),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ],
-                        )
-                      : Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 24),
-                          child: Center(
-                            child: Text('no_punch_data'.tr, style: TextStyle(fontSize: 13, color: Colors.grey[400], fontStyle: FontStyle.italic)),
-                          ),
-                        ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showPunchDetailsDialog(BuildContext context, dynamic item) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    String parsedDate = (item['AttDate'] ?? item['LogDate'] ?? '').toString();
-    if (parsedDate.contains('T')) parsedDate = parsedDate.split('T')[0];
-    
-    String date = parsedDate;
-    try {
-      if (date.isNotEmpty) {
-        if (date.contains('/')) {
-          final parts = date.split('/');
-          if (parts.length == 3) {
-            int p1 = int.parse(parts[0]);
-            int p2 = int.parse(parts[1]);
-            int p3 = int.parse(parts[2]);
-            if (p1 > 12) date = DateFormat('dd MMM yyyy').format(DateTime(p3, p2, p1));
-            else if (p2 > 12) date = DateFormat('dd MMM yyyy').format(DateTime(p3, p1, p2));
-            else date = DateFormat('dd MMM yyyy').format(DateTime(p3, p2, p1));
-          }
-        } else {
-          date = DateFormat('dd MMM yyyy').format(DateTime.parse(date));
-        }
-      }
-    } catch (_) {}
-    final checkIn = (item['CheckIN'] ?? '--:--').toString();
-    final checkOut = (item['CheckOut'] ?? '--:--').toString();
-    final type = (item['DayType'] ?? '').toString();
-    
-    // Extract location intelligently from multiple possible fields
-    String location = 'Location data unavailable';
-    final checkInAddr = (item['CheckINAddr'] ?? '').toString().trim();
-    final checkOutAddr = (item['CheckoutAddr'] ?? '').toString().trim();
-    
-    if (checkInAddr.isNotEmpty && checkInAddr != '0.000000,0.000000') {
-      location = checkInAddr.replaceAll('Address :', '').trim();
-    } else if (checkOutAddr.isNotEmpty && checkOutAddr != '0.000000,0.000000') {
-      location = checkOutAddr.replaceAll('Address :', '').trim();
-    } else {
-      location = (item['Location'] ?? item['locationinfo'] ?? 'Location data unavailable').toString();
-    }
-
-    final deviceId = (item['DeviceID'] ?? item['deviceinfo'] ?? 'Device info unavailable').toString();
-    
-    // Clean up backend location duplication bugs based on device type
-    final dLow = deviceId.toLowerCase();
-    if (dLow.contains('external') || dLow.contains('adms')) {
-      location = 'Location data unavailable';
-    } else if (!dLow.contains('bluetooth') && !dLow.contains('ble') && location.toLowerCase().contains('ble beacon')) {
-      location = 'Location data unavailable';
-    }
-
-    final selfieUrl = (item['SelfieUrl'] ?? item['PunchImage'] ?? '').toString();
-
-    // Extract raw GPS coordinates from CheckINAddr or CheckoutAddr
-    String? mapLat, mapLng;
-    final coordRegex = RegExp(r'(-?\d+\.\d+)[,/](-?\d+\.\d+)');
-    for (final addr in [checkInAddr, checkOutAddr]) {
-      final match = coordRegex.firstMatch(addr);
-      if (match != null) {
-        final lat = double.tryParse(match.group(1)!);
-        final lng = double.tryParse(match.group(2)!);
-        if (lat != null && lng != null && (lat != 0 || lng != 0)) {
-          mapLat = match.group(1);
-          mapLng = match.group(2);
-          break;
-        }
-      }
-    }
-    final hasCoords = mapLat != null && mapLng != null;
-    final googleMapsUrl = hasCoords ? 'https://maps.google.com/?q=$mapLat,$mapLng' : null;
-
-    showDialog(
-      context: context,
-      builder: (ctx) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Punch Details', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF0F172A))),
-              const SizedBox(height: 20),
-              
-              if (selfieUrl.isNotEmpty) 
-                Center(
-                  child: Container(
-                    height: 120, width: 90, 
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(10),
-                      image: DecorationImage(image: NetworkImage(selfieUrl), fit: BoxFit.cover),
-                    ),
-                  ),
-                )
-              else 
-                Center(
-                  child: Container(
-                    height: 100, width: 100,
-                    decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF0F172A) : Colors.grey[100], 
-                      shape: BoxShape.circle,
-                      border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-                    ),
-                    child: Icon(Icons.person_outline, size: 48, color: isDark ? Colors.grey[500] : Colors.grey[400]),
-                  ),
-                ),
-              const SizedBox(height: 24),
-              
-              _detailRow('Date', date, isDark),
-              _detailRow('Status', _label(type), isDark),
-              const SizedBox(height: 16),
-              
-              // Grouped Check In/Out Times
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-                ),
-                child: Column(
-                  children: [
-                    _detailRow('Check In', checkIn.isEmpty ? '--:--' : checkIn, isDark),
-                    _detailRow('Check Out', checkOut.isEmpty ? '--:--' : checkOut, isDark),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              
-              _detailRow('Device', deviceId, isDark),
-
-              // Google Maps preview (using InAppWebView to render iframe like web without APIs)
-              if (hasCoords) ...[  
-                const SizedBox(height: 12),
-                const Text('Location Map', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF64748B))),
-                const SizedBox(height: 8),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    height: 150, 
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF0F172A) : Colors.grey[200],
-                      border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: GestureDetector(
-                      onTap: () async {
-                        final uri = Uri.parse(googleMapsUrl!);
-                        if (await canLaunchUrl(uri)) await launchUrl(uri, mode: LaunchMode.externalApplication);
-                      },
-                      child: AbsorbPointer(
-                        child: InAppWebView(
-                          initialSettings: InAppWebViewSettings(
-                            transparentBackground: true,
-                            disableHorizontalScroll: true,
-                            disableVerticalScroll: true,
-                            supportZoom: false,
-                            builtInZoomControls: false,
-                            displayZoomControls: false,
-                          ),
-                          onWebViewCreated: (controller) {
-                            final String htmlContent = '''
-                              <!DOCTYPE html>
-                              <html>
-                                <head>
-                                  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-                                  <style>body { margin: 0; padding: 0; overflow: hidden; background-color: transparent; }</style>
-                                </head>
-                                <body>
-                                  <iframe src="https://maps.google.com/maps?width=100%25&amp;hl=en&amp;q=$mapLat,$mapLng&amp;t=&amp;z=14&amp;ie=UTF8&amp;iwloc=B&amp;output=embed" width="100%" height="150" frameborder="0" scrolling="no" marginheight="0" marginwidth="0"></iframe>
-                                </body>
-                              </html>
-                            ''';
-                            controller.loadData(data: htmlContent);
-                          },
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-              
-              const SizedBox(height: 28),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF10B981),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: const Text('Close', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _detailRow(String label, String value, bool isDark) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 90, 
-            child: Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? Colors.grey[400] : Colors.grey[500]))
-          ),
-          Expanded(
-            child: Text(value, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: isDark ? Colors.white : const Color(0xFF0F172A)))
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _timeSection(BuildContext ctx, String label, String time, {bool isRight = false}) {
-    final isDark = Theme.of(ctx).brightness == Brightness.dark;
-    String displayTime = time.replaceAll('AM', 'am'.tr).replaceAll('PM', 'pm'.tr).replaceAll('am', 'am'.tr).replaceAll('pm', 'pm'.tr);
-    return Container(
-      alignment: Alignment.center,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Text(label, style: TextStyle(fontSize: 11, color: isDark ? Colors.grey[500] : Colors.grey[500])),
-          const SizedBox(height: 4),
-          Text(displayTime, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: isDark ? Colors.white : const Color(0xFF0F172A))),
-        ],
-      ),
-    );
-  }
-
-  String _label(String type) {
-    if (type.isEmpty) return type;
-    switch (type.toLowerCase().trim()) {
-      case 'absent':                                        return 'absent'.tr;
-      case 'absent *p': case 'absent*p':                    return 'absent_p'.tr;
-      case 'present':                                       return 'present'.tr;
-      case 'early':                                         return 'early'.tr;
-      case 'late':                                          return 'late'.tr;
-      case 'less':                                          return 'less_hrs'.tr;
-      case 'regular':                                       return 'regular'.tr;
-      case 'week end': case 'weekend': case 'week_end':     return 'week_end'.tr;
-      case 'holiday':                                       return 'holiday'.tr;
-      default:                                              return type;
-    }
-  }
-
-  Widget _hoursChip(BuildContext ctx, String label, String value, Color color) {
-    final isDark = Theme.of(ctx).brightness == Brightness.dark;
-    return FittedBox(
-      fit: BoxFit.scaleDown,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: color, letterSpacing: 0.5)),
-          ),
-          const SizedBox(width: 6),
-          Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? Colors.white : const Color(0xFF0F172A))),
-        ],
-      ),
-    );
-  }
-
-  int? _calculateWorkedMinutes(String checkInStr, String checkOutStr) {
-    try {
-      final inTime = _parseTimeString(checkInStr);
-      final outTime = _parseTimeString(checkOutStr);
-      if (inTime == null || outTime == null) return null;
-
-      int diffMinutes = outTime.difference(inTime).inMinutes;
-      if (diffMinutes < 0) diffMinutes += 24 * 60;
-      return diffMinutes;
-    } catch (e) {
-      return null;
-    }
-  }
-
-  DateTime? _parseTimeString(String time) {
-    final trimmed = time.trim();
-    if (trimmed.isEmpty) return null;
-    final formats = [
-      'HH:mm:ss', 'HH:mm', 'hh:mm:ss a', 'hh:mm a', 'h:mm:ss a', 'h:mm a',
-    ];
-    for (final fmt in formats) {
-      try {
-        return DateFormat(fmt).parse(trimmed);
-      } catch (_) {}
-    }
-    return null;
   }
 }

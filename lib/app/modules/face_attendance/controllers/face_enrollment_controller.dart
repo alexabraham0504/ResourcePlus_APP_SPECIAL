@@ -159,6 +159,13 @@ class FaceEnrollmentController extends GetxController {
         if (!isLive) {
           statusMessage.value = livenessService.getChallengeInstruction();
           return;
+        } else {
+          // CRITICAL FIX: Liveness just passed (user's head is tilted).
+          // Do NOT capture this frame. Return here so the next incoming frames
+          // are forced to pass the quality check (which requires looking straight)
+          // before capturing.
+          statusMessage.value = 'Please look straight at the camera';
+          return;
         }
       }
 

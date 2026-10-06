@@ -474,16 +474,23 @@ class AttendanceTab extends GetView<HomeController> {
             final fallbackLoc = summary['Location']?.toString() ?? summary['locationinfo']?.toString() ?? '';
             
             for (var punch in rawPunches) {
-              // If punch has its own location data, preserve it — don't overwrite with summary-level data
               final hasPunchLocation = (punch['locationinfo']?.toString() ?? '').isNotEmpty ||
                   (punch['LocationInfo']?.toString() ?? '').isNotEmpty ||
-                  (punch['Location']?.toString() ?? '').isNotEmpty;
+                  (punch['Location']?.toString() ?? '').isNotEmpty ||
+                  (punch['CheckINAddr']?.toString() ?? '').isNotEmpty ||
+                  (punch['CheckoutAddr']?.toString() ?? '').isNotEmpty ||
+                  (punch['Latitude']?.toString() ?? '').isNotEmpty ||
+                  (punch['PunchLat']?.toString() ?? '').isNotEmpty ||
+                  (punch['Lat']?.toString() ?? '').isNotEmpty;
               if (hasPunchLocation) continue;
               
-              final type = punch['Type']?.toString().toUpperCase() ?? '';
+              final type = (punch['PunchType'] ?? punch['Type'] ?? '').toString().toUpperCase();
               if (type == 'IN' && inAddr.isNotEmpty) punch['CheckINAddr'] = inAddr;
               else if (type == 'OUT' && outAddr.isNotEmpty) punch['CheckoutAddr'] = outAddr;
-              if (fallbackLoc.isNotEmpty) punch['Location'] = fallbackLoc;
+              
+              if (fallbackLoc.isNotEmpty) {
+                punch['Location'] = fallbackLoc;
+              }
             }
           }
           
@@ -551,7 +558,7 @@ class AttendanceTab extends GetView<HomeController> {
                           Padding(
                             padding: const EdgeInsets.symmetric(vertical: 24),
                             child: Center(
-                              child: Text('No punch Data'.tr, style: TextStyle(fontSize: 13, color: Colors.grey[400], fontStyle: FontStyle.italic)),
+                              child: Text('no_punch_data'.tr, style: TextStyle(fontSize: 13, color: Colors.grey[400], fontStyle: FontStyle.italic)),
                             ),
                           )
                         else ...[
@@ -613,8 +620,13 @@ class AttendanceTab extends GetView<HomeController> {
         if (cmp == 0) {
           final typeA = ((a['type'] ?? a['PunchType'] ?? '') as String).toUpperCase();
           final typeB = ((b['type'] ?? b['PunchType'] ?? '') as String).toUpperCase();
-          if (typeA == 'OUT' && typeB == 'IN') return -1;
-          if (typeB == 'OUT' && typeA == 'IN') return 1;
+          final isOutA = typeA == 'OUT' || typeA == 'خروج';
+          final isInA = typeA == 'IN' || typeA == 'دخول';
+          final isOutB = typeB == 'OUT' || typeB == 'خروج';
+          final isInB = typeB == 'IN' || typeB == 'دخول';
+          
+          if (isOutA && isInB) return -1;
+          if (isOutB && isInA) return 1;
         }
         
         return cmp;
@@ -664,9 +676,7 @@ class AttendanceTab extends GetView<HomeController> {
             }
             
             final record = punch['record'] ?? punch;
-            
-            final isOut = punchType == 'OUT';
-            
+            final isOut = punchType == 'OUT' || punchType == 'خروج';
             return InkWell(
               onTap: () {
                 showPunchDetailsDialog(context, record);
@@ -1115,7 +1125,7 @@ class AttendanceTab extends GetView<HomeController> {
     final type = findValue(['DayType', 'Type']);
     
     // ── Device ID ────────────────────────────────────────────────────
-    String deviceId = findValue(['DeviceID', 'deviceinfo', 'device', 'device_id', 'macaddress', 'mac_address', 'DeviceName']);
+    String deviceId = findValue(['ExtnlAttDvce', 'DeviceID', 'deviceinfo', 'device', 'device_id', 'macaddress', 'mac_address', 'DeviceName']);
     if (deviceId.isEmpty) deviceId = 'Device info unavailable';
 
     // ── Location extraction ──────────────────────────────────────────
@@ -1130,7 +1140,7 @@ class AttendanceTab extends GetView<HomeController> {
     // Returns [lat, lng] or null
     List<String>? _parseCoords(String raw) {
       // Try pipe separator first (our app format)
-      final pipeMatch = RegExp(r'(-?\d+\.?\d*)\|(-?\d+\.?\d*)').firstMatch(raw);
+      final pipeMatch = RegExp(r'(-?\d+\.?\d*)\s*\|\s*(-?\d+\.?\d*)').firstMatch(raw);
       if (pipeMatch != null) {
         final lat = double.tryParse(pipeMatch.group(1)!);
         final lng = double.tryParse(pipeMatch.group(2)!);
@@ -1139,7 +1149,7 @@ class AttendanceTab extends GetView<HomeController> {
         }
       }
       // Try comma/slash separator
-      final commaMatch = RegExp(r'(-?\d+\.?\d*)[,/](-?\d+\.?\d*)').firstMatch(raw);
+      final commaMatch = RegExp(r'(-?\d+\.?\d*)\s*[,/]\s*(-?\d+\.?\d*)').firstMatch(raw);
       if (commaMatch != null) {
         final lat = double.tryParse(commaMatch.group(1)!);
         final lng = double.tryParse(commaMatch.group(2)!);
@@ -1152,27 +1162,45 @@ class AttendanceTab extends GetView<HomeController> {
 
     // Helper: extract human-readable address from locationinfo string
     String _extractAddress(String raw) {
-      // Format 1: "lat|lng| Address : BLE Beacon DEMO-001,"
+      if (raw.isEmpty || raw == '0.000000,0.000000' || raw == '0|0' || raw == 'null' || raw == '0/0') return '';
+      
+      // Format 1: "lat|lng| Address : BLE Beacon DEMO-001," or "lat|lng| Address : GPS (lat, lng),"
       final addrIdx = raw.toLowerCase().indexOf('address');
       if (addrIdx >= 0) {
-        final extracted = raw.substring(addrIdx)
-            .replaceAll(RegExp(r'^[Aa]ddress\s*:\s*'), '')
-            .replaceAll('Address :', '')
-            .trim()
-            .replaceAll(RegExp(r',\s*$'), '')
-            .trim();
-        // If what's after "Address :" is just more coordinates, show them as GPS location
-        if (extracted.isNotEmpty) return extracted;
+        String extracted = raw.substring(addrIdx);
+        // Remove the "Address :" or "address:" prefix
+        extracted = extracted.replaceFirst(RegExp(r'^[Aa]ddress\s*:\s*'), '').trim();
+        extracted = extracted.replaceAll(RegExp(r',\s*$'), '').trim();
+        
+        // Check if what remains is just raw lat/lng numbers (e.g., "24.730000/46.766000")
+        // If so, prefer to show them as "GPS (lat, lng)"
+        final isJustCoords = RegExp(r'^-?\d+\.\d+\s*[/|,]\s*-?\d+\.\d+$').hasMatch(extracted);
+        if (isJustCoords) {
+          // Format it as proper GPS coordinates
+          final coordParts = extracted.split(RegExp(r'[/|,]'));
+          if (coordParts.length >= 2) {
+            final lat = coordParts[0].trim();
+            final lng = coordParts[1].trim();
+            return 'GPS ($lat, $lng)';
+          }
+        }
+        
+        if (extracted.isNotEmpty && extracted != '0/0' && extracted.toLowerCase() != 'no location') {
+          return extracted;
+        }
       }
-      // Format 2: Pure GPS string like "24.713552,46.675297" — strip coords and check for leftover text
-      final stripped = raw
-          .replaceAll(RegExp(r'-?\d+\.?\d*[|,/]-?\d+\.?\d*[|,/]?'), '')
-          .replaceAll('|', '')
-          .replaceAll(',', '')
-          .trim();
-      // If there's meaningful text left after stripping numbers, show it
-      if (stripped.length > 3) return stripped;
-      // Otherwise, the raw value IS just coordinates — they'll be shown via mapLat/mapLng fallback
+      
+      // Format 2: Pure GPS string like "24.713552|46.675297" — parse and format
+      final coords = _parseCoords(raw);
+      if (coords != null) {
+        return 'GPS (${coords[0]}, ${coords[1]})';
+      }
+      
+      // Format 3: Plain location text like "Dubai Office" or "Riyadh"
+      if (raw.isNotEmpty && raw != '0/0' && raw.toLowerCase() != 'no location' && !raw.contains('|')) {
+        return raw;
+      }
+      
       return '';
     }
 
@@ -1187,7 +1215,7 @@ class AttendanceTab extends GetView<HomeController> {
     
     for (final fieldKey in locationFields) {
       final raw = findValue([fieldKey]);
-      if (raw.isEmpty || raw == '0.000000,0.000000' || raw == '0|0' || raw == 'null') continue;
+      if (raw.isEmpty || raw == '0.000000,0.000000' || raw == '0|0' || raw == 'null' || raw == '0/0') continue;
       
       // Try to extract GPS coordinates
       if (mapLat == null) {
@@ -1201,7 +1229,7 @@ class AttendanceTab extends GetView<HomeController> {
       // Extract human-readable address
       if (location.isEmpty) {
         final addr = _extractAddress(raw);
-        if (addr.isNotEmpty && addr.length > 2) {
+        if (addr.isNotEmpty) {
           location = addr;
         }
       }
@@ -1211,8 +1239,8 @@ class AttendanceTab extends GetView<HomeController> {
     
     // Also try explicit lat/lng fields
     if (mapLat == null) {
-      final rawLat = findValue(['Latitude', 'lat', 'Lat']);
-      final rawLng = findValue(['Longitude', 'lng', 'long', 'Lng']);
+      final rawLat = findValue(['Latitude', 'lat', 'Lat', 'PunchLat', 'GpsLat']);
+      final rawLng = findValue(['Longitude', 'lng', 'long', 'Lng', 'PunchLng', 'GpsLng']);
       if (rawLat.isNotEmpty && rawLng.isNotEmpty) {
         final lat = double.tryParse(rawLat);
         final lng = double.tryParse(rawLng);
@@ -1223,9 +1251,11 @@ class AttendanceTab extends GetView<HomeController> {
       }
     }
 
-    // If we have coords but no readable address, show coords as fallback
-    if (location.isEmpty && mapLat != null && mapLng != null) {
-      location = '$mapLat, $mapLng';
+    // If we have coords but no readable address, OR if it's a misplaced beacon text, show coords
+    if (mapLat != null && mapLng != null) {
+      if (location.isEmpty || location.contains('BLE Beacon') || location.contains('Address :')) {
+        location = '$mapLat, $mapLng';
+      }
     }
     
     String connection = findValue(['ConnectionName']);
@@ -1497,10 +1527,26 @@ class AttendanceTab extends GetView<HomeController> {
               ),
               const SizedBox(height: 16),
               
-              _detailRow('device'.tr, deviceId, isDark),
+              // Translate raw English strings sent from backend for device/location
+              _detailRow('device'.tr, () {
+                String d = deviceId;
+                final dLow = d.toLowerCase();
+                if (dLow.contains('bluetooth')) d = d.replaceAll(RegExp(r'bluetooth', caseSensitive: false), 'bluetooth'.tr);
+                if (dLow.contains('face detection') || dLow.contains('face punch') || dLow.contains('face')) d = 'face_punch'.tr;
+                if (dLow.contains('fingerprint')) d = 'fingerprint'.tr;
+                if (dLow.contains('qr') || dLow.contains('scan')) d = 'qr_scan'.tr;
+                if (dLow.contains('selfie')) d = d.replaceAll(RegExp(r'selfie', caseSensitive: false), 'selfie_punch'.tr);
+                return d;
+              }(), isDark),
               
-              // Always show location - show whatever the backend sent
-              _detailRow('location'.tr, location.isNotEmpty ? location : 'location_not_available'.tr, isDark),
+              // Always show location - show whatever the backend sent but translated if BLE
+              _detailRow('location'.tr, () {
+                String loc = location.isNotEmpty ? location : 'location_not_available'.tr;
+                if (loc.toLowerCase().contains('ble beacon')) {
+                  loc = loc.replaceAll(RegExp(r'ble beacon', caseSensitive: false), 'ble_beacon'.tr);
+                }
+                return loc;
+              }(), isDark),
               
               // Google Maps preview (using InAppWebView to render iframe like web without APIs)
               if (hasCoords) ...[  

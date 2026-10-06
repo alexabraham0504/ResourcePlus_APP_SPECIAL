@@ -124,7 +124,7 @@ class HrPortalView extends GetView<HrPortalController> {
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
-                                    'Current Time',
+                                    'current_time'.tr,
                                     style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600,
@@ -386,7 +386,7 @@ class HrPortalView extends GetView<HrPortalController> {
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
               child: Text(
-                'See More',
+                'see_more'.tr,
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,

@@ -30,7 +30,7 @@ class AttendanceSecurityService {
       if (!enabled) return '0.000000|0.000000| Address : Location Disabled,';
       
       final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.best),
       );
       
       final lat = position.latitude.toStringAsFixed(6);

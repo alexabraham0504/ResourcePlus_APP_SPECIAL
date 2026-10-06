@@ -107,19 +107,19 @@ class _ShiftLocationBlockState extends State<ShiftLocationBlock> {
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        if (mounted) setState(() => _currentCoordinates = 'Location disabled');
+        if (mounted) setState(() => _currentCoordinates = 'location_disabled_short'.tr);
         return;
       }
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-          if (mounted) setState(() => _currentCoordinates = 'Permission denied');
+          if (mounted) setState(() => _currentCoordinates = 'permission_denied_short'.tr);
           return;
         }
       }
       if (permission == LocationPermission.deniedForever) {
-        if (mounted) setState(() => _currentCoordinates = 'Permission denied forever');
+        if (mounted) setState(() => _currentCoordinates = 'permission_denied_forever_short'.tr);
         return;
       }
 
@@ -135,7 +135,7 @@ class _ShiftLocationBlockState extends State<ShiftLocationBlock> {
 
       // Get accurate current position (allow up to 15 seconds)
       Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
+        desiredAccuracy: LocationAccuracy.best,
         timeLimit: const Duration(seconds: 15),
       );
       

@@ -176,7 +176,7 @@ class FaceDetectionPunchController extends GetxController {
       );
       await cameraController!.initialize();
       isCameraInitialized.value = true;
-      statusMessage.value = 'Position your face inside the oval';
+      statusMessage.value = 'position_face_guide'.tr;
       _startFaceDetection();
     } catch (e) {
       statusMessage.value = 'Camera error';
@@ -255,10 +255,10 @@ class FaceDetectionPunchController extends GetxController {
   }
 
   String _locationInfo() {
-    if (_currentPosition == null) return '0.000000|0.000000| Address : 0/0,';
+    if (_currentPosition == null) return '0.000000|0.000000| Address : No Location,';
     final lat = _currentPosition!.latitude.toStringAsFixed(6);
     final lng = _currentPosition!.longitude.toStringAsFixed(6);
-    return '$lat|$lng| Address : $lat/$lng,';
+    return '$lat|$lng| Address : GPS ($lat, $lng),';
   }
 
   Future<void> _submit(Uint8List imageBytes, String checkType) async {
@@ -328,7 +328,7 @@ class FaceDetectionPunchController extends GetxController {
     isFaceDetected.value = false;
     Future.delayed(const Duration(seconds: 2), () {
       punchError.value = false;
-      statusMessage.value = 'Position your face inside the oval';
+      statusMessage.value = 'position_face_guide'.tr;
       _startFaceDetection();
     });
   }

@@ -20,6 +20,7 @@ class ApiEndpoints {
   static const String getProfileData = '$baseUrl/Mobile/api/Client/GetProfileData';
   static const String getNotifcnData = '$baseUrl/Mobile/api/Client/GetNotifcnData';
   // static const String updateReadStatus = '$baseUrl/Mobile/api/Client/UpdateReadStatus';
+  static const String getAttendanceSummary = '$baseUrl/api/AI/AttendanceSummary';
 
   static const String getSettingsData = '$baseUrl/Mobile/api/Client/GetSettingsData';
   static const String getProfPicture = '$baseUrl/Mobile/api/Client/GetProfPicture';

@@ -18,7 +18,7 @@ class QRAttendanceController extends GetxController {
   final MockLocalPunchRepository _punchRepo = MockLocalPunchRepository();
 
   RxBool isScanning = true.obs;
-  RxString statusMessage = 'Align the QR code within the frame'.obs;
+  RxString statusMessage = 'align_qr'.tr.obs;
   RxString foundQrData = ''.obs;
 
   @override
@@ -102,7 +102,7 @@ class QRAttendanceController extends GetxController {
 
       await _punchRepo.savePunch(record);
       
-      statusMessage.value = 'Punch Successful!';
+      statusMessage.value = 'punch_success'.tr;
       
       // Give the user time to read the success message before going back
       await Future.delayed(const Duration(seconds: 2));
