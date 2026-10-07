@@ -676,7 +676,8 @@ class AttendanceTab extends GetView<HomeController> {
             }
             
             final record = punch['record'] ?? punch;
-            final isOut = punchType == 'OUT' || punchType == 'خروج';
+            final pType = punchType.trim().toUpperCase();
+            final isOut = pType == 'OUT' || pType == 'خروج' || pType.contains('OUT') || pType.contains('خروج');
             return InkWell(
               onTap: () {
                 showPunchDetailsDialog(context, record);
@@ -721,6 +722,9 @@ class AttendanceTab extends GetView<HomeController> {
 
   static String _translateDevice(String deviceName) {
     final dLow = deviceName.toLowerCase();
+    if (dLow.contains('android')) return 'android_mobile'.tr;
+    if (dLow.contains('ios') || dLow.contains('iphone') || dLow.contains('ipad')) return 'ios_mobile'.tr;
+    
     if (dLow.contains('finger')) return 'fingerprint'.tr;
     if (dLow.contains('face')) return 'face_punch'.tr;
     if (dLow.contains('selfie')) return 'selfie_punch'.tr;
@@ -1527,15 +1531,21 @@ class AttendanceTab extends GetView<HomeController> {
               ),
               const SizedBox(height: 16),
               
-              // Translate raw English strings sent from backend for device/location
               _detailRow('device'.tr, () {
                 String d = deviceId;
                 final dLow = d.toLowerCase();
+                
+                if (dLow.contains('android')) return 'android_mobile'.tr;
+                if (dLow.contains('ios') || dLow.contains('iphone') || dLow.contains('ipad')) return 'ios_mobile'.tr;
+                
                 if (dLow.contains('bluetooth')) d = d.replaceAll(RegExp(r'bluetooth', caseSensitive: false), 'bluetooth'.tr);
                 if (dLow.contains('face detection') || dLow.contains('face punch') || dLow.contains('face')) d = 'face_punch'.tr;
                 if (dLow.contains('fingerprint')) d = 'fingerprint'.tr;
                 if (dLow.contains('qr') || dLow.contains('scan')) d = 'qr_scan'.tr;
                 if (dLow.contains('selfie')) d = d.replaceAll(RegExp(r'selfie', caseSensitive: false), 'selfie_punch'.tr);
+                
+                // Strip unnecessary parentheses if they exist
+                d = d.replaceAll(RegExp(r'^\s*Selfie\s*\(\s*(.*?)\s*\)\s*$', caseSensitive: false), r'$1');
                 return d;
               }(), isDark),
               
@@ -1715,12 +1725,12 @@ class AttendanceTab extends GetView<HomeController> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('The API currently returns predefined recent activities. Advanced server-side date filtering will be implemented in the next backend update.', style: TextStyle(fontSize: 13, color: Colors.grey)),
+              Text('filter_api_notice'.tr, style: const TextStyle(fontSize: 13, color: Colors.grey)),
               const SizedBox(height: 16),
               ListTile(
                 leading: const Icon(Icons.calendar_today),
-                title: const Text('Select Date Range'),
-                subtitle: const Text('Coming soon'),
+                title: Text('select_date_range'.tr),
+                subtitle: Text('coming_soon'.tr),
                 onTap: () {},
                 enabled: false,
               ),

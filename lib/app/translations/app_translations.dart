@@ -138,6 +138,31 @@ class AppTranslations extends Translations {
       'days': 'days',
       'check_in': 'Check-in',
       'check_out': 'Check-out',
+      
+      // Devices
+      'android_mobile': 'Android Mobile',
+      'ios_mobile': 'iOS Mobile',
+
+      // Snackbars
+      'notice': 'Notice',
+      'no_punches_found': 'No punches found for this date',
+      'error': 'Error',
+      'failed_fetch_punches': 'Failed to fetch punch details',
+      
+      // Months & Weekdays
+      'January': 'January', 'February': 'February', 'March': 'March', 'April': 'April',
+      'May': 'May', 'June': 'June', 'July': 'July', 'August': 'August',
+      'September': 'September', 'October': 'October', 'November': 'November', 'December': 'December',
+      'Mon': 'Mon', 'Tue': 'Tue', 'Wed': 'Wed', 'Thu': 'Thu', 'Fri': 'Fri', 'Sat': 'Sat', 'Sun': 'Sun',
+
+      // Day Types
+      'Present': 'Present',
+      'Absent': 'Absent',
+      'Week End': 'Week End',
+      'Leave': 'Leave',
+      'Late In': 'Late In',
+      'Early Out': 'Early Out',
+      'Regular': 'Regular',
       'no_checkin_data': 'No check-in/out data',
       'legend': 'Legend',
       'error_loading_attendance': 'Error Loading Attendance Data',
@@ -314,6 +339,9 @@ class AppTranslations extends Translations {
       'connection_error': 'Connection Error',
       'recent_records': 'Recent Records',
       'filter_by_date': 'Filter by Date',
+      'filter_api_notice': 'The API currently returns predefined recent activities. Advanced server-side date filtering will be implemented in the next backend update.',
+      'select_date_range': 'Select Date Range',
+      'coming_soon': 'Coming soon',
       'no_punch_data': 'No punch data available',
       'no_records': 'No records to display',
       'hello_there': 'Hello, ',
@@ -731,6 +759,31 @@ class AppTranslations extends Translations {
       'days': 'أيام',
       'check_in': 'تسجيل الدخول',
       'check_out': 'تسجيل الخروج',
+      
+      // Devices
+      'android_mobile': 'هاتف أندرويد',
+      'ios_mobile': 'هاتف iOS',
+
+      // Snackbars
+      'notice': 'ملاحظة',
+      'no_punches_found': 'لم يتم العثور على بصمات لهذا التاريخ',
+      'error': 'خطأ',
+      'failed_fetch_punches': 'فشل في جلب تفاصيل البصمة',
+      
+      // Months & Weekdays
+      'January': 'يناير', 'February': 'فبراير', 'March': 'مارس', 'April': 'أبريل',
+      'May': 'مايو', 'June': 'يونيو', 'July': 'يوليو', 'August': 'أغسطس',
+      'September': 'سبتمبر', 'October': 'أكتوبر', 'November': 'نوفمبر', 'December': 'ديسمبر',
+      'Mon': 'الاثنين', 'Tue': 'الثلاثاء', 'Wed': 'الأربعاء', 'Thu': 'الخميس', 'Fri': 'الجمعة', 'Sat': 'السبت', 'Sun': 'الأحد',
+
+      // Day Types
+      'Present': 'حاضر',
+      'Absent': 'غائب',
+      'Week End': 'نهاية الأسبوع',
+      'Leave': 'إجازة',
+      'Late In': 'تأخير',
+      'Early Out': 'خروج مبكر',
+      'Regular': 'طبيعي',
       'no_checkin_data': 'لا توجد بيانات تسجيل الدخول/الخروج',
       'legend': 'وسيلة الإيضاح',
       'error_loading_attendance': 'خطأ في تحميل بيانات الحضور',
@@ -924,6 +977,9 @@ class AppTranslations extends Translations {
       'connection_error': 'خطأ في الاتصال',
       'recent_records': 'السجلات الحديثة',
       'filter_by_date': 'التصفية حسب التاريخ',
+      'filter_api_notice': 'الواجهة تُرجع حالياً الأنشطة المحددة مسبقاً. سيتم تنفيذ تصفية التواريخ المتقدمة في التحديث القادم.',
+      'select_date_range': 'حدد نطاق التاريخ',
+      'coming_soon': 'قريباً',
       'no_punch_data': 'لا تتوفر بيانات تسجيل',
       'no_records': 'لا توجد سجلات لعرضها',
       'hello_there': 'مرحباً، ',

@@ -1,3 +1,4 @@
+
 import 'package:get_storage/get_storage.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -65,6 +66,7 @@ class CacheService {
     final username = storage.read('username');
     final email = storage.read('email');
     final isLoggedIn = storage.read('isLoggedIn');
+    final otpVerified = storage.read('otpVerified');
     
     // Server & Employee data
     final webLink = storage.read('webLink');
@@ -93,6 +95,7 @@ class CacheService {
     if (username != null) storage.write('username', username);
     if (email != null) storage.write('email', email);
     if (isLoggedIn != null) storage.write('isLoggedIn', isLoggedIn);
+    if (otpVerified != null) storage.write('otpVerified', otpVerified);
     
     if (webLink != null) storage.write('webLink', webLink);
     if (empDisplayName != null) storage.write('empDisplayName', empDisplayName);

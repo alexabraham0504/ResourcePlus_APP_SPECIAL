@@ -466,7 +466,7 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
       if (mounted) Navigator.pop(context); // Close loading
       
       if (rawPunches.isEmpty) {
-        Get.snackbar('Notice', 'No punches found for this date', snackPosition: SnackPosition.BOTTOM);
+        Get.snackbar('notice'.tr, 'no_punches_found'.tr, snackPosition: SnackPosition.BOTTOM);
         return;
       }
 
@@ -523,7 +523,7 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
       );
     } catch (e) {
       if (mounted) Navigator.pop(context); // Close loading
-      Get.snackbar('Error', 'Failed to fetch punch details', backgroundColor: Colors.red, colorText: Colors.white);
+      Get.snackbar('error'.tr, 'failed_fetch_punches'.tr, backgroundColor: Colors.red, colorText: Colors.white);
     }
   }
 
@@ -570,10 +570,10 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
               int m = int.parse(parts[1]);
               int y = int.parse(parts[2]);
               DateTime dt = (d > 12 && m <= 12) ? DateTime(y, m, d) : ((m > 12 && d <= 12) ? DateTime(y, d, m) : DateTime(y, m, d));
-              monthStr = DateFormat('MMMM').format(dt);
+              monthStr = DateFormat('MMMM').format(dt).tr;
               yearStr = DateFormat('yyyy').format(dt);
               dayStr = DateFormat('dd').format(dt);
-              weekdayStr = DateFormat('EEE').format(dt);
+              weekdayStr = DateFormat('EEE').format(dt).tr;
             }
           }
         } catch (_) {}
@@ -614,7 +614,7 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
                       children: [
                         Container(width: 6, height: 6, decoration: BoxDecoration(color: statusColor, shape: BoxShape.circle)),
                         const SizedBox(width: 6),
-                        Text(day['DayType']?.toString() ?? '', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: (isDark ? Colors.white : Colors.grey[600])?.withValues(alpha: 0.8))),
+                        Text((day['DayType']?.toString() ?? '').tr, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: (isDark ? Colors.white : Colors.grey[600])?.withValues(alpha: 0.8))),
                       ],
                     ),
                   ],
