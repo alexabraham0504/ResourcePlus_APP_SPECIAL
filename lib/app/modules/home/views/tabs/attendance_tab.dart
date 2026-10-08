@@ -620,10 +620,10 @@ class AttendanceTab extends GetView<HomeController> {
         if (cmp == 0) {
           final typeA = ((a['type'] ?? a['PunchType'] ?? '') as String).toUpperCase();
           final typeB = ((b['type'] ?? b['PunchType'] ?? '') as String).toUpperCase();
-          final isOutA = typeA == 'OUT' || typeA == 'خروج';
-          final isInA = typeA == 'IN' || typeA == 'دخول';
-          final isOutB = typeB == 'OUT' || typeB == 'خروج';
-          final isInB = typeB == 'IN' || typeB == 'دخول';
+          final isOutA = typeA.contains('OUT') || typeA.contains('خروج') || typeA.contains('انصراف');
+          final isInA = typeA.contains('IN') || typeA.contains('دخول') || typeA.contains('حضور');
+          final isOutB = typeB.contains('OUT') || typeB.contains('خروج') || typeB.contains('انصراف');
+          final isInB = typeB.contains('IN') || typeB.contains('دخول') || typeB.contains('حضور');
           
           if (isOutA && isInB) return -1;
           if (isOutB && isInA) return 1;
@@ -677,7 +677,7 @@ class AttendanceTab extends GetView<HomeController> {
             
             final record = punch['record'] ?? punch;
             final pType = punchType.trim().toUpperCase();
-            final isOut = pType == 'OUT' || pType == 'خروج' || pType.contains('OUT') || pType.contains('خروج');
+            final isOut = pType.contains('OUT') || pType.contains('خروج') || pType.contains('انصراف');
             return InkWell(
               onTap: () {
                 showPunchDetailsDialog(context, record);
