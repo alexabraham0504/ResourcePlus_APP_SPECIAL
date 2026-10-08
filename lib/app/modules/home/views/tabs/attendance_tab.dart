@@ -91,16 +91,13 @@ class AttendanceTab extends GetView<HomeController> {
   static const _neutral    = Color(0xFF64748B); // Slate 500
 
   Color _statusColor(String dayType) {
-    switch (dayType.toLowerCase().trim()) {
-      case 'present':                              return _present;
-      case 'absent': case 'absent *p': case 'absent*p': return _absent;
-      case 'late':                                 return _late;
-      case 'early':                                return _present;
-      case 'week end': case 'weekend':             return _weekend;
-      case 'half day': case 'halfday':             return _late;
-      case 'leave':                                return _weekend;
-      default:                                     return _neutral;
-    }
+    final t = dayType.toLowerCase().trim();
+    if (t == 'present' || t == 'حاضر') return _present;
+    if (t.contains('absent') || t.contains('غائب')) return _absent;
+    if (t.contains('late') || t.contains('متأخر') || t.contains('تأخير') || t.contains('half')) return _late;
+    if (t.contains('early') || t.contains('مبكر')) return _present;
+    if (t.contains('week end') || t.contains('weekend') || t.contains('نهاية') || t.contains('leave') || t.contains('إجازة')) return _weekend;
+    return _neutral;
   }
 
   @override
@@ -224,8 +221,16 @@ class AttendanceTab extends GetView<HomeController> {
           itemCount: controller.attendanceCounts.length,
           itemBuilder: (_, i) {
             final item = controller.attendanceCounts[i];
-            final type = item['CountType'] ?? '';
-            final days = item['NoOfDays'] ?? 0;
+            var type = (item['CountType'] ?? item['Type'] ?? item['status'] ?? '').toString().trim();
+            
+            // Fallback for Arabic API translation issues where CountType might return empty string
+            if (type.isEmpty) {
+              if (i == 0) type = 'present';
+              else if (i == 1) type = 'absent';
+              else if (i == 2) type = 'late';
+            }
+            
+            final days = item['NoOfDays'] ?? item['days'] ?? item['count'] ?? 0;
             final c = _statusColor(type);
             
             return Container(
@@ -434,6 +439,9 @@ class AttendanceTab extends GetView<HomeController> {
       final cout = (r['CheckOut'] ?? '').toString();
       if (overallCheckOut.isEmpty && cout.isNotEmpty) overallCheckOut = cout;
     }
+
+    overallCheckIn = overallCheckIn.replaceAll('AM', 'am'.tr).replaceAll('PM', 'pm'.tr).replaceAll('am', 'am'.tr).replaceAll('pm', 'pm'.tr);
+    overallCheckOut = overallCheckOut.replaceAll('AM', 'am'.tr).replaceAll('PM', 'pm'.tr).replaceAll('am', 'am'.tr).replaceAll('pm', 'pm'.tr);
 
     return Material(
       color: Colors.transparent,
@@ -645,7 +653,8 @@ class AttendanceTab extends GetView<HomeController> {
           runSpacing: 12,
           children: List.generate(sortedPunches.length, (index) {
             final punch = sortedPunches[index];
-            final timeVal = (punch['time'] ?? punch['PunchTime'] ?? '').toString();
+            String timeVal = (punch['time'] ?? punch['PunchTime'] ?? '').toString();
+            timeVal = timeVal.replaceAll('AM', 'am'.tr).replaceAll('PM', 'pm'.tr).replaceAll('am', 'am'.tr).replaceAll('pm', 'pm'.tr);
             final punchType = ((punch['type'] ?? punch['PunchType'] ?? 'IN') as String).toUpperCase();
             String device = (punch['device'] ?? punch['DeviceName'] ?? '').toString();
             
@@ -724,7 +733,6 @@ class AttendanceTab extends GetView<HomeController> {
     final dLow = deviceName.toLowerCase();
     if (dLow.contains('android')) return 'android_mobile'.tr;
     if (dLow.contains('ios') || dLow.contains('iphone') || dLow.contains('ipad')) return 'ios_mobile'.tr;
-    
     if (dLow.contains('finger')) return 'fingerprint'.tr;
     if (dLow.contains('face')) return 'face_punch'.tr;
     if (dLow.contains('selfie')) return 'selfie_punch'.tr;
@@ -1538,17 +1546,18 @@ class AttendanceTab extends GetView<HomeController> {
                 if (dLow.contains('android')) return 'android_mobile'.tr;
                 if (dLow.contains('ios') || dLow.contains('iphone') || dLow.contains('ipad')) return 'ios_mobile'.tr;
                 
-                if (dLow.contains('bluetooth')) d = d.replaceAll(RegExp(r'bluetooth', caseSensitive: false), 'bluetooth'.tr);
-                if (dLow.contains('face detection') || dLow.contains('face punch') || dLow.contains('face')) d = 'face_punch'.tr;
-                if (dLow.contains('fingerprint')) d = 'fingerprint'.tr;
-                if (dLow.contains('qr') || dLow.contains('scan')) d = 'qr_scan'.tr;
-                if (dLow.contains('selfie')) d = d.replaceAll(RegExp(r'selfie', caseSensitive: false), 'selfie_punch'.tr);
+                if (dLow.contains('bluetooth')) return 'bluetooth'.tr;
+                if (dLow.contains('face detection') || dLow.contains('face punch') || dLow.contains('face')) return 'face_punch'.tr;
+                if (dLow.contains('fingerprint')) return 'fingerprint'.tr;
+                if (dLow.contains('qr') || dLow.contains('scan')) return 'qr_scan'.tr;
+                if (dLow.contains('selfie')) return 'selfie_punch'.tr;
                 
                 // Strip unnecessary parentheses if they exist
                 d = d.replaceAll(RegExp(r'^\s*Selfie\s*\(\s*(.*?)\s*\)\s*$', caseSensitive: false), r'$1');
                 return d;
               }(), isDark),
               
+
               // Always show location - show whatever the backend sent but translated if BLE
               _detailRow('location'.tr, () {
                 String loc = location.isNotEmpty ? location : 'location_not_available'.tr;
@@ -1752,18 +1761,17 @@ class AttendanceTab extends GetView<HomeController> {
   // ═══════════════════════════════════════════════════════════
   static String _label(String type) {
     if (type.isEmpty) return type;
-    switch (type.toLowerCase().trim()) {
-      case 'absent':                                        return 'absent'.tr;
-      case 'absent *p': case 'absent*p':                    return 'absent_p'.tr;
-      case 'present':                                       return 'present'.tr;
-      case 'early':                                         return 'early'.tr;
-      case 'late':                                          return 'late'.tr;
-      case 'less':                                          return 'less_hrs'.tr;
-      case 'regular':                                       return 'regular'.tr;
-      case 'week end': case 'weekend': case 'week_end':     return 'week_end'.tr;
-      case 'holiday':                                       return 'holiday'.tr;
-      default:                                              return type;
-    }
+    final t = type.toLowerCase().trim();
+    if (t == 'absent' || t == 'غائب') return 'absent'.tr;
+    if (t == 'absent *p' || t == 'absent*p') return 'absent_p'.tr;
+    if (t == 'present' || t == 'حاضر') return 'present'.tr;
+    if (t == 'early' || t == 'مبكر') return 'early'.tr;
+    if (t == 'late' || t == 'متأخر' || t == 'تأخير') return 'late'.tr;
+    if (t == 'less' || t == 'ساعات ناقصة') return 'less_hrs'.tr;
+    if (t == 'regular' || t == 'منتظم') return 'regular'.tr;
+    if (t == 'week end' || t == 'weekend' || t == 'نهاية الأسبوع') return 'week_end'.tr;
+    if (t == 'holiday' || t == 'عطلة') return 'holiday'.tr;
+    return type.trim();
   }
 
   Widget _hoursChip(BuildContext ctx, String label, String value, Color color) {

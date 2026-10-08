@@ -354,6 +354,9 @@ class HomeTab extends GetView<HomeController> {
         final dt = (rec['DayType'] ?? '').toString().trim();
         if (dt.isNotEmpty) status = dt;
         else if (checkIn != '--:--') status = 'Present';
+
+        checkIn = checkIn.replaceAll('AM', 'am'.tr).replaceAll('PM', 'pm'.tr).replaceAll('am', 'am'.tr).replaceAll('pm', 'pm'.tr);
+        checkOut = checkOut.replaceAll('AM', 'am'.tr).replaceAll('PM', 'pm'.tr).replaceAll('am', 'am'.tr).replaceAll('pm', 'pm'.tr);
       }
 
       String nth = '', lsh = '';

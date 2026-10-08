@@ -582,8 +582,10 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
            dayStr = actualDateStr.split('/').first;
         }
 
-        final overallCheckIn = (day['CheckIN'] ?? '').toString().trim();
-        final overallCheckOut = (day['CheckOut'] ?? '').toString().trim();
+        String overallCheckIn = (day['CheckIN'] ?? '').toString().trim();
+        String overallCheckOut = (day['CheckOut'] ?? '').toString().trim();
+        overallCheckIn = overallCheckIn.replaceAll('AM', 'am'.tr).replaceAll('PM', 'pm'.tr).replaceAll('am', 'am'.tr).replaceAll('pm', 'pm'.tr);
+        overallCheckOut = overallCheckOut.replaceAll('AM', 'am'.tr).replaceAll('PM', 'pm'.tr).replaceAll('am', 'am'.tr).replaceAll('pm', 'pm'.tr);
         final nth = (day['NetHrs'] ?? '').toString().trim();
         final lsh = (day['LessHrs'] ?? '').toString().trim();
 
