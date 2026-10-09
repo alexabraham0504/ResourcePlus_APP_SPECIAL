@@ -16,6 +16,7 @@ class LoginView extends StatefulWidget {
 class _LoginViewState extends State<LoginView> {
   bool _biometricAvailable = false;
   bool _isCheckingBiometric = true;
+  bool _isLockedEmail = false;
   late TextEditingController usernameController;
   late TextEditingController passwordController;
 
@@ -23,7 +24,20 @@ class _LoginViewState extends State<LoginView> {
   void initState() {
     super.initState();
     Get.put(AuthController());
-    usernameController = TextEditingController();
+    
+    final savedEmail = GetStorage().read('email');
+    final savedUsername = GetStorage().read('username');
+    String initialUsername = '';
+    
+    if (savedEmail != null && savedEmail.toString().isNotEmpty) {
+      initialUsername = savedEmail.toString();
+      _isLockedEmail = true;
+    } else if (savedUsername != null && savedUsername.toString().isNotEmpty) {
+      initialUsername = savedUsername.toString();
+      _isLockedEmail = true;
+    }
+
+    usernameController = TextEditingController(text: initialUsername);
     passwordController = TextEditingController();
     _checkBiometricAvailability();
   }
@@ -114,7 +128,13 @@ class _LoginViewState extends State<LoginView> {
                       const SizedBox(height: 24),
                       TextField(
                         controller: usernameController,
-                        style: const TextStyle(fontSize: 16),
+                        readOnly: _isLockedEmail,
+                        enableInteractiveSelection: !_isLockedEmail,
+                        canRequestFocus: !_isLockedEmail,
+                        style: TextStyle(
+                          fontSize: 16, 
+                          color: _isLockedEmail ? (Theme.of(context).brightness == Brightness.dark ? Colors.grey[500] : Colors.grey[600]) : null
+                        ),
                         decoration: InputDecoration(
                           labelText: 'username_or_email'.tr,
                           prefixIcon: Icon(

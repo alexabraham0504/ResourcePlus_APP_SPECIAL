@@ -594,9 +594,7 @@ class AuthController extends GetxController {
     // Clear all stored data except instance name
     // Also clear biometric settings so user must setup again after logout
     await GetStorage().write('isLoggedIn', false);
-    await GetStorage().write('email', '');
     await secureStorage.delete(key: 'password');
-    await GetStorage().write('username', '');
     await GetStorage().write('empDisplayName', '');
     await GetStorage().write('webLink', '');
     await GetStorage().remove('hasBiometric');
